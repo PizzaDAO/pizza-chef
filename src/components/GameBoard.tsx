@@ -19,7 +19,6 @@ interface GameBoardProps {
 
 const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
   const lanes = [0, 1, 2, 3];
-  const [, forceUpdate] = React.useReducer(x => x + 1, 0);
   const [completedScores, setCompletedScores] = useState<Set<string>>(new Set());
 
   // ✅ Measure board size (for px-based translate3d positioning)
@@ -45,11 +44,6 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
   const handleScoreComplete = useCallback((id: string) => {
     setCompletedScores(prev => new Set(prev).add(id));
-  }, []);
-
-  React.useEffect(() => {
-    const interval = setInterval(forceUpdate, 100);
-    return () => clearInterval(interval);
   }, []);
 
   const getOvenStatus = (lane: number) => {

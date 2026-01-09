@@ -2,15 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   GameState,
-  Customer,
   PizzaSlice,
-  EmptyPlate,
-  PowerUp,
+  BossMinion,
+  GameStats,
   PowerUpType,
-  FloatingScore,
-  DroppedPlate,
   StarLostReason,
-  BossMinion
+  EmptyPlate
 } from '../types/game';
 import { soundManager } from '../utils/sounds';
 import { getStreakMultiplier } from '../components/StreakDisplay';
@@ -22,11 +19,10 @@ import {
   SCORING,
   COSTS,
   BOSS_CONFIG,
-  POWERUPS,
-  TIMINGS,
   POSITIONS,
   INITIAL_GAME_STATE,
-  OVEN_CONFIG
+  POWERUPS,
+  TIMINGS
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -52,15 +48,24 @@ import {
 } from '../logic/scoringSystem';
 
 import {
-  checkSliceCustomerCollision,
-  checkSlicePowerUpCollision,
   checkChefPowerUpCollision,
   checkChefPlateCollision,
-  checkNyanSweepCollision,
-  checkStarPowerRange,
   checkMinionReachedChef,
-  checkSliceMinionCollision
+  checkSliceMinionCollision,
+  checkSlicePowerUpCollision,
+  checkSliceCustomerCollision
 } from '../logic/collisionSystem';
+
+import {
+  processPowerUpCollection,
+  processPowerUpExpirations,
+  checkStarPowerAutoFeed
+} from '../logic/powerUpSystem';
+
+import {
+  processNyanSweepMovement,
+  checkNyanSweepCollisions
+} from '../logic/nyanSystem';
 
 // --- Store System (actions only) ---
 import {
@@ -104,7 +109,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     return {
       ...state,
       floatingScores: [...state.floatingScores, {
-        id: `score-${now}-${Math.random()}`,
+        id: `score - ${now} -${Math.random()} `,
         points, lane, position, startTime: now,
       }],
     };
@@ -148,7 +153,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     setGameState(prev => ({
       ...prev,
       pizzaSlices: [...prev.pizzaSlices, {
-        id: `pizza-${Date.now()}-${gameState.chefLane}`,
+        id: `pizza - ${Date.now()} -${gameState.chefLane} `,
         lane: gameState.chefLane,
         position: GAME_CONFIG.CHEF_X_POSITION,
         speed: ENTITY_SPEEDS.PIZZA,
@@ -427,26 +432,40 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         return customer;
       });
 
-      const expiredStarPower = newState.activePowerUps.some(p => p.type === 'star' && now >= p.endTime);
-      const expiredHoney = newState.activePowerUps.some(p => p.type === 'honey' && now >= p.endTime);
-      newState.activePowerUps = newState.activePowerUps.filter(powerUp => now < powerUp.endTime);
-      if (expiredStarPower) newState.starPowerActive = false;
-      if (expiredHoney) newState.customers = newState.customers.map(c => ({ ...c, hotHoneyAffected: false }));
+      // --- 4. POWER-UP EXPIRATIONS ---
+      const expResult = processPowerUpExpirations(newState.activePowerUps, now);
+      newState.activePowerUps = expResult.activePowerUps;
+      newState.starPowerActive = expResult.starPowerActive;
+
+      // Handle specific expiration effects
+      if (expResult.expiredTypes.includes('honey')) {
+        newState.customers = newState.customers.map(c => ({ ...c, hotHoneyAffected: false }));
+      }
+
       if (newState.powerUpAlert && now >= newState.powerUpAlert.endTime) {
         if (newState.powerUpAlert.type !== 'doge' || !hasDoge) newState.powerUpAlert = undefined;
       }
 
       // --- 5. STAR POWER AUTO-FEED ---
       const starPowerScores: Array<{ points: number; lane: number; position: number }> = [];
+
       if (hasStar && newState.availableSlices > 0) {
+        // Identify customers to feed using new system
+        const customersToFeedIds = checkStarPowerAutoFeed(
+          newState.customers,
+          newState.chefLane,
+          GAME_CONFIG.CHEF_X_POSITION
+        );
+        const feedSet = new Set(customersToFeedIds);
+
         newState.customers = newState.customers.map(customer => {
-          if (checkStarPowerRange(newState.chefLane, GAME_CONFIG.CHEF_X_POSITION, customer)) {
+          if (feedSet.has(customer.id)) {
             newState.availableSlices = Math.max(0, newState.availableSlices - 1);
             if (customer.badLuckBrian) {
               soundManager.plateDropped();
               newState.stats.currentCustomerStreak = 0;
               newState.stats.currentPlateStreak = 0;
-              const droppedPlate = { id: `dropped-${Date.now()}-${customer.id}`, lane: customer.lane, position: customer.position, startTime: Date.now(), hasSlice: true };
+              const droppedPlate = { id: `dropped - ${Date.now()} -${customer.id} `, lane: customer.lane, position: customer.position, startTime: Date.now(), hasSlice: true };
               newState.droppedPlates = [...newState.droppedPlates, droppedPlate];
               return { ...customer, flipped: false, leaving: true, movingRight: true, textMessage: "Ugh! I dropped my slice!", textMessageTime: Date.now() };
             }
@@ -474,7 +493,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
               }
             }
 
-            const newPlate: EmptyPlate = { id: `plate-star-${Date.now()}-${customer.id}`, lane: customer.lane, position: customer.position, speed: ENTITY_SPEEDS.PLATE };
+            const newPlate: EmptyPlate = { id: `plate - star - ${Date.now()} -${customer.id} `, lane: customer.lane, position: customer.position, speed: ENTITY_SPEEDS.PLATE };
             newState.emptyPlates = [...newState.emptyPlates, newPlate];
             return { ...customer, served: true, hasPlate: false };
           }
@@ -497,79 +516,37 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           }
 
           caughtPowerUpIds.add(powerUp.id);
-          newState.stats.powerUpsUsed[powerUp.type] += 1;
 
-          if (powerUp.type === 'beer') {
-            let livesLost = 0;
-            let lastReason: StarLostReason | undefined;
-            newState.customers = newState.customers.map(customer => {
-              if (customer.critic) {
-                if (customer.woozy) return { ...customer, woozy: false, woozyState: undefined, frozen: false, hotHoneyAffected: false, textMessage: "I prefer wine", textMessageTime: Date.now() };
-                if (!customer.served && !customer.vomit && !customer.disappointed && !customer.leaving) return { ...customer, textMessage: "I prefer wine", textMessageTime: Date.now() };
-                return customer;
-              }
-              if (customer.woozy) {
-                livesLost += 1;
-                lastReason = 'beer_vomit';
-                return { ...customer, woozy: false, vomit: true, disappointed: true, movingRight: true };
-              }
-              if (!customer.served && !customer.vomit && !customer.disappointed && !customer.leaving) {
-                if (customer.badLuckBrian) {
-                  livesLost += 1;
-                  lastReason = 'brian_hurled';
-                  return { ...customer, vomit: true, disappointed: true, movingRight: true, flipped: false, textMessage: "Oh man I hurled", textMessageTime: Date.now(), hotHoneyAffected: false, frozen: false };
-                }
-                return { ...customer, woozy: true, woozyState: 'normal', movingRight: true, hotHoneyAffected: false, frozen: false };
-              }
-              return customer;
-            });
-            newState.lives = Math.max(0, newState.lives - livesLost);
-            if (livesLost > 0) {
-              soundManager.lifeLost();
-              newState.stats.currentCustomerStreak = 0;
-              if (lastReason) newState.lastStarLostReason = lastReason;
-            }
-            if (newState.lives === 0) {
+          // Use new PowerUp System
+          const collectionResult = processPowerUpCollection(newState, powerUp, dogeMultiplier, now);
+          newState = collectionResult.newState;
+
+          // Handle side effects that couldn't be in pure function (sounds, complex sweep init)
+          if (collectionResult.livesLost > 0) {
+            soundManager.lifeLost();
+            if (collectionResult.shouldTriggerGameOver) {
               newState = triggerGameOver(newState, now);
             }
-          } else if (powerUp.type === 'star') {
-            newState.availableSlices = GAME_CONFIG.MAX_SLICES;
-            newState.starPowerActive = true;
-            newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'star'), { type: 'star', endTime: now + POWERUPS.DURATION }];
-          } else if (powerUp.type === 'doge') {
-            newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'doge'), { type: 'doge', endTime: now + POWERUPS.DURATION }];
-            newState.powerUpAlert = { type: 'doge', endTime: now + POWERUPS.ALERT_DURATION_DOGE, chefLane: newState.chefLane };
-          } else if (powerUp.type === 'nyan') {
+          }
+
+          if (collectionResult.scoresToAdd && collectionResult.scoresToAdd.length > 0) {
+            powerUpScores.push(...collectionResult.scoresToAdd);
+          }
+
+          // Special handling for Nyan Cat Sweep Initialization (kept here for now or moved to nyanSystem helper later)
+          if (powerUp.type === 'nyan') {
             if (!newState.nyanSweep?.active) {
-              newState.nyanSweep = { active: true, xPosition: GAME_CONFIG.CHEF_X_POSITION, laneDirection: 1, startTime: now, lastUpdateTime: now, startingLane: newState.chefLane };
+              // We manually init the sweep here because we want to trigger the sound
+              // pure function handled the alert logic already
+              newState.nyanSweep = {
+                active: true,
+                xPosition: GAME_CONFIG.CHEF_X_POSITION,
+                laneDirection: 1,
+                startTime: now,
+                lastUpdateTime: now,
+                startingLane: newState.chefLane
+              };
               soundManager.nyanCatPowerUp();
-              if (!hasDoge || newState.powerUpAlert?.type !== 'doge') {
-                newState.powerUpAlert = { type: 'nyan', endTime: now + POWERUPS.ALERT_DURATION_NYAN, chefLane: newState.chefLane };
-              }
-            }
-          } else if (powerUp.type === 'moltobenny') {
-            const moltoScore = SCORING.MOLTOBENNY_POINTS * dogeMultiplier;
-            const moltoMoney = SCORING.MOLTOBENNY_CASH * dogeMultiplier;
-            newState.score += moltoScore;
-            newState.bank += moltoMoney;
-            powerUpScores.push({ points: moltoScore, lane: newState.chefLane, position: GAME_CONFIG.CHEF_X_POSITION });
-          } else {
-            newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== powerUp.type), { type: powerUp.type, endTime: now + POWERUPS.DURATION }];
-            if (powerUp.type === 'honey') {
-              newState.customers = newState.customers.map(c => {
-                if (c.served || c.disappointed || c.vomit || c.leaving) return c;
-                if (c.badLuckBrian) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, frozen: false, woozy: false, woozyState: undefined, textMessage: "I can't do spicy.", textMessageTime: Date.now() };
-                return { ...c, shouldBeHotHoneyAffected: true, hotHoneyAffected: true, frozen: false, woozy: false, woozyState: undefined };
-              });
-            }
-            if (powerUp.type === 'ice-cream') {
-              newState.customers = newState.customers.map(c => {
-                if (!c.served && !c.disappointed && !c.vomit) {
-                  if (c.badLuckBrian) return { ...c, textMessage: "I'm lactose intolerant", textMessageTime: Date.now() };
-                  return { ...c, shouldBeFrozenByIceCream: true, frozen: true, hotHoneyAffected: false, woozy: false, woozyState: undefined };
-                }
-                return c;
-              });
             }
           }
         }
@@ -610,97 +587,100 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
       // --- 8. NYAN CAT SWEEP LOGIC ---
       if (newState.nyanSweep?.active) {
-        const MAX_X = 90;
-        const dt = Math.min(now - newState.nyanSweep.lastUpdateTime, 100);
-        const INITIAL_X = GAME_CONFIG.CHEF_X_POSITION;
-        const totalDistance = MAX_X - INITIAL_X;
-        const duration = 2600;
-        const moveIncrement = (totalDistance / duration) * dt;
-        const oldX = newState.nyanSweep.xPosition;
-        const newXPosition = oldX + moveIncrement;
-        const laneChangeSpeed = 0.01;
-        let newLane = newState.chefLane + (newState.nyanSweep.laneDirection * laneChangeSpeed * dt);
-        let newLaneDirection = newState.nyanSweep.laneDirection;
+        // 1. Move Sweep
+        const sweepResult = processNyanSweepMovement(newState.nyanSweep, newState.chefLane, now);
 
-        if (newLane > GAME_CONFIG.LANE_BOTTOM) {
-          newLane = GAME_CONFIG.LANE_BOTTOM;
-          newLaneDirection = -1;
-        } else if (newLane < GAME_CONFIG.LANE_TOP) {
-          newLane = GAME_CONFIG.LANE_TOP;
-          newLaneDirection = 1;
+        const newLane = sweepResult.nextChefLane;
+
+        // 2. Check Collisions
+        const nyanScores: Array<{ points: number; lane: number; position: number }> = [];
+
+        const collisionResult = checkNyanSweepCollisions(
+          newState.nyanSweep,
+          sweepResult.newXPosition,
+          newLane,
+          newState.customers,
+          newState.bossBattle?.active && !newState.bossBattle.bossDefeated ? newState.bossBattle.minions : undefined
+        );
+
+        // 3. Process Customer Hits
+        const hitCustomerSet = new Set(collisionResult.hitCustomerIds);
+
+        if (hitCustomerSet.size > 0) {
+          newState.customers = newState.customers.map(customer => {
+            if (hitCustomerSet.has(customer.id)) {
+              if (customer.badLuckBrian) {
+                soundManager.customerServed();
+                return { ...customer, brianNyaned: true, leaving: true, hasPlate: false, flipped: false, movingRight: true, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
+              }
+
+              soundManager.customerServed();
+
+              const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
+                customer,
+                dogeMultiplier,
+                getStreakMultiplier(newState.stats.currentCustomerStreak)
+              );
+
+              newState.score += pointsEarned;
+              newState.bank += bankEarned;
+              nyanScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+
+              newState.happyCustomers += 1;
+              newState.stats.customersServed += 1;
+              newState.stats = updateStatsForStreak(newState.stats, 'customer');
+
+              const lifeResult = checkLifeGain(
+                newState.lives,
+                newState.happyCustomers,
+                dogeMultiplier,
+                customer.critic,
+                customer.position
+              );
+
+              if (lifeResult.livesToAdd > 0) {
+                newState.lives += lifeResult.livesToAdd;
+                if (lifeResult.shouldPlaySound) soundManager.lifeGained();
+              }
+
+              return { ...customer, served: true, hasPlate: false, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
+            }
+            return customer;
+          });
         }
 
-        const nyanScores: Array<{ points: number; lane: number; position: number }> = [];
-        newState.customers = newState.customers.map(customer => {
-          if (customer.served || customer.disappointed || customer.vomit) return customer;
-          if (checkNyanSweepCollision(newLane, oldX, newXPosition, customer)) {
-            if (customer.badLuckBrian) {
-              soundManager.customerServed();
-              return { ...customer, brianNyaned: true, leaving: true, hasPlate: false, flipped: false, movingRight: true, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
-            }
-            soundManager.customerServed();
-
-            const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-              customer,
-              dogeMultiplier,
-              getStreakMultiplier(newState.stats.currentCustomerStreak)
-            );
-
-            newState.score += pointsEarned;
-            newState.bank += bankEarned;
-            nyanScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
-
-            newState.happyCustomers += 1;
-            newState.stats.customersServed += 1;
-            newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-            const lifeResult = checkLifeGain(
-              newState.lives,
-              newState.happyCustomers,
-              dogeMultiplier,
-              customer.critic,
-              customer.position
-            );
-            if (lifeResult.livesToAdd > 0) {
-              newState.lives += lifeResult.livesToAdd;
-              if (lifeResult.shouldPlaySound) soundManager.lifeGained();
-            }
-            return { ...customer, served: true, hasPlate: false, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
-          }
-          return customer;
-        });
-
-        if (newState.bossBattle?.active && !newState.bossBattle.bossDefeated) {
+        // 4. Process Minion Hits
+        const hitMinionSet = new Set(collisionResult.hitMinionIds);
+        if (hitMinionSet.size > 0 && newState.bossBattle) {
           newState.bossBattle.minions = newState.bossBattle.minions.map(minion => {
-            if (minion.defeated) return minion;
-            const isLaneHit = Math.abs(minion.lane - newLane) < 0.8;
-            const sweepStart = oldX - 10;
-            const sweepEnd = newXPosition + 10;
-            const isPositionHit = minion.position >= sweepStart && minion.position <= sweepEnd;
-
-            if (isLaneHit && isPositionHit) {
+            if (hitMinionSet.has(minion.id)) {
               soundManager.customerServed();
-              const pointsEarned = calculateMinionScore();
+              const pointsEarned = calculateMinionScore(); // Assumes this is available in scope
               newState.score += pointsEarned;
-              newState = addFloatingScore(pointsEarned, minion.lane, minion.position, newState);
+              // addFloatingScore helper handles the state update for score list, but we can't call it easily inside map.
+              // We'll add to nyanScores list and process it after.
+              nyanScores.push({ points: pointsEarned, lane: minion.lane, position: minion.position });
               return { ...minion, defeated: true };
             }
             return minion;
           });
         }
+
+        // Add floaters
         nyanScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
 
+        // 5. Update State
         newState.chefLane = newLane;
-        newState.nyanSweep = { ...newState.nyanSweep, xPosition: newXPosition, laneDirection: newLaneDirection, lastUpdateTime: now };
 
-        if (newState.nyanSweep.xPosition >= MAX_X) {
-          newState.chefLane = Math.round(newState.chefLane);
-          newState.chefLane = Math.max(GAME_CONFIG.LANE_TOP, Math.min(GAME_CONFIG.LANE_BOTTOM, newState.chefLane));
+        if (sweepResult.sweepComplete) {
+          // Snap lane done in helper but helper returned finalLane as nextChefLane
           newState.nyanSweep = undefined;
           if (newState.pendingStoreShow) {
             newState.showStore = true;
             newState.pendingStoreShow = false;
           }
+        } else if (sweepResult.nextSweep) {
+          newState.nyanSweep = sweepResult.nextSweep;
         }
       }
 
@@ -729,7 +709,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           const initialMinions: BossMinion[] = [];
           for (let i = 0; i < BOSS_CONFIG.MINIONS_PER_WAVE; i++) {
             initialMinions.push({
-              id: `minion-${now}-1-${i}`,
+              id: `minion - ${now} -1 - ${i} `,
               lane: i % 4,
               position: POSITIONS.SPAWN_X + (Math.floor(i / 4) * 15),
               speed: ENTITY_SPEEDS.MINION,
@@ -826,7 +806,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             const newMinions: BossMinion[] = [];
             for (let i = 0; i < BOSS_CONFIG.MINIONS_PER_WAVE; i++) {
               newMinions.push({
-                id: `minion-${now}-${nextWave}-${i}`,
+                id: `minion - ${now} -${nextWave} -${i} `,
                 lane: i % 4,
                 position: POSITIONS.SPAWN_X + (Math.floor(i / 4) * 15),
                 speed: ENTITY_SPEEDS.MINION,
@@ -886,7 +866,6 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       };
 
-      const dogeMultiplier = prev.activePowerUps.some(p => p.type === 'doge') ? 2 : 1;
 
       if (type === 'beer') {
         let livesLost = 0;
@@ -1037,7 +1016,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           customers: [
             ...next.customers,
             {
-              id: `customer-${now}-${lane}`,
+              id: `customer - ${now} -${lane} `,
               lane,
               position: POSITIONS.SPAWN_X,
               speed: ENTITY_SPEEDS.CUSTOMER_BASE,
@@ -1071,7 +1050,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           powerUps: [
             ...next.powerUps,
             {
-              id: `powerup-${now}-${lane}`,
+              id: `powerup - ${now} -${lane} `,
               lane,
               position: POSITIONS.POWERUP_SPAWN_X,
               speed: ENTITY_SPEEDS.POWERUP,

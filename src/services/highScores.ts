@@ -26,6 +26,11 @@ export interface GameSession {
 }
 
 export async function getTopScores(limit: number = 10): Promise<HighScore[]> {
+  if (!supabase) {
+    console.warn('Supabase not configured - high scores unavailable');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('high_scores')
     .select('*')
@@ -42,6 +47,11 @@ export async function getTopScores(limit: number = 10): Promise<HighScore[]> {
 }
 
 export async function submitScore(playerName: string, score: number, gameSessionId?: string): Promise<boolean> {
+  if (!supabase) {
+    console.warn('Supabase not configured - cannot submit score');
+    return false;
+  }
+
   const { error } = await supabase
     .from('high_scores')
     .insert([{ player_name: playerName.toLowerCase(), score, game_session_id: gameSessionId }]);
@@ -60,6 +70,11 @@ export async function createGameSession(
   level: number,
   stats: GameStats
 ): Promise<GameSession | null> {
+  if (!supabase) {
+    console.warn('Supabase not configured - cannot create game session');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('game_sessions')
     .insert([{
@@ -86,6 +101,11 @@ export async function createGameSession(
 }
 
 export async function getGameSession(id: string): Promise<GameSession | null> {
+  if (!supabase) {
+    console.warn('Supabase not configured - cannot fetch game session');
+    return null;
+  }
+
   const { data, error } = await supabase
     .from('game_sessions')
     .select('*')
@@ -101,6 +121,11 @@ export async function getGameSession(id: string): Promise<GameSession | null> {
 }
 
 export async function uploadScorecardImage(gameSessionId: string, blob: Blob): Promise<string | null> {
+  if (!supabase) {
+    console.warn('Supabase not configured - cannot upload scorecard');
+    return null;
+  }
+
   const fileName = `${gameSessionId}.png`;
   const { error } = await supabase.storage
     .from('scorecards')
@@ -122,6 +147,11 @@ export async function uploadScorecardImage(gameSessionId: string, blob: Blob): P
 }
 
 export async function updateGameSessionImage(gameSessionId: string, imageUrl: string): Promise<boolean> {
+  if (!supabase) {
+    console.warn('Supabase not configured - cannot update game session');
+    return false;
+  }
+
   const { error } = await supabase
     .from('game_sessions')
     .update({ scorecard_image_url: imageUrl })

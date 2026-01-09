@@ -1,9 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import GameBoard from './components/GameBoard';
 import ScoreBoard from './components/ScoreBoard';
-import LandscapeGameBoard from './components/LandscapeGameBoard';
-import LandscapeScoreBoard from './components/LandscapeScoreBoard';
-import LandscapeControls from './components/LandscapeControls';
 import MobileGameControls from './components/MobileGameControls';
 import InstructionsModal from './components/InstructionsModal';
 import SplashScreen from './components/SplashScreen';
@@ -234,33 +231,83 @@ function App() {
   if (isLandscape) {
     return (
       <div className="fixed inset-0 bg-gradient-to-br from-orange-200 via-yellow-100 to-red-200 overflow-hidden">
-        <div className="relative w-full h-full">
-          <LandscapeGameBoard gameState={gameState} />
+        {/* Landscape layout: controls on sides, game board centered */}
+        <div className="relative w-full h-full flex items-center justify-center">
+          {/* Center area for ScoreBoard and GameBoard */}
+          <div className="flex flex-col items-center justify-center h-full" style={{ width: '76%' }}>
+            {/* ScoreBoard at top */}
+            <div className="w-full">
+              <ScoreBoard gameState={gameState} onShowInstructions={() => setShowInstructions(true)} />
+            </div>
 
-          {gameState.powerUpAlert && (
-            <PowerUpAlert powerUpType={gameState.powerUpAlert.type} chefLane={gameState.powerUpAlert.chefLane} />
+            {/* GameBoard - maintains 5:3 aspect ratio, scales to fit */}
+            <div
+              ref={gameBoardRef}
+              className="relative w-full max-h-[calc(100vh-60px)] aspect-[5/3] z-30"
+              style={{ maxWidth: 'calc((100vh - 60px) * 5 / 3)' }}
+              onClick={handleGameBoardClick}
+            >
+              <GameBoard gameState={gameState} />
+
+              {gameState.powerUpAlert && (
+                <PowerUpAlert powerUpType={gameState.powerUpAlert.type} chefLane={gameState.powerUpAlert.chefLane} />
+              )}
+
+              {!gameState.gameOver && !gameState.paused && !gameState.showStore && <StreakDisplay stats={gameState.stats} />}
+
+              {showControlsOverlay && <ControlsOverlay onClose={handleCloseControlsOverlay} />}
+
+              {gameState.paused && !gameState.gameOver && !gameState.showStore && !showControlsOverlay && (
+                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                  <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-xl mx-4">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Paused</h2>
+                    <p className="text-gray-600">Tap to continue</p>
+                    <button
+                      onClick={togglePause}
+                      className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Resume
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {gameState.showStore && (
+                <div className="absolute inset-0 bg-black bg-opacity-75 flex items-start justify-center rounded-lg z-[60] pt-2">
+                  <ItemStore
+                    gameState={gameState}
+                    onUpgradeOven={upgradeOven}
+                    onUpgradeOvenSpeed={upgradeOvenSpeed}
+                    onBribeReviewer={bribeReviewer}
+                    onBuyPowerUp={buyPowerUp}
+                    onClose={closeStore}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Mobile controls on sides */}
+          {!gameState.gameOver && !showInstructions && !showHighScores && !gameState.showStore && (
+            <MobileGameControls
+              gameOver={gameState.gameOver}
+              paused={gameState.paused}
+              nyanSweepActive={gameState.nyanSweep?.active ?? false}
+              onMoveUp={() => moveChef('up')}
+              onMoveDown={() => moveChef('down')}
+              onServePizza={servePizza}
+              onUseOven={useOven}
+              onCleanOven={cleanOven}
+              currentLane={gameState.chefLane}
+              availableSlices={gameState.availableSlices}
+              ovens={gameState.ovens}
+              ovenSpeedUpgrades={gameState.ovenSpeedUpgrades}
+              isLandscape={true}
+            />
           )}
 
-          {!gameState.gameOver && !gameState.paused && !gameState.showStore && <StreakDisplay stats={gameState.stats} />}
-
-          <LandscapeScoreBoard gameState={gameState} onShowInstructions={() => setShowInstructions(true)} />
-          <LandscapeControls
-            gameOver={gameState.gameOver}
-            paused={gameState.paused}
-            nyanSweepActive={gameState.nyanSweep?.active ?? false}
-            onMoveUp={() => moveChef('up')}
-            onMoveDown={() => moveChef('down')}
-            onServePizza={servePizza}
-            onUseOven={useOven}
-            onCleanOven={cleanOven}
-            currentLane={gameState.chefLane}
-            availableSlices={gameState.availableSlices}
-            ovens={gameState.ovens}
-            ovenSpeedUpgrades={gameState.ovenSpeedUpgrades}
-          />
-
           {gameState.gameOver && showGameOver && (
-            <div className="absolute inset-0 bg-black bg-opacity-75 flex items-center justify-center z-20">
+            <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
               <div className="flex flex-col items-center gap-4 p-4 max-h-[90vh] overflow-y-auto">
                 <GameOverScreen
                   stats={gameState.stats}
@@ -274,36 +321,6 @@ function App() {
                   }}
                 />
               </div>
-            </div>
-          )}
-
-          {showControlsOverlay && <ControlsOverlay onClose={handleCloseControlsOverlay} />}
-
-          {gameState.paused && !gameState.gameOver && !gameState.showStore && !showControlsOverlay && (
-            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-              <div className="text-center bg-white p-4 sm:p-6 rounded-xl shadow-xl mx-4">
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4">Paused</h2>
-                <p className="text-gray-600">Tap to continue</p>
-                <button
-                  onClick={togglePause}
-                  className="mt-4 px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                >
-                  Resume
-                </button>
-              </div>
-            </div>
-          )}
-
-          {gameState.showStore && (
-            <div className="absolute inset-0 bg-black bg-opacity-75 flex items-start justify-center z-[60] pt-2">
-              <ItemStore
-                gameState={gameState}
-                onUpgradeOven={upgradeOven}
-                onUpgradeOvenSpeed={upgradeOvenSpeed}
-                onBribeReviewer={bribeReviewer}
-                onBuyPowerUp={buyPowerUp}
-                onClose={closeStore}
-              />
             </div>
           )}
 

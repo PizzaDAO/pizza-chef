@@ -26,7 +26,7 @@
 
 ## Refactoring Strategy
 
-### Phase 1: Extract Scoring System ⭐ (HIGH PRIORITY)
+### Phase 1: Extract Scoring System [COMPLETED] ✅
 
 **Goal**: Centralize all scoring calculations and life management
 
@@ -73,7 +73,7 @@ applyCustomerScoring(
 
 ---
 
-### Phase 2: Extract Collision System ⭐ (HIGH PRIORITY)
+### Phase 2: Extract Collision System [COMPLETED] ✅
 
 **Goal**: Separate collision detection from game logic
 
@@ -126,13 +126,14 @@ checkNyanSweepCollision(
 
 ### Phase 3: Integrate Power-Up System ⭐ (HIGH PRIORITY)
 
-**Goal**: Use existing `powerUpSystem.ts` instead of reimplementing
+**Goal**: Extract power-up logic (Nyan Cat, etc) to separate modules
 
 **Changes**:
-1. Replace power-up collection logic (lines 492-583) with `processPowerUpCollection()`
-2. Replace power-up expiration logic (lines 444-451) with `processPowerUpExpirations()`
-3. Extract star power auto-feed to separate function
-4. Extract nyan sweep to `nyanSystem.ts`
+1. Create `src/logic/powerUpSystem.ts` (was missing)
+2. Extract power-up collection logic to `powerUpSystem.ts`
+3. Extract power-up expiration logic to `powerUpSystem.ts`
+4. Extract star power auto-feed to `powerUpSystem.ts`
+5. Extract nyan sweep to `nyanSystem.ts`
 
 **New File**: `src/logic/nyanSystem.ts`
 ```typescript

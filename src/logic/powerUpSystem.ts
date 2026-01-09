@@ -1,0 +1,173 @@
+import { GameState, PowerUp, StarLostReason, PowerUpType, ActivePowerUp, Customer } from '../types/game';
+import { GAME_CONFIG, POWERUPS, SCORING } from '../lib/constants';
+
+// Result of collecting a power-up
+export interface PowerUpCollectionResult {
+    newState: GameState; // Modified state
+    scoresToAdd: Array<{ points: number; lane: number; position: number }>; // Floating scores to spawn
+    livesLost: number; // For sound effects
+    shouldTriggerGameOver: boolean;
+    powerUpAlert?: { type: PowerUpType; endTime: number; chefLane: number };
+}
+
+// Result of processing expirations
+export interface PowerUpExpirationResult {
+    activePowerUps: ActivePowerUp[];
+    expiredTypes: PowerUpType[];
+    starPowerActive: boolean;
+}
+
+/**
+ * Processes the collection of a power-up by the chef
+ */
+export const processPowerUpCollection = (
+    currentState: GameState,
+    powerUp: PowerUp,
+    dogeMultiplier: number,
+    now: number
+): PowerUpCollectionResult => {
+    let newState = { ...currentState };
+    const scoresToAdd: Array<{ points: number; lane: number; position: number }> = [];
+    let livesLost = 0;
+    let shouldTriggerGameOver = false;
+
+    // Track power-up usage
+    newState.stats = {
+        ...newState.stats,
+        powerUpsUsed: {
+            ...newState.stats.powerUpsUsed,
+            [powerUp.type]: (newState.stats.powerUpsUsed[powerUp.type] || 0) + 1
+        }
+    };
+
+    if (powerUp.type === 'beer') {
+        let lastReason: StarLostReason | undefined;
+
+        newState.customers = newState.customers.map(customer => {
+            // Impact on Critic
+            if (customer.critic) {
+                if (customer.woozy) return { ...customer, woozy: false, woozyState: undefined, frozen: false, hotHoneyAffected: false, textMessage: "I prefer wine", textMessageTime: now };
+                if (!customer.served && !customer.vomit && !customer.disappointed && !customer.leaving) return { ...customer, textMessage: "I prefer wine", textMessageTime: now };
+                return customer;
+            }
+
+            // Impact on Woozy customers (Double Beer = Vomit)
+            if (customer.woozy) {
+                livesLost += 1;
+                lastReason = 'beer_vomit';
+                return { ...customer, woozy: false, vomit: true, disappointed: true, movingRight: true };
+            }
+
+            // Impact on Normal customers
+            if (!customer.served && !customer.vomit && !customer.disappointed && !customer.leaving) {
+                if (customer.badLuckBrian) {
+                    livesLost += 1;
+                    lastReason = 'brian_hurled';
+                    return { ...customer, vomit: true, disappointed: true, movingRight: true, flipped: false, textMessage: "Oh man I hurled", textMessageTime: now, hotHoneyAffected: false, frozen: false };
+                }
+                return { ...customer, woozy: true, woozyState: 'normal', movingRight: true, hotHoneyAffected: false, frozen: false };
+            }
+            return customer;
+        });
+
+        if (livesLost > 0) {
+            newState.lives = Math.max(0, newState.lives - livesLost);
+            newState.stats = { ...newState.stats, currentCustomerStreak: 0 };
+            if (lastReason) newState.lastStarLostReason = lastReason;
+        }
+
+        if (newState.lives === 0) {
+            shouldTriggerGameOver = true;
+        }
+
+    } else if (powerUp.type === 'star') {
+        newState.availableSlices = GAME_CONFIG.MAX_SLICES;
+        newState.starPowerActive = true;
+        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'star'), { type: 'star', endTime: now + POWERUPS.DURATION }];
+    } else if (powerUp.type === 'doge') {
+        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'doge'), { type: 'doge', endTime: now + POWERUPS.DURATION }];
+        newState.powerUpAlert = { type: 'doge', endTime: now + POWERUPS.ALERT_DURATION_DOGE, chefLane: newState.chefLane };
+    } else if (powerUp.type === 'nyan') {
+        // Note: Nyan sweep initialization is handled by caller or separate system, but we set the alert here
+        newState.powerUpAlert = { type: 'nyan', endTime: now + POWERUPS.ALERT_DURATION_NYAN, chefLane: newState.chefLane };
+    } else if (powerUp.type === 'moltobenny') {
+        const moltoScore = SCORING.MOLTOBENNY_POINTS * dogeMultiplier;
+        const moltoMoney = SCORING.MOLTOBENNY_CASH * dogeMultiplier;
+        newState.score += moltoScore;
+        newState.bank += moltoMoney;
+        scoresToAdd.push({ points: moltoScore, lane: newState.chefLane, position: GAME_CONFIG.CHEF_X_POSITION });
+    } else {
+        // Generic timed power-up addition
+        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== powerUp.type), { type: powerUp.type, endTime: now + POWERUPS.DURATION }];
+
+        // Immediate effects for Honey
+        if (powerUp.type === 'honey') {
+            newState.customers = newState.customers.map(c => {
+                if (c.served || c.disappointed || c.vomit || c.leaving) return c;
+                if (c.badLuckBrian) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, frozen: false, woozy: false, woozyState: undefined, textMessage: "I can't do spicy.", textMessageTime: now };
+                return { ...c, shouldBeHotHoneyAffected: true, hotHoneyAffected: true, frozen: false, woozy: false, woozyState: undefined };
+            });
+        }
+
+        // Immediate effects for Ice Cream
+        if (powerUp.type === 'ice-cream') {
+            newState.customers = newState.customers.map(c => {
+                if (!c.served && !c.disappointed && !c.vomit) {
+                    if (c.badLuckBrian) return { ...c, textMessage: "I'm lactose intolerant", textMessageTime: now };
+                    return { ...c, shouldBeFrozenByIceCream: true, frozen: true, hotHoneyAffected: false, woozy: false, woozyState: undefined };
+                }
+                return c;
+            });
+        }
+    }
+
+    return { newState, scoresToAdd, livesLost, shouldTriggerGameOver, powerUpAlert: newState.powerUpAlert };
+};
+
+/**
+ * Handles expiration of active power-ups
+ */
+export const processPowerUpExpirations = (
+    activePowerUps: ActivePowerUp[],
+    now: number
+): PowerUpExpirationResult => {
+    const nextPowerUps = activePowerUps.filter(p => p.endTime > now);
+    const expiredTypes = activePowerUps
+        .filter(p => p.endTime <= now)
+        .map(p => p.type);
+
+    const starPowerActive = nextPowerUps.some(p => p.type === 'star');
+
+    return {
+        activePowerUps: nextPowerUps,
+        expiredTypes,
+        starPowerActive
+    };
+};
+
+/**
+ * Logic for Star Power auto-feed radius
+ * Returns customers that should be fed
+ */
+export const checkStarPowerAutoFeed = (
+    customers: Customer[],
+    chefLane: number,
+    chefX: number,
+    range: number = 8 // Default range
+): string[] => {
+    const feedableCustomerIds: string[] = [];
+
+    customers.forEach(customer => {
+        if (customer.served || customer.disappointed || customer.vomit || customer.leaving) return;
+
+        // Check range logic (Inline implementation of checkStarPowerRange from collisionSystem to avoid circular deps if any)
+        // Or we could import it. Let's replicate simple logic here for purity.
+        const inRange = customer.lane === chefLane && Math.abs(customer.position - chefX) < range;
+
+        if (inRange) {
+            feedableCustomerIds.push(customer.id);
+        }
+    });
+
+    return feedableCustomerIds;
+};

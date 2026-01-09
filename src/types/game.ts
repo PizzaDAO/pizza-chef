@@ -41,7 +41,16 @@ export interface EmptyPlate {
   speed: number;
 }
 
-export type PowerUpType = 'honey' | 'ice-cream' | 'beer' | 'star' | 'doge' | 'nyan' | 'moltobenny';
+export interface NyanSweep {
+  active: boolean;
+  xPosition: number;
+  laneDirection: number;
+  startTime: number;
+  lastUpdateTime: number;
+  startingLane: number;
+}
+
+export type PowerUpType = 'honey' | 'ice-cream' | 'beer' | 'star' | 'doge' | 'nyan' | 'moltobenny' | 'speed' | 'slow';
 
 export interface PowerUp {
   id: string;
@@ -70,6 +79,15 @@ export interface DroppedPlate {
   position: number;
   startTime: number;
   hasSlice?: boolean;
+}
+
+export interface OvenState {
+  cooking: boolean;
+  startTime: number;
+  burned: boolean;
+  cleaningStartTime: number;
+  pausedElapsed?: number;
+  sliceCount: number;
 }
 
 export interface BossMinion {
@@ -106,6 +124,8 @@ export interface GameStats {
     doge: number;
     nyan: number;
     moltobenny: number;
+    speed: number;
+    slow: number;
   };
   ovenUpgradesMade: number;
 }
@@ -136,7 +156,7 @@ export interface GameState {
   lastStarLostReason?: StarLostReason;
   paused: boolean;
   availableSlices: number;
-  ovens: { [key: number]: { cooking: boolean; startTime: number; burned: boolean; cleaningStartTime: number; pausedElapsed?: number; sliceCount: number } };
+  ovens: { [key: number]: OvenState };
   ovenUpgrades: { [key: number]: number };
   ovenSpeedUpgrades: { [key: number]: number };
   happyCustomers: number;
@@ -147,7 +167,7 @@ export interface GameState {
   fallingPizza?: { lane: number; y: number };
   starPowerActive?: boolean;
   powerUpAlert?: { type: PowerUpType; endTime: number; chefLane: number };
-  nyanSweep?: { active: boolean; xPosition: number; laneDirection: 1 | -1; startTime: number; lastUpdateTime: number; startingLane: number };
+  nyanSweep?: NyanSweep;
   stats: GameStats;
   bossBattle?: BossBattle;
   defeatedBossLevels: number[];

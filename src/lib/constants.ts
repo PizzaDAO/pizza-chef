@@ -4,14 +4,14 @@ export const GAME_CONFIG = {
   STARTING_LIVES: 3,
   LEVEL_THRESHOLD: 500, // Score needed to level up
   GAME_LOOP_INTERVAL: 50, // ms
-  
+
   // Store Settings
   STORE_LEVEL_INTERVAL: 10,
-  
+
   // Chef & Player
   MAX_SLICES: 8,
   CHEF_X_POSITION: 15, // The "catch/serve" zone (approx 15%)
-  
+
   // Lanes
   LANE_COUNT: 4,
   LANE_TOP: 0,
@@ -23,7 +23,7 @@ export const OVEN_CONFIG = {
   WARNING_TIME: 7000, // Pizza starts warning
   BURN_TIME: 8000,    // Pizza burns (total time)
   CLEANING_TIME: 3000,
-  
+
   // Upgrade Timings (based on speedUpgrade level 0-3)
   COOK_TIMES: [3000, 2500, 2000, 1500],
   MAX_UPGRADE_LEVEL: 7,
@@ -59,20 +59,20 @@ export const SCORING = {
   CUSTOMER_NORMAL: 150,
   CUSTOMER_CRITIC: 300,
   CUSTOMER_FIRST_SLICE: 50, // "Drooling" state
-  
+
   // Actions
   PLATE_CAUGHT: 50,
   POWERUP_COLLECTED: 100,
-  
+
   // Boss
   MINION_DEFEAT: 100,
   BOSS_HIT: 100,
   BOSS_DEFEAT: 5000,
-  
+
   // Special
   MOLTOBENNY_POINTS: 10000,
   MOLTOBENNY_CASH: 69,
-  
+
   // Bank
   BASE_BANK_REWARD: 1,
 };
@@ -162,9 +162,11 @@ export const INITIAL_GAME_STATE = {
       doge: 0,
       nyan: 0,
       moltobenny: 0,
+      speed: 0,
+      slow: 0,
     },
     ovenUpgradesMade: 0,
   },
   bossBattle: undefined,
-  defeatedBossLevels:[],
+  defeatedBossLevels: [],
 };

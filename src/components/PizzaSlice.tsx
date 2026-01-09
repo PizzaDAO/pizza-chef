@@ -5,38 +5,8 @@ interface PizzaSliceProps {
   slice: PizzaSliceType;
 }
 
-const LANDSCAPE_LANE_POSITIONS = [20, 40, 60, 80]; // match LandscapeCustomer
-
 const PizzaSlice: React.FC<PizzaSliceProps> = ({ slice }) => {
-  const getIsLandscape = () =>
-    typeof window !== 'undefined' ? window.innerWidth > window.innerHeight : true;
-
-  const getIsMobile = () =>
-    typeof navigator !== 'undefined'
-      ? /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-        (navigator as any).maxTouchPoints > 1
-      : false;
-
-  const [isLandscape, setIsLandscape] = React.useState(getIsLandscape);
-  const [isMobile, setIsMobile] = React.useState(getIsMobile);
-
-  React.useEffect(() => {
-    const handleResize = () => {
-      setIsLandscape(getIsLandscape());
-      setIsMobile(getIsMobile());
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
-  const topPercent =
-    isMobile && isLandscape
-      ? LANDSCAPE_LANE_POSITIONS[slice.lane]
-      : slice.lane * 25 + 6;
+  const topPercent = slice.lane * 25 + 6;
 
   return (
     <div
