@@ -10,6 +10,8 @@ import Boss from './Boss';
 import { GameState } from '../types/game';
 import pizzaShopBg from '/pizza shop background v2.png';
 import { sprite } from '../lib/assets';
+import { getOvenDisplayStatus } from '../logic/ovenSystem';
+import { OVEN_CONFIG } from '../lib/constants';
 
 const chefImg = sprite("chef.png");
 
@@ -48,46 +50,26 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
   const getOvenStatus = (lane: number) => {
     const oven = gameState.ovens[lane];
+    const speedUpgrade = gameState.ovenSpeedUpgrades[lane] || 0;
+    const baseStatus = getOvenDisplayStatus(oven, speedUpgrade);
 
-    if (oven.burned) {
-      if (oven.cleaningStartTime > 0) {
-        const cleaningElapsed = Date.now() - oven.cleaningStartTime;
-        const halfCleaning = 1500; // 1.5 seconds (half of 3 second cleaning time)
-        if (cleaningElapsed < halfCleaning) {
-          return 'extinguishing';
-        }
-        return 'sweeping';
-      }
-      return 'burned';
+    // Add visual enhancements for GameBoard display
+    if (baseStatus === 'cleaning') {
+      const cleaningElapsed = Date.now() - oven.cleaningStartTime;
+      const halfCleaning = OVEN_CONFIG.CLEANING_TIME / 2;
+      return cleaningElapsed < halfCleaning ? 'extinguishing' : 'sweeping';
     }
 
-    if (!oven.cooking) return 'empty';
-
-    // Use pausedElapsed if game is paused, otherwise calculate from startTime
-    const elapsed = oven.pausedElapsed !== undefined ? oven.pausedElapsed : Date.now() - oven.startTime;
-
-    // Calculate cook time based on speed upgrades
-    const speedUpgrade = gameState.ovenSpeedUpgrades[lane] || 0;
-    const cookingTime =
-      speedUpgrade === 0 ? 3000 :
-      speedUpgrade === 1 ? 2500 :
-      speedUpgrade === 2 ? 2000 : 1500;
-
-    const warningTime = 7000; // 7 seconds (start blinking)
-    const burnTime = 8000; // 8 seconds total
-    const blinkInterval = 250; // 0.25 seconds
-
-    if (elapsed >= burnTime) return 'burning';
-
-    // Blinking phase (between 7-8 seconds)
-    if (elapsed >= warningTime) {
-      const warningElapsed = elapsed - warningTime;
+    if (baseStatus === 'warning') {
+      // Blinking effect for warning state
+      const elapsed = oven.pausedElapsed !== undefined ? oven.pausedElapsed : Date.now() - oven.startTime;
+      const warningElapsed = elapsed - OVEN_CONFIG.WARNING_TIME;
+      const blinkInterval = 250;
       const blinkCycle = Math.floor(warningElapsed / blinkInterval);
       return blinkCycle % 2 === 0 ? 'warning-fire' : 'warning-pizza';
     }
 
-    if (elapsed >= cookingTime) return 'ready';
-    return 'cooking';
+    return baseStatus;
   };
 
   return (

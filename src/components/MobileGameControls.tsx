@@ -1,5 +1,6 @@
 import React from 'react';
 import { sprite } from '../lib/assets';
+import { getOvenDisplayStatus } from '../logic/ovenSystem';
 
 const pizzaPanImg = sprite("pizzapan.png");
 
@@ -49,23 +50,8 @@ const MobileGameControls: React.FC<MobileGameControlsProps> = ({
   const getOvenStatus = () => {
     const oven = ovens[safeLane];
     if (!oven) return 'empty';
-    if (oven.burned) return 'burned';
-    if (!oven.cooking) return 'empty';
-
-    const elapsed = oven.pausedElapsed !== undefined ? oven.pausedElapsed : Date.now() - oven.startTime;
-
     const speedUpgrade = ovenSpeedUpgrades[safeLane] || 0;
-    const cookingTime = speedUpgrade === 0 ? 3000 :
-                        speedUpgrade === 1 ? 2000 :
-                        speedUpgrade === 2 ? 1000 : 500;
-
-    const warningTime = 7000;
-    const burnTime = 8000;
-
-    if (elapsed >= burnTime) return 'burning';
-    if (elapsed >= warningTime) return 'warning';
-    if (elapsed >= cookingTime) return 'ready';
-    return 'cooking';
+    return getOvenDisplayStatus(oven, speedUpgrade);
   };
 
   const handleOvenAction = () => {

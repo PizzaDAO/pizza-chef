@@ -3,6 +3,7 @@ import { GameState } from '../types/game';
 import { Store, DollarSign, X } from 'lucide-react';
 import PizzaSliceStack from './PizzaSliceStack';
 import { sprite } from '../lib/assets';
+import { getUpgradeCost, getSpeedUpgradeCost } from '../logic/storeSystem';
 
 // Power-up images (served from Cloudflare)
 const beerImg = sprite("beer.png");
@@ -26,8 +27,6 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   onBuyPowerUp,
   onClose,
 }) => {
-  const upgradeCost = 10;
-  const speedUpgradeCost = 10;
   const maxUpgradeLevel = 7;
   const maxSpeedUpgradeLevel = 3;
   const bribeCost = 25;
@@ -35,8 +34,10 @@ const ItemStore: React.FC<ItemStoreProps> = ({
 
   const getOvenUpgradeLevel = (lane: number) => gameState.ovenUpgrades[lane] || 0;
   const getOvenSpeedUpgradeLevel = (lane: number) => gameState.ovenSpeedUpgrades[lane] || 0;
-  const canAffordUpgrade = gameState.bank >= upgradeCost;
-  const canAffordSpeedUpgrade = gameState.bank >= speedUpgradeCost;
+  const getLaneUpgradeCost = (lane: number) => getUpgradeCost(getOvenUpgradeLevel(lane));
+  const getLaneSpeedUpgradeCost = (lane: number) => getSpeedUpgradeCost(getOvenSpeedUpgradeLevel(lane));
+  const canAffordUpgrade = (lane: number) => gameState.bank >= getLaneUpgradeCost(lane);
+  const canAffordSpeedUpgrade = (lane: number) => gameState.bank >= getLaneSpeedUpgradeCost(lane);
 
   const getSpeedUpgradeText = (level: number) => {
     if (level === 0) return 'Base: 3s';
@@ -118,15 +119,15 @@ const ItemStore: React.FC<ItemStoreProps> = ({
                     ) : (
                       <button
                         onClick={() => onUpgradeOvenSpeed(lane)}
-                        disabled={!canAffordSpeedUpgrade}
+                        disabled={!canAffordSpeedUpgrade(lane)}
                         className={`rounded py-0.5 px-1 sm:py-1 sm:px-2 text-[9px] sm:text-xs font-semibold transition-colors whitespace-nowrap ${
-                          canAffordSpeedUpgrade
+                          canAffordSpeedUpgrade(lane)
                             ? 'bg-blue-600 hover:bg-blue-700 text-white'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                         title="Upgrade Speed"
                       >
-                        ⚡${speedUpgradeCost}
+                        ⚡${getLaneSpeedUpgradeCost(lane)}
                       </button>
                     )}
 
@@ -138,15 +139,15 @@ const ItemStore: React.FC<ItemStoreProps> = ({
                     ) : (
                       <button
                         onClick={() => onUpgradeOven(lane)}
-                        disabled={!canAffordUpgrade}
+                        disabled={!canAffordUpgrade(lane)}
                         className={`rounded py-0.5 px-1 sm:py-1 sm:px-2 text-[9px] sm:text-xs font-semibold transition-colors whitespace-nowrap ${
-                          canAffordUpgrade
+                          canAffordUpgrade(lane)
                             ? 'bg-orange-600 hover:bg-orange-700 text-white'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                         title="Upgrade Level"
                       >
-                        🍕 ${upgradeCost}
+                        🍕 ${getLaneUpgradeCost(lane)}
                       </button>
                     )}
                   </div>

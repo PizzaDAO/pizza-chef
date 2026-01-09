@@ -1,12 +1,50 @@
 import { supabase } from '../lib/supabase';
 import { GameStats } from '../types/game';
 
+const LOCAL_SCORES_KEY = 'pizza_chef_high_scores';
+const LOCAL_SESSIONS_KEY = 'pizza_chef_game_sessions';
+
 export interface HighScore {
   id: string;
   player_name: string;
   score: number;
   created_at: string;
   game_session_id?: string;
+}
+
+// Local storage helpers
+function getLocalScores(): HighScore[] {
+  try {
+    const data = localStorage.getItem(LOCAL_SCORES_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalScores(scores: HighScore[]): void {
+  try {
+    localStorage.setItem(LOCAL_SCORES_KEY, JSON.stringify(scores));
+  } catch {
+    console.warn('Failed to save scores to local storage');
+  }
+}
+
+function getLocalSessions(): GameSession[] {
+  try {
+    const data = localStorage.getItem(LOCAL_SESSIONS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalSessions(sessions: GameSession[]): void {
+  try {
+    localStorage.setItem(LOCAL_SESSIONS_KEY, JSON.stringify(sessions));
+  } catch {
+    console.warn('Failed to save sessions to local storage');
+  }
 }
 
 export interface GameSession {
@@ -26,31 +64,29 @@ export interface GameSession {
 }
 
 export async function getTopScores(limit: number = 10): Promise<HighScore[]> {
-  if (!supabase) {
-    console.warn('Supabase not configured - high scores unavailable');
-    return [];
+  // Try Supabase first
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('high_scores')
+      .select('*')
+      .order('score', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(limit);
+
+    if (!error && data) {
+      return data;
+    }
+    console.warn('Supabase fetch failed, falling back to local storage:', error);
   }
 
-  const { data, error } = await supabase
-    .from('high_scores')
-    .select('*')
-    .order('score', { ascending: false })
-    .order('created_at', { ascending: true })
-    .limit(limit);
-
-  if (error) {
-    console.error('Error fetching high scores:', error);
-    return [];
-  }
-
-  return data || [];
+  // Fall back to local storage
+  const localScores = getLocalScores();
+  return localScores
+    .sort((a, b) => b.score - a.score || new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .slice(0, limit);
 }
 
 export async function checkIfTopScore(score: number, limit: number = 10): Promise<boolean> {
-  if (!supabase) {
-    return false;
-  }
-
   const topScores = await getTopScores(limit);
 
   if (topScores.length < limit) {
@@ -62,20 +98,29 @@ export async function checkIfTopScore(score: number, limit: number = 10): Promis
 }
 
 export async function submitScore(playerName: string, score: number, gameSessionId?: string): Promise<boolean> {
-  if (!supabase) {
-    console.warn('Supabase not configured - cannot submit score');
-    return false;
+  // Try Supabase first
+  if (supabase) {
+    const { error } = await supabase
+      .from('high_scores')
+      .insert([{ player_name: playerName.toLowerCase(), score, game_session_id: gameSessionId }]);
+
+    if (!error) {
+      return true;
+    }
+    console.warn('Supabase submit failed, falling back to local storage:', error);
   }
 
-  const { error } = await supabase
-    .from('high_scores')
-    .insert([{ player_name: playerName.toLowerCase(), score, game_session_id: gameSessionId }]);
-
-  if (error) {
-    console.error('Error submitting score:', error);
-    return false;
-  }
-
+  // Fall back to local storage
+  const localScores = getLocalScores();
+  const newScore: HighScore = {
+    id: crypto.randomUUID(),
+    player_name: playerName.toLowerCase(),
+    score,
+    created_at: new Date().toISOString(),
+    game_session_id: gameSessionId
+  };
+  localScores.push(newScore);
+  saveLocalScores(localScores);
   return true;
 }
 
@@ -85,54 +130,70 @@ export async function createGameSession(
   level: number,
   stats: GameStats
 ): Promise<GameSession | null> {
-  if (!supabase) {
-    console.warn('Supabase not configured - cannot create game session');
-    return null;
+  // Try Supabase first
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('game_sessions')
+      .insert([{
+        player_name: playerName.toLowerCase(),
+        score,
+        level,
+        slices_baked: stats.slicesBaked,
+        customers_served: stats.customersServed,
+        longest_streak: stats.longestCustomerStreak,
+        plates_caught: stats.platesCaught,
+        largest_plate_streak: stats.largestPlateStreak,
+        oven_upgrades: stats.ovenUpgradesMade,
+        power_ups_used: stats.powerUpsUsed,
+      }])
+      .select()
+      .single();
+
+    if (!error && data) {
+      return data;
+    }
+    console.warn('Supabase session create failed, falling back to local storage:', error);
   }
 
-  const { data, error } = await supabase
-    .from('game_sessions')
-    .insert([{
-      player_name: playerName.toLowerCase(),
-      score,
-      level,
-      slices_baked: stats.slicesBaked,
-      customers_served: stats.customersServed,
-      longest_streak: stats.longestCustomerStreak,
-      plates_caught: stats.platesCaught,
-      largest_plate_streak: stats.largestPlateStreak,
-      oven_upgrades: stats.ovenUpgradesMade,
-      power_ups_used: stats.powerUpsUsed,
-    }])
-    .select()
-    .single();
-
-  if (error) {
-    console.error('Error creating game session:', error);
-    return null;
-  }
-
-  return data;
+  // Fall back to local storage
+  const localSessions = getLocalSessions();
+  const newSession: GameSession = {
+    id: crypto.randomUUID(),
+    player_name: playerName.toLowerCase(),
+    score,
+    level,
+    slices_baked: stats.slicesBaked,
+    customers_served: stats.customersServed,
+    longest_streak: stats.longestCustomerStreak,
+    plates_caught: stats.platesCaught,
+    largest_plate_streak: stats.largestPlateStreak,
+    oven_upgrades: stats.ovenUpgradesMade,
+    power_ups_used: stats.powerUpsUsed,
+    created_at: new Date().toISOString()
+  };
+  localSessions.push(newSession);
+  saveLocalSessions(localSessions);
+  return newSession;
 }
 
 export async function getGameSession(id: string): Promise<GameSession | null> {
-  if (!supabase) {
-    console.warn('Supabase not configured - cannot fetch game session');
-    return null;
+  // Try Supabase first
+  if (supabase) {
+    const { data, error } = await supabase
+      .from('game_sessions')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (!error && data) {
+      return data;
+    }
+    console.warn('Supabase session fetch failed, falling back to local storage:', error);
   }
 
-  const { data, error } = await supabase
-    .from('game_sessions')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Error fetching game session:', error);
-    return null;
-  }
-
-  return data;
+  // Fall back to local storage
+  const localSessions = getLocalSessions();
+  return localSessions.find(s => s.id === id) || null;
 }
 
 export async function uploadScorecardImage(gameSessionId: string, blob: Blob): Promise<string | null> {

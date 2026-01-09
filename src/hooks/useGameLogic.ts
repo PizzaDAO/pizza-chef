@@ -58,8 +58,7 @@ import {
 
 import {
   processPowerUpCollection,
-  processPowerUpExpirations,
-  checkStarPowerAutoFeed
+  processPowerUpExpirations
 } from '../logic/powerUpSystem';
 
 import {
@@ -176,7 +175,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     if (gameState.gameOver || gameState.paused) return;
 
     setGameState(prev => {
-      const result = tryInteractWithOven(prev, prev.chefLane, Date.now());
+      const starPowerActive = prev.activePowerUps.some(p => p.type === 'star');
+      const result = tryInteractWithOven(prev, prev.chefLane, Date.now(), starPowerActive);
 
       if (result.action === 'STARTED') {
         soundManager.ovenStart();
@@ -446,61 +446,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         if (newState.powerUpAlert.type !== 'doge' || !hasDoge) newState.powerUpAlert = undefined;
       }
 
-      // --- 5. STAR POWER AUTO-FEED ---
-      const starPowerScores: Array<{ points: number; lane: number; position: number }> = [];
-
-      if (hasStar && newState.availableSlices > 0) {
-        // Identify customers to feed using new system
-        const customersToFeedIds = checkStarPowerAutoFeed(
-          newState.customers,
-          newState.chefLane,
-          GAME_CONFIG.CHEF_X_POSITION
-        );
-        const feedSet = new Set(customersToFeedIds);
-
-        newState.customers = newState.customers.map(customer => {
-          if (feedSet.has(customer.id)) {
-            newState.availableSlices = Math.max(0, newState.availableSlices - 1);
-            if (customer.badLuckBrian) {
-              soundManager.plateDropped();
-              newState.stats.currentCustomerStreak = 0;
-              newState.stats.currentPlateStreak = 0;
-              const droppedPlate = { id: `dropped - ${Date.now()} -${customer.id} `, lane: customer.lane, position: customer.position, startTime: Date.now(), hasSlice: true };
-              newState.droppedPlates = [...newState.droppedPlates, droppedPlate];
-              return { ...customer, flipped: false, leaving: true, movingRight: true, textMessage: "Ugh! I dropped my slice!", textMessageTime: Date.now() };
-            }
-            soundManager.customerServed();
-
-            const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-              customer,
-              dogeMultiplier,
-              getStreakMultiplier(newState.stats.currentCustomerStreak)
-            );
-
-            newState.score += pointsEarned;
-            newState.bank += bankEarned;
-            newState.happyCustomers += 1;
-            starPowerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
-
-            newState.stats.customersServed += 1;
-            newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-            if (!customer.critic) {
-              const lifeResult = checkLifeGain(newState.lives, newState.happyCustomers, dogeMultiplier);
-              if (lifeResult.livesToAdd > 0) {
-                newState.lives += lifeResult.livesToAdd;
-                if (lifeResult.shouldPlaySound) soundManager.lifeGained();
-              }
-            }
-
-            const newPlate: EmptyPlate = { id: `plate - star - ${Date.now()} -${customer.id} `, lane: customer.lane, position: customer.position, speed: ENTITY_SPEEDS.PLATE };
-            newState.emptyPlates = [...newState.emptyPlates, newPlate];
-            return { ...customer, served: true, hasPlate: false };
-          }
-          return customer;
-        });
+      // --- 5. STAR POWER AUTO-REFILL SLICES ---
+      if (hasStar) {
+        // Keep chef's pizza slices maxed out
+        newState.availableSlices = GAME_CONFIG.MAX_SLICES;
       }
-      starPowerScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
 
       // --- 6. CHEF POWERUP COLLISIONS ---
       const caughtPowerUpIds = new Set<string>();
