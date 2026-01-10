@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   GameState,
   PizzaSlice,
-  BossMinion,
   GameStats,
   PowerUpType,
   StarLostReason,
@@ -17,8 +16,6 @@ import {
   SPAWN_RATES,
   PROBABILITIES,
   SCORING,
-  COSTS,
-  BOSS_CONFIG,
   POSITIONS,
   INITIAL_GAME_STATE,
   POWERUPS,
@@ -40,7 +37,6 @@ import {
 
 import {
   calculateCustomerScore,
-  calculatePlateScore,
   calculateMinionScore,
   calculatePowerUpScore,
   checkLifeGain,
@@ -49,9 +45,6 @@ import {
 
 import {
   checkChefPowerUpCollision,
-  checkChefPlateCollision,
-  checkMinionReachedChef,
-  checkSliceMinionCollision,
   checkSlicePowerUpCollision,
   checkSliceCustomerCollision
 } from '../logic/collisionSystem';
@@ -65,6 +58,20 @@ import {
   processNyanSweepMovement,
   checkNyanSweepCollisions
 } from '../logic/nyanSystem';
+
+import {
+  checkBossTrigger,
+  initializeBossBattle,
+  processBossTick
+} from '../logic/bossSystem';
+
+import {
+  processSpawning
+} from '../logic/spawnSystem';
+
+import {
+  processPlates
+} from '../logic/plateSystem';
 
 // --- Store System (actions only) ---
 import {
@@ -508,32 +515,27 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
 
       // --- 7. PLATE CATCHING LOGIC ---
-      const platesToAddScores: Array<{ points: number; lane: number; position: number }> = [];
-      newState.emptyPlates = newState.emptyPlates
-        .map(plate => ({ ...plate, position: plate.position - plate.speed }))
-        .filter(plate => {
-          if (checkChefPlateCollision(newState.chefLane, plate) && !newState.nyanSweep?.active) {
-            soundManager.plateCaught();
+      const plateResult = processPlates(
+        newState.emptyPlates,
+        newState.chefLane,
+        newState.stats,
+        dogeMultiplier,
+        getStreakMultiplier(newState.stats.currentPlateStreak),
+        newState.nyanSweep?.active ?? false
+      );
 
-            const pointsEarned = calculatePlateScore(
-              dogeMultiplier,
-              getStreakMultiplier(newState.stats.currentPlateStreak)
-            );
+      newState.emptyPlates = plateResult.remainingPlates;
+      newState.stats = plateResult.updatedStats;
+      newState.score += plateResult.totalScore;
 
-            newState.score += pointsEarned;
-            platesToAddScores.push({ points: pointsEarned, lane: plate.lane, position: plate.position });
+      plateResult.events.forEach(event => {
+        if (event === 'CAUGHT') soundManager.plateCaught();
+        else if (event === 'DROPPED') soundManager.plateDropped();
+      });
 
-            newState.stats.platesCaught += 1;
-            newState.stats = updateStatsForStreak(newState.stats, 'plate');
-            return false;
-          } else if (plate.position <= 0) {
-            soundManager.plateDropped();
-            newState.stats.currentPlateStreak = 0;
-            return false;
-          }
-          return true;
-        });
-      platesToAddScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
+      plateResult.scores.forEach(({ points, lane, position }) => {
+        newState = addFloatingScore(points, lane, position, newState);
+      });
 
       // --- 8. NYAN CAT SWEEP LOGIC ---
       if (newState.nyanSweep?.active) {
@@ -648,128 +650,55 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           else newState.showStore = true;
         }
 
-        const crossedBossLevel = BOSS_CONFIG.TRIGGER_LEVELS.find(triggerLvl =>
-          oldLevel < triggerLvl && targetLevel >= triggerLvl
+        // Check if boss battle should trigger
+        const triggeredBossLevel = checkBossTrigger(
+          oldLevel,
+          targetLevel,
+          newState.defeatedBossLevels,
+          newState.bossBattle
         );
-
-        if (crossedBossLevel !== undefined &&
-          !newState.defeatedBossLevels.includes(crossedBossLevel) &&
-          !newState.bossBattle?.active) {
-
-          const initialMinions: BossMinion[] = [];
-          for (let i = 0; i < BOSS_CONFIG.MINIONS_PER_WAVE; i++) {
-            initialMinions.push({
-              id: `minion - ${now} -1 - ${i} `,
-              lane: i % 4,
-              position: POSITIONS.SPAWN_X + (Math.floor(i / 4) * 15),
-              speed: ENTITY_SPEEDS.MINION,
-              defeated: false,
-            });
-          }
-
-          newState.bossBattle = {
-            active: true,
-            bossHealth: BOSS_CONFIG.HEALTH,
-            currentWave: 1,
-            minions: initialMinions,
-            bossVulnerable: true,
-            bossDefeated: false,
-            bossPosition: BOSS_CONFIG.BOSS_POSITION,
-          };
+        if (triggeredBossLevel !== null) {
+          newState.bossBattle = initializeBossBattle(now);
         }
       }
 
+      // --- BOSS BATTLE PROCESSING ---
       if (newState.bossBattle?.active && !newState.bossBattle.bossDefeated) {
-        const bossScores: Array<{ points: number; lane: number; position: number }> = [];
-        newState.bossBattle.minions = newState.bossBattle.minions.map(minion => {
-          if (minion.defeated) return minion;
-          return { ...minion, position: minion.position - minion.speed };
-        });
+        const bossResult = processBossTick(
+          newState.bossBattle,
+          newState.pizzaSlices,
+          newState.level,
+          newState.defeatedBossLevels,
+          now
+        );
 
-        newState.bossBattle.minions = newState.bossBattle.minions.map(minion => {
-          if (minion.defeated) return minion;
-          if (checkMinionReachedChef(minion)) {
+        newState.bossBattle = bossResult.nextBossBattle;
+        newState.pizzaSlices = newState.pizzaSlices.filter(s => !bossResult.consumedSliceIds.has(s.id));
+        newState.score += bossResult.scoreGained;
+
+        // Handle lives lost
+        if (bossResult.livesLost > 0) {
+          for (let i = 0; i < bossResult.livesLost; i++) {
             soundManager.lifeLost();
-            newState.lives = Math.max(0, newState.lives - 1);
-            if (newState.lives === 0) {
-              newState = triggerGameOver(newState, now);
-            }
-            return { ...minion, defeated: true };
           }
-          return minion;
-        });
-
-        const consumedSliceIds = new Set<string>();
-        newState.pizzaSlices.forEach(slice => {
-          if (consumedSliceIds.has(slice.id)) return;
-          newState.bossBattle!.minions = newState.bossBattle!.minions.map(minion => {
-            if (minion.defeated || consumedSliceIds.has(slice.id)) return minion;
-            if (checkSliceMinionCollision(slice, minion, 8)) {
-              consumedSliceIds.add(slice.id);
-              soundManager.customerServed();
-              const pointsEarned = SCORING.MINION_DEFEAT;
-              newState.score += pointsEarned;
-              bossScores.push({ points: pointsEarned, lane: minion.lane, position: minion.position });
-              return { ...minion, defeated: true };
-            }
-            return minion;
-          });
-        });
-
-        if (newState.bossBattle.bossVulnerable) {
-          newState.pizzaSlices.forEach(slice => {
-            if (consumedSliceIds.has(slice.id)) return;
-            if (Math.abs(newState.bossBattle!.bossPosition - slice.position) < 10) {
-              consumedSliceIds.add(slice.id);
-              soundManager.customerServed();
-              newState.bossBattle!.bossHealth -= 1;
-              const pointsEarned = SCORING.BOSS_HIT;
-              newState.score += pointsEarned;
-              bossScores.push({ points: pointsEarned, lane: slice.lane, position: slice.position });
-
-              if (newState.bossBattle!.bossHealth <= 0) {
-                newState.bossBattle!.bossDefeated = true;
-                newState.bossBattle!.active = false;
-                newState.bossBattle!.minions = [];
-                newState.score += SCORING.BOSS_DEFEAT;
-                bossScores.push({ points: SCORING.BOSS_DEFEAT, lane: 1, position: newState.bossBattle!.bossPosition });
-
-                const currentBossLevel = BOSS_CONFIG.TRIGGER_LEVELS
-                  .slice()
-                  .reverse()
-                  .find(lvl => newState.level >= lvl);
-
-                if (currentBossLevel && !newState.defeatedBossLevels.includes(currentBossLevel)) {
-                  newState.defeatedBossLevels = [...newState.defeatedBossLevels, currentBossLevel];
-                }
-              }
-            }
-          });
-        }
-        newState.pizzaSlices = newState.pizzaSlices.filter(slice => !consumedSliceIds.has(slice.id));
-        bossScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
-
-        const activeMinions = newState.bossBattle.minions.filter(m => !m.defeated);
-        if (activeMinions.length === 0) {
-          if (newState.bossBattle.currentWave < BOSS_CONFIG.WAVES) {
-            const nextWave = newState.bossBattle.currentWave + 1;
-            const newMinions: BossMinion[] = [];
-            for (let i = 0; i < BOSS_CONFIG.MINIONS_PER_WAVE; i++) {
-              newMinions.push({
-                id: `minion - ${now} -${nextWave} -${i} `,
-                lane: i % 4,
-                position: POSITIONS.SPAWN_X + (Math.floor(i / 4) * 15),
-                speed: ENTITY_SPEEDS.MINION,
-                defeated: false,
-              });
-            }
-            newState.bossBattle.currentWave = nextWave;
-            newState.bossBattle.minions = newMinions;
-          } else if (!newState.bossBattle.bossVulnerable) {
-            newState.bossBattle.bossVulnerable = true;
-            newState.bossBattle.minions = [];
+          newState.lives = Math.max(0, newState.lives - bossResult.livesLost);
+          if (newState.lives === 0) {
+            newState = triggerGameOver(newState, now);
           }
         }
+
+        // Handle defeated boss level
+        if (bossResult.defeatedBossLevel !== undefined) {
+          newState.defeatedBossLevels = [...newState.defeatedBossLevels, bossResult.defeatedBossLevel];
+        }
+
+        // Play sounds and add floating scores for events
+        bossResult.events.forEach(event => {
+          if (event.type === 'MINION_DEFEATED' || event.type === 'BOSS_HIT' || event.type === 'BOSS_DEFEATED') {
+            soundManager.customerServed();
+            newState = addFloatingScore(event.points, event.lane, event.position, newState);
+          }
+        });
       }
 
       return newState;
@@ -938,76 +867,25 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
       const now = Date.now();
 
-      // Customer spawn (gate by min interval)
-      const spawnDelay =
-        SPAWN_RATES.CUSTOMER_MIN_INTERVAL_BASE -
-        (current.level * SPAWN_RATES.CUSTOMER_MIN_INTERVAL_DECREMENT);
-
-      const levelSpawnRate =
-        SPAWN_RATES.CUSTOMER_BASE_RATE +
-        (current.level - 1) * SPAWN_RATES.CUSTOMER_LEVEL_INCREMENT;
-
-      const effectiveSpawnRate = current.bossBattle?.active
-        ? levelSpawnRate * 0.5
-        : levelSpawnRate;
+      // Use spawn system for customer and power-up spawning
+      const spawnResult = processSpawning(
+        lastCustomerSpawnRef.current,
+        lastPowerUpSpawnRef.current,
+        now,
+        current.level,
+        current.bossBattle?.active ?? false
+      );
 
       let next = current;
 
-      if (now - lastCustomerSpawnRef.current >= spawnDelay && Math.random() < effectiveSpawnRate * 0.01) {
-        const lane = Math.floor(Math.random() * GAME_CONFIG.LANE_COUNT);
-        const disappointedEmojis = ['😢', '😭', '😠', '🤬'];
-        const isCritic = Math.random() < PROBABILITIES.CRITIC_CHANCE;
-        const isBadLuckBrian = !isCritic && Math.random() < PROBABILITIES.BAD_LUCK_BRIAN_CHANCE;
-
+      if (spawnResult.newCustomer) {
         lastCustomerSpawnRef.current = now;
-
-        next = {
-          ...next,
-          customers: [
-            ...next.customers,
-            {
-              id: `customer - ${now} -${lane} `,
-              lane,
-              position: POSITIONS.SPAWN_X,
-              speed: ENTITY_SPEEDS.CUSTOMER_BASE,
-              served: false,
-              hasPlate: false,
-              leaving: false,
-              disappointed: false,
-              disappointedEmoji: disappointedEmojis[Math.floor(Math.random() * disappointedEmojis.length)],
-              movingRight: false,
-              critic: isCritic,
-              badLuckBrian: isBadLuckBrian,
-              flipped: isBadLuckBrian,
-            }
-          ]
-        };
+        next = { ...next, customers: [...next.customers, spawnResult.newCustomer] };
       }
 
-      // PowerUp spawn (gate by min interval)
-      if (now - lastPowerUpSpawnRef.current >= SPAWN_RATES.POWERUP_MIN_INTERVAL && Math.random() < SPAWN_RATES.POWERUP_CHANCE) {
-        const lane = Math.floor(Math.random() * GAME_CONFIG.LANE_COUNT);
-        const rand = Math.random();
-        const randomType =
-          rand < PROBABILITIES.POWERUP_STAR_CHANCE
-            ? 'star'
-            : POWERUPS.TYPES[Math.floor(Math.random() * POWERUPS.TYPES.length)];
-
+      if (spawnResult.newPowerUp) {
         lastPowerUpSpawnRef.current = now;
-
-        next = {
-          ...next,
-          powerUps: [
-            ...next.powerUps,
-            {
-              id: `powerup - ${now} -${lane} `,
-              lane,
-              position: POSITIONS.POWERUP_SPAWN_X,
-              speed: ENTITY_SPEEDS.POWERUP,
-              type: randomType,
-            }
-          ]
-        };
+        next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
       }
 
       return next;

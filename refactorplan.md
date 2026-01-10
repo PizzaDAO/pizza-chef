@@ -10,11 +10,14 @@
 - `ovenSystem.ts` - Oven tick, interaction, pause logic, display status
 - `storeSystem.ts` - Store purchases, upgrades
 - `customerSystem.ts` - Customer movement and state
+- `bossSystem.ts` - Boss battle logic, minions, waves ✅ NEW
+- `spawnSystem.ts` - Customer and power-up spawning ✅ NEW
+- `plateSystem.ts` - Plate catching and movement ✅ NEW
 
 ### Current Metrics
-- **useGameLogic.ts**: 1045 lines (target: ~300)
-- **updateGame function**: ~500 lines (should be ~50)
-- **Logic files**: 7 systems extracted
+- **useGameLogic.ts**: 923 lines (was 1045, target: ~300)
+- **updateGame function**: ~484 lines (was ~500, ideally ~50)
+- **Logic files**: 10 systems extracted (was 7)
 
 ---
 
@@ -339,12 +342,13 @@ export const NYAN_CONFIG = {
 
 ## Success Criteria
 
-- [ ] `useGameLogic.ts` under 400 lines
-- [ ] `updateGame` function under 100 lines
+- [ ] `useGameLogic.ts` under 400 lines (currently 923)
+- [ ] `updateGame` function under 100 lines (currently ~484)
 - [ ] No duplicate power-up effect logic
 - [ ] All magic numbers in constants
-- [ ] Boss system fully extracted and tested
-- [ ] Spawn system fully extracted and tested
+- [x] Boss system fully extracted and tested
+- [x] Spawn system fully extracted and tested
+- [x] Plate system fully extracted and tested
 
 ---
 
@@ -360,3 +364,19 @@ export const NYAN_CONFIG = {
 - [x] Pizza confetti for top 10 scores
 - [x] Disabled game board tap controls (kept mobile buttons)
 - [x] Doge alert 1/3 size on mobile
+
+## Phase 1 Refactoring Complete
+
+- [x] **1.1 Boss System** - Extracted to `bossSystem.ts` (~280 lines)
+- [x] **1.2 Spawn System** - Extracted to `spawnSystem.ts` (~140 lines)
+- [x] **1.3 Plate System** - Extracted to `plateSystem.ts` (~75 lines)
+- [x] **1.4 Consolidation** - Reduced useGameLogic from 1045 to 923 lines (-122 lines)
+
+### Notes on Further Reduction
+The remaining large section in updateGame is the slice-customer collision loop (~130 lines). This is tightly coupled to:
+- Sound effects (multiple soundManager calls)
+- Customer state transitions (woozy, frozen, served)
+- Scoring and life gain calculations
+- Stats tracking
+
+Extracting this would require a complex result object and careful handling of side effects. Consider for a future refactoring phase.
