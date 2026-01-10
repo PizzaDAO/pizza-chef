@@ -19,7 +19,13 @@
       "Bash(git push:*)",
       "Bash(tasklist:*)",
       "Bash(findstr:*)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm test:*)",
+      "Bash(python:*)",
+      "Bash(magick:*)",
+      "Bash(pip install:*)",
+      "Bash(grep:*)"
     ]
   }
 }

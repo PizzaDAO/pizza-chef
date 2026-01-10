@@ -1,4 +1,4 @@
-import { GameState, PowerUp, StarLostReason, PowerUpType, ActivePowerUp, Customer } from '../types/game';
+import { GameState, PowerUp, StarLostReason, PowerUpType, ActivePowerUp } from '../types/game';
 import { GAME_CONFIG, POWERUPS, SCORING } from '../lib/constants';
 
 // Result of collecting a power-up
@@ -145,29 +145,3 @@ export const processPowerUpExpirations = (
     };
 };
 
-/**
- * Logic for Star Power auto-feed radius
- * Returns customers that should be fed
- */
-export const checkStarPowerAutoFeed = (
-    customers: Customer[],
-    chefLane: number,
-    chefX: number,
-    range: number = 8 // Default range
-): string[] => {
-    const feedableCustomerIds: string[] = [];
-
-    customers.forEach(customer => {
-        if (customer.served || customer.disappointed || customer.vomit || customer.leaving) return;
-
-        // Check range logic (Inline implementation of checkStarPowerRange from collisionSystem to avoid circular deps if any)
-        // Or we could import it. Let's replicate simple logic here for purity.
-        const inRange = customer.lane === chefLane && Math.abs(customer.position - chefX) < range;
-
-        if (inRange) {
-            feedableCustomerIds.push(customer.id);
-        }
-    });
-
-    return feedableCustomerIds;
-};

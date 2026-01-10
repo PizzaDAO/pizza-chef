@@ -737,82 +737,42 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     setGameState(prev => {
       if (prev.gameOver) return prev;
       const now = Date.now();
-      let newState = {
-        ...prev,
-        stats: {
-          ...prev.stats,
-          powerUpsUsed: { ...prev.stats.powerUpsUsed, [type]: prev.stats.powerUpsUsed[type] + 1 }
-        }
+
+      // Create synthetic power-up for the collection system
+      const syntheticPowerUp = {
+        id: `debug-${now}`,
+        lane: prev.chefLane,
+        position: GAME_CONFIG.CHEF_X_POSITION,
+        speed: 0,
+        type
       };
 
+      // Use the unified power-up collection system
+      const result = processPowerUpCollection(prev, syntheticPowerUp, 1, now);
+      let newState = result.newState;
 
-      if (type === 'beer') {
-        let livesLost = 0;
-        let lastReason: StarLostReason | undefined;
-        newState.customers = newState.customers.map(customer => {
-          if (customer.critic) {
-            if (customer.woozy) return { ...customer, woozy: false, woozyState: undefined, frozen: false, hotHoneyAffected: false, textMessage: "I prefer wine", textMessageTime: Date.now() };
-            if (!customer.served && !customer.vomit && !customer.disappointed && !customer.leaving) return { ...customer, textMessage: "I prefer wine", textMessageTime: Date.now() };
-            return customer;
-          }
-          if (customer.woozy) {
-            livesLost += 1;
-            lastReason = 'beer_vomit';
-            return { ...customer, woozy: false, vomit: true, disappointed: true, movingRight: true };
-          }
-          if (!customer.served && !customer.vomit && !customer.leaving) {
-            if (customer.badLuckBrian) {
-              livesLost += 1;
-              lastReason = 'brian_hurled';
-              return { ...customer, vomit: true, disappointed: true, movingRight: true, flipped: false, textMessage: "Oh man I hurled", textMessageTime: Date.now(), hotHoneyAffected: false, frozen: false };
-            }
-            return { ...customer, woozy: true, woozyState: 'normal', movingRight: true, hotHoneyAffected: false, frozen: false };
-          }
-          return customer;
-        });
-        newState.lives = Math.max(0, newState.lives - livesLost);
-        if (livesLost > 0) {
-          newState.stats.currentCustomerStreak = 0;
-          if (lastReason) newState.lastStarLostReason = lastReason;
-        }
-        if (newState.lives === 0) {
-          newState = triggerGameOver(newState as GameState, now);
-        }
-      } else if (type === 'star') {
-        newState.availableSlices = GAME_CONFIG.MAX_SLICES;
-        newState.starPowerActive = true;
-        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'star'), { type: 'star', endTime: now + POWERUPS.DURATION }];
-      } else if (type === 'doge') {
-        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== 'doge'), { type: 'doge', endTime: now + POWERUPS.DURATION }];
-        newState.powerUpAlert = { type: 'doge', endTime: now + POWERUPS.ALERT_DURATION_DOGE, chefLane: newState.chefLane };
-      } else if (type === 'nyan') {
-        if (!newState.nyanSweep?.active) {
-          newState.nyanSweep = { active: true, xPosition: GAME_CONFIG.CHEF_X_POSITION, laneDirection: 1, startTime: now, lastUpdateTime: now, startingLane: newState.chefLane };
-          soundManager.nyanCatPowerUp();
-          if (!newState.activePowerUps.some(p => p.type === 'doge') || newState.powerUpAlert?.type !== 'doge') {
-            newState.powerUpAlert = { type: 'nyan', endTime: now + POWERUPS.ALERT_DURATION_NYAN, chefLane: newState.chefLane };
-          }
-        }
-      } else {
-        newState.activePowerUps = [...newState.activePowerUps.filter(p => p.type !== type), { type: type, endTime: now + POWERUPS.DURATION }];
-        if (type === 'honey') {
-          newState.customers = newState.customers.map(c => {
-            if (c.served || c.disappointed || c.vomit || c.leaving) return c;
-            if (c.badLuckBrian) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, frozen: false, woozy: false, woozyState: undefined, textMessage: "I can't do spicy.", textMessageTime: Date.now() };
-            return { ...c, shouldBeHotHoneyAffected: true, hotHoneyAffected: true, frozen: false, woozy: false, woozyState: undefined };
-          });
-        }
-        if (type === 'ice-cream') {
-          newState.customers = newState.customers.map(c => {
-            if (!c.served && !c.disappointed && !c.vomit) {
-              if (c.badLuckBrian) return { ...c, textMessage: "I'm lactose intolerant", textMessageTime: Date.now() };
-              return { ...c, shouldBeFrozenByIceCream: true, frozen: true, hotHoneyAffected: false, woozy: false, woozyState: undefined };
-            }
-            return c;
-          });
+      // Handle side effects
+      if (result.livesLost > 0) {
+        soundManager.lifeLost();
+        if (result.shouldTriggerGameOver) {
+          newState = triggerGameOver(newState, now);
         }
       }
-      return newState as GameState;
+
+      // Special handling for Nyan Cat sweep initialization
+      if (type === 'nyan' && !prev.nyanSweep?.active) {
+        newState.nyanSweep = {
+          active: true,
+          xPosition: GAME_CONFIG.CHEF_X_POSITION,
+          laneDirection: 1,
+          startTime: now,
+          lastUpdateTime: now,
+          startingLane: prev.chefLane
+        };
+        soundManager.nyanCatPowerUp();
+      }
+
+      return newState;
     });
   }, [triggerGameOver]);
 

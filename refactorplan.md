@@ -15,7 +15,7 @@
 - `plateSystem.ts` - Plate catching and movement ✅ NEW
 
 ### Current Metrics
-- **useGameLogic.ts**: 923 lines (was 1045, target: ~300)
+- **useGameLogic.ts**: 883 lines (was 1045, target: ~300)
 - **updateGame function**: ~484 lines (was ~500, ideally ~50)
 - **Logic files**: 10 systems extracted (was 7)
 
@@ -380,3 +380,9 @@ The remaining large section in updateGame is the slice-customer collision loop (
 - Stats tracking
 
 Extracting this would require a complex result object and careful handling of side effects. Consider for a future refactoring phase.
+
+## Phase 2 Refactoring Complete
+
+- [x] Deleted unused `checkStarPowerAutoFeed()` function (-26 lines from powerUpSystem.ts)
+- [x] Consolidated `debugActivatePowerUp` to use `processPowerUpCollection` (-40 lines from useGameLogic.ts)
+- [x] Total reduction: **-66 lines**
