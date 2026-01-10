@@ -104,6 +104,7 @@ export const processPowerUpCollection = (
         if (powerUp.type === 'honey') {
             newState.customers = newState.customers.map(c => {
                 if (c.served || c.disappointed || c.vomit || c.leaving) return c;
+                if (c.critic) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, textMessage: "Just plain, thanks.", textMessageTime: now };
                 if (c.badLuckBrian) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, frozen: false, woozy: false, woozyState: undefined, textMessage: "I can't do spicy.", textMessageTime: now };
                 return { ...c, shouldBeHotHoneyAffected: true, hotHoneyAffected: true, frozen: false, woozy: false, woozyState: undefined };
             });

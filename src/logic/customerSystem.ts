@@ -71,6 +71,14 @@ export const updateCustomerPositions = (
         processedCustomer.textMessage = "I can't do spicy.";
         processedCustomer.textMessageTime = now;
       }
+    // Critics are immune to hot honey
+    } else if (processedCustomer.critic) {
+      if (processedCustomer.hotHoneyAffected || processedCustomer.shouldBeHotHoneyAffected) {
+        processedCustomer.hotHoneyAffected = false;
+        processedCustomer.shouldBeHotHoneyAffected = false;
+        processedCustomer.textMessage = "Just plain, thanks.";
+        processedCustomer.textMessageTime = now;
+      }
     } else if (!processedCustomer.woozy && !processedCustomer.served && !processedCustomer.leaving && !processedCustomer.disappointed) {
       // Normal customers get effects
       if (hasHoney && hasIceCream) {
