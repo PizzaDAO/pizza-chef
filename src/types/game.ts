@@ -143,8 +143,11 @@ export interface BossMinion {
   defeated: boolean;
 }
 
+export type BossType = 'dominos' | 'papaJohn';
+
 export interface BossBattle {
   active: boolean;
+  bossType: BossType;
   bossHealth: number;
   currentWave: number;
   minions: BossMinion[];
@@ -153,6 +156,7 @@ export interface BossBattle {
   bossPosition: number;
   bossLane: number;
   bossLaneDirection: number; // 1 = moving down, -1 = moving up
+  hitsReceived?: number; // Track hits for Papa John sprite changes
 }
 
 export interface GameStats {
@@ -222,4 +226,5 @@ export interface GameState {
   cleanKitchenStartTime?: number;
   lastCleanKitchenBonusTime?: number;
   cleanKitchenBonusAlert?: { endTime: number };
+  lastPauseTime?: number; // Track when game was paused for timer adjustments
 }

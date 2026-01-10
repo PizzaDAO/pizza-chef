@@ -1,8 +1,94 @@
 import {
   Customer,
-  GameStats
+  GameStats,
+  GameState
 } from '../types/game';
 import { SCORING, GAME_CONFIG } from '../lib/constants';
+import { getCustomerVariant } from '../types/game';
+
+/**
+ * Options for applying customer scoring to game state
+ */
+export interface CustomerScoringOptions {
+  includeBank: boolean;       // Whether to add bank reward
+  countsAsServed: boolean;    // Whether to increment happyCustomers and stats
+  isFirstSlice: boolean;      // Whether this is a first slice (drooling/partial)
+  checkLifeGain: boolean;     // Whether to check for life gain bonus
+}
+
+/**
+ * Result of applying customer scoring
+ */
+export interface CustomerScoringResult {
+  scoreToAdd: number;
+  bankToAdd: number;
+  newHappyCustomers: number;
+  newStats: GameStats;
+  livesToAdd: number;
+  shouldPlayLifeSound: boolean;
+  floatingScore: { points: number; lane: number; position: number };
+  starGain?: { lane: number; position: number };
+}
+
+/**
+ * Applies customer scoring to game state - consolidates repeated scoring logic
+ */
+export const applyCustomerScoring = (
+  customer: Customer,
+  state: GameState,
+  dogeMultiplier: number,
+  streakMultiplier: number,
+  options: CustomerScoringOptions
+): CustomerScoringResult => {
+  const { points, bank } = calculateCustomerScore(
+    customer,
+    dogeMultiplier,
+    streakMultiplier,
+    options.isFirstSlice
+  );
+
+  let newHappyCustomers = state.happyCustomers;
+  let newStats = state.stats;
+  let livesToAdd = 0;
+  let shouldPlayLifeSound = false;
+  let starGain: { lane: number; position: number } | undefined;
+
+  if (options.countsAsServed) {
+    newHappyCustomers += 1;
+    newStats = {
+      ...newStats,
+      customersServed: newStats.customersServed + 1,
+    };
+    newStats = updateStatsForStreak(newStats, 'customer');
+
+    if (options.checkLifeGain) {
+      const lifeResult = checkLifeGain(
+        state.lives,
+        newHappyCustomers,
+        dogeMultiplier,
+        getCustomerVariant(customer) === 'critic',
+        customer.position
+      );
+
+      if (lifeResult.livesToAdd > 0) {
+        livesToAdd = lifeResult.livesToAdd;
+        shouldPlayLifeSound = lifeResult.shouldPlaySound;
+        starGain = { lane: customer.lane, position: customer.position };
+      }
+    }
+  }
+
+  return {
+    scoreToAdd: points,
+    bankToAdd: options.includeBank ? bank : 0,
+    newHappyCustomers,
+    newStats,
+    livesToAdd,
+    shouldPlayLifeSound,
+    floatingScore: { points, lane: customer.lane, position: customer.position },
+    starGain,
+  };
+};
 
 /**
  * Calculates the score and bank reward for serving a customer.

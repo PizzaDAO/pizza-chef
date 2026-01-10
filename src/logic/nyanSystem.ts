@@ -1,5 +1,5 @@
 import { GameState, Customer, BossMinion, NyanSweep } from '../types/game';
-import { GAME_CONFIG } from '../lib/constants';
+import { GAME_CONFIG, NYAN_CONFIG } from '../lib/constants';
 import { checkNyanSweepCollision } from './collisionSystem';
 
 export interface NyanSweepResult {
@@ -22,17 +22,14 @@ export const processNyanSweepMovement = (
     currentChefLane: number,
     now: number
 ): NyanSweepResult => {
-    const MAX_X = 90;
-    const dt = Math.min(now - currentSweep.lastUpdateTime, 100);
+    const dt = Math.min(now - currentSweep.lastUpdateTime, NYAN_CONFIG.DT_MAX);
     const INITIAL_X = GAME_CONFIG.CHEF_X_POSITION;
-    const totalDistance = MAX_X - INITIAL_X;
-    const duration = 2600;
+    const totalDistance = NYAN_CONFIG.MAX_X - INITIAL_X;
 
-    const moveIncrement = (totalDistance / duration) * dt;
+    const moveIncrement = (totalDistance / NYAN_CONFIG.DURATION) * dt;
     const newXPosition = currentSweep.xPosition + moveIncrement;
 
-    const laneChangeSpeed = 0.01;
-    let newLane = currentChefLane + (currentSweep.laneDirection * laneChangeSpeed * dt);
+    let newLane = currentChefLane + (currentSweep.laneDirection * NYAN_CONFIG.LANE_CHANGE_SPEED * dt);
     let newLaneDirection = currentSweep.laneDirection;
 
     // Bounce logic
@@ -44,7 +41,7 @@ export const processNyanSweepMovement = (
         newLaneDirection = 1;
     }
 
-    const sweepComplete = newXPosition >= MAX_X;
+    const sweepComplete = newXPosition >= NYAN_CONFIG.MAX_X;
 
     if (sweepComplete) {
         // Snap to nearest lane when done

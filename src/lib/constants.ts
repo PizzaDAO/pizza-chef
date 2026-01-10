@@ -97,11 +97,22 @@ export const COSTS = {
 };
 
 export const BOSS_CONFIG = {
-  TRIGGER_LEVELS: [30],
+  DOMINOS_LEVEL: 30,
+  PAPA_JOHN_LEVEL: 10, // Single appearance at level 10
+  BOSS_POSITION: 85,
+};
+
+export const PAPA_JOHN_CONFIG = {
+  HEALTH: 40, // 40 slices to defeat, changes image every 8 hits
+  WAVES: 3,
+  MINIONS_PER_WAVE: 4,
+  HITS_PER_IMAGE: 8, // Change sprite every 8 hits
+};
+
+export const DOMINOS_CONFIG = {
   HEALTH: 24,
   WAVES: 3,
   MINIONS_PER_WAVE: 4,
-  BOSS_POSITION: 85,
 };
 
 export const POWERUPS = {
@@ -112,10 +123,18 @@ export const POWERUPS = {
   TYPES: ['honey', 'ice-cream', 'beer', 'doge', 'nyan', 'moltobenny'] as const,
 };
 
+export const NYAN_CONFIG = {
+  MAX_X: 90,              // End position of sweep
+  DURATION: 2600,         // Total sweep duration in ms
+  LANE_CHANGE_SPEED: 0.01, // Vertical movement speed
+  DT_MAX: 100,            // Max delta time per frame
+};
+
 export const TIMINGS = {
   FLOATING_SCORE_LIFETIME: 1000,
   DROPPED_PLATE_LIFETIME: 1000,
   TEXT_MESSAGE_LIFETIME: 3000,
+  WARNING_BLINK_INTERVAL: 250, // ms between warning blinks
 };
 
 export const POSITIONS = {
@@ -124,6 +143,12 @@ export const POSITIONS = {
   OFF_SCREEN_RIGHT: 98,
   OFF_SCREEN_LEFT: -10,
   TURN_AROUND_POINT: 90, // For woozy customers
+};
+
+// Lane positioning (percentage-based layout)
+export const LAYOUT = {
+  LANE_HEIGHT_PERCENT: 25,  // Each lane is 25% of board height
+  LANE_Y_OFFSET: 6,         // Vertical offset within lane (%)
 };
 
 export const INITIAL_GAME_STATE = {

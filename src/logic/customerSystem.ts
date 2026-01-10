@@ -479,6 +479,7 @@ export const processCustomerHit = (
           served: true,
           hasPlate: false,
           slicesReceived,
+          flipped: true, // Flip when leaving
           textMessage: "Thanks sucker!",
           textMessageTime: now
         },

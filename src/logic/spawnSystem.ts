@@ -89,7 +89,7 @@ export const trySpawnCustomer = (
     scumbagSteve: variant === 'scumbagSteve',
     slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
-    flipped: variant === 'badLuckBrian',
+    flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
   };
 
   return { shouldSpawn: true, entity: customer };

@@ -42,7 +42,8 @@ import {
   calculateMinionScore,
   calculatePowerUpScore,
   checkLifeGain,
-  updateStatsForStreak
+  updateStatsForStreak,
+  applyCustomerScoring
 } from '../logic/scoringSystem';
 
 import {
@@ -360,117 +361,80 @@ export const useGameLogic = (gameStarted: boolean = true) => {
               } else if (event === 'UNFROZEN_AND_SERVED') {
                 soundManager.customerUnfreeze();
 
-                const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-                  customer,
-                  dogeMultiplier,
-                  getStreakMultiplier(newState.stats.currentCustomerStreak)
-                );
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
 
-                newState.score += pointsEarned;
-                newState.bank += bankEarned;
-                customerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
 
-                newState.happyCustomers += 1;
-                newState.stats.customersServed += 1;
-                newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-                const lifeResult = checkLifeGain(newState.lives, newState.happyCustomers, dogeMultiplier);
-                if (lifeResult.livesToAdd > 0) {
-                  newState.lives += lifeResult.livesToAdd;
-                  if (lifeResult.shouldPlaySound) soundManager.lifeGained();
-                  starGainsToAdd.push({ lane: customer.lane, position: customer.position });
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
                 }
 
               } else if (event === 'WOOZY_STEP_1') {
                 soundManager.woozyServed();
 
-                const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-                  customer,
-                  dogeMultiplier,
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  true // isFirstSlice
-                );
+                  { includeBank: true, countsAsServed: false, isFirstSlice: true, checkLifeGain: false });
 
-                newState.score += pointsEarned;
-                newState.bank += bankEarned;
-                customerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                customerScores.push(result.floatingScore);
 
               } else if (event === 'STEVE_FIRST_SLICE') {
                 // Steve got his first slice but wants more - NO PAYMENT
                 soundManager.woozyServed();
 
-                const { points: pointsEarned } = calculateCustomerScore(
-                  customer,
-                  dogeMultiplier,
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  true // isFirstSlice
-                );
+                  { includeBank: false, countsAsServed: false, isFirstSlice: true, checkLifeGain: false });
 
-                newState.score += pointsEarned;
-                // NO bank reward - Steve doesn't pay!
-                customerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+                newState.score += result.scoreToAdd;
+                customerScores.push(result.floatingScore);
 
               } else if (event === 'STEVE_SERVED') {
                 // Steve is satisfied - NO PAYMENT but counts as served
                 soundManager.customerServed();
 
-                const { points: pointsEarned } = calculateCustomerScore(
-                  customer,
-                  dogeMultiplier,
-                  getStreakMultiplier(newState.stats.currentCustomerStreak)
-                );
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: false, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
 
-                newState.score += pointsEarned;
-                // NO bank reward - Steve doesn't pay!
-                customerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+                newState.score += result.scoreToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
 
-                newState.happyCustomers += 1;
-                newState.stats.customersServed += 1;
-                newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-                const lifeResult = checkLifeGain(
-                  newState.lives,
-                  newState.happyCustomers,
-                  dogeMultiplier,
-                  false, // Steve is not a critic
-                  customer.position
-                );
-
-                if (lifeResult.livesToAdd > 0) {
-                  newState.lives += lifeResult.livesToAdd;
-                  if (lifeResult.shouldPlaySound) soundManager.lifeGained();
-                  starGainsToAdd.push({ lane: customer.lane, position: customer.position });
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
                 }
 
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {
                 soundManager.customerServed();
 
-                const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-                  customer,
-                  dogeMultiplier,
-                  getStreakMultiplier(newState.stats.currentCustomerStreak)
-                );
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
 
-                newState.score += pointsEarned;
-                newState.bank += bankEarned;
-                customerScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
 
-                newState.happyCustomers += 1;
-                newState.stats.customersServed += 1;
-                newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-                const lifeResult = checkLifeGain(
-                  newState.lives,
-                  newState.happyCustomers,
-                  dogeMultiplier,
-                  getCustomerVariant(customer) === 'critic',
-                  customer.position
-                );
-
-                if (lifeResult.livesToAdd > 0) {
-                  newState.lives += lifeResult.livesToAdd;
-                  if (lifeResult.shouldPlaySound) soundManager.lifeGained();
-                  starGainsToAdd.push({ lane: customer.lane, position: customer.position });
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
                 }
               }
             });
@@ -657,31 +621,19 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
               soundManager.customerServed();
 
-              const { points: pointsEarned, bank: bankEarned } = calculateCustomerScore(
-                customer,
-                dogeMultiplier,
-                getStreakMultiplier(newState.stats.currentCustomerStreak)
-              );
+              const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                getStreakMultiplier(newState.stats.currentCustomerStreak),
+                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
 
-              newState.score += pointsEarned;
-              newState.bank += bankEarned;
-              nyanScores.push({ points: pointsEarned, lane: customer.lane, position: customer.position });
+              newState.score += result.scoreToAdd;
+              newState.bank += result.bankToAdd;
+              newState.happyCustomers = result.newHappyCustomers;
+              newState.stats = result.newStats;
+              nyanScores.push(result.floatingScore);
 
-              newState.happyCustomers += 1;
-              newState.stats.customersServed += 1;
-              newState.stats = updateStatsForStreak(newState.stats, 'customer');
-
-              const lifeResult = checkLifeGain(
-                newState.lives,
-                newState.happyCustomers,
-                dogeMultiplier,
-                getCustomerVariant(customer) === 'critic',
-                customer.position
-              );
-
-              if (lifeResult.livesToAdd > 0) {
-                newState.lives += lifeResult.livesToAdd;
-                if (lifeResult.shouldPlaySound) soundManager.lifeGained();
+              if (result.livesToAdd > 0) {
+                newState.lives += result.livesToAdd;
+                if (result.shouldPlayLifeSound) soundManager.lifeGained();
                 newState = addFloatingStar(true, customer.lane, customer.position, newState);
               }
 
@@ -741,14 +693,14 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
 
         // Check if boss battle should trigger
-        const triggeredBossLevel = checkBossTrigger(
+        const bossTrigger = checkBossTrigger(
           oldLevel,
           targetLevel,
           newState.defeatedBossLevels,
           newState.bossBattle
         );
-        if (triggeredBossLevel !== null) {
-          newState.bossBattle = initializeBossBattle(now);
+        if (bossTrigger !== null) {
+          newState.bossBattle = initializeBossBattle(now, bossTrigger.type);
         }
       }
 
@@ -902,8 +854,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
   const togglePause = useCallback(() => {
     setGameState(prev => {
+      const now = Date.now();
       const newPaused = !prev.paused;
-      const updatedOvens = calculateOvenPauseState(prev.ovens, newPaused, Date.now());
+      const updatedOvens = calculateOvenPauseState(prev.ovens, newPaused, now);
 
       // Pause/resume Nyan cat song
       if (newPaused) {
@@ -912,7 +865,21 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         soundManager.resumeNyan();
       }
 
-      return { ...prev, paused: newPaused, ovens: updatedOvens };
+      // Handle clean kitchen timer pause/resume
+      let cleanKitchenStartTime = prev.cleanKitchenStartTime;
+      let lastPauseTime = prev.lastPauseTime;
+
+      if (newPaused) {
+        // Starting pause - record when we paused
+        lastPauseTime = now;
+      } else if (prev.lastPauseTime && cleanKitchenStartTime) {
+        // Resuming - adjust clean kitchen start time to exclude pause duration
+        const pauseDuration = now - prev.lastPauseTime;
+        cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+        lastPauseTime = undefined;
+      }
+
+      return { ...prev, paused: newPaused, ovens: updatedOvens, cleanKitchenStartTime, lastPauseTime };
     });
   }, []);
 
@@ -924,18 +891,31 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     const now = Date.now();
 
     if (!prevShowStore && currentShowStore) {
+      // Store opening - pause game
       setGameState(prev => ({
         ...prev,
         paused: true,
-        ovens: calculateOvenPauseState(prev.ovens, true, now)
+        ovens: calculateOvenPauseState(prev.ovens, true, now),
+        lastPauseTime: now, // Track pause time for clean kitchen timer
       }));
     }
     if (prevShowStore && !currentShowStore) {
-      setGameState(prev => ({
-        ...prev,
-        paused: false,
-        ovens: calculateOvenPauseState(prev.ovens, false, now)
-      }));
+      // Store closing - unpause game
+      setGameState(prev => {
+        // Adjust clean kitchen start time to exclude pause duration
+        let cleanKitchenStartTime = prev.cleanKitchenStartTime;
+        if (prev.lastPauseTime && cleanKitchenStartTime) {
+          const pauseDuration = now - prev.lastPauseTime;
+          cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+        }
+        return {
+          ...prev,
+          paused: false,
+          ovens: calculateOvenPauseState(prev.ovens, false, now),
+          cleanKitchenStartTime,
+          lastPauseTime: undefined,
+        };
+      });
     }
     prevShowStoreRef.current = currentShowStore;
   }, [gameState.showStore]);

@@ -12,7 +12,7 @@ import { GameState } from '../types/game';
 import pizzaShopBg from '/pizza shop background v2.png';
 import { sprite } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
-import { OVEN_CONFIG } from '../lib/constants';
+import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
 
 const chefImg = sprite("chef.png");
 
@@ -70,8 +70,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
       // Blinking effect for warning state
       const elapsed = oven.pausedElapsed !== undefined ? oven.pausedElapsed : Date.now() - oven.startTime;
       const warningElapsed = elapsed - OVEN_CONFIG.WARNING_TIME;
-      const blinkInterval = 250;
-      const blinkCycle = Math.floor(warningElapsed / blinkInterval);
+      const blinkCycle = Math.floor(warningElapsed / TIMINGS.WARNING_BLINK_INTERVAL);
       return blinkCycle % 2 === 0 ? 'warning-fire' : 'warning-pizza';
     }
 

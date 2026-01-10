@@ -1,5 +1,5 @@
-import { GameState, BossBattle, BossMinion, PizzaSlice } from '../types/game';
-import { BOSS_CONFIG, POSITIONS, ENTITY_SPEEDS, SCORING } from '../lib/constants';
+import { GameState, BossBattle, BossMinion, PizzaSlice, BossType } from '../types/game';
+import { BOSS_CONFIG, PAPA_JOHN_CONFIG, DOMINOS_CONFIG, POSITIONS, ENTITY_SPEEDS, SCORING } from '../lib/constants';
 import { checkSliceMinionCollision, checkMinionReachedChef } from './collisionSystem';
 
 export type BossEvent =
@@ -19,6 +19,11 @@ export interface BossTickResult {
   defeatedBossLevel?: number;
 }
 
+export interface BossTriggerResult {
+  type: BossType;
+  level: number;
+}
+
 /**
  * Check if a boss battle should trigger based on level progression
  */
@@ -27,15 +32,19 @@ export const checkBossTrigger = (
   newLevel: number,
   defeatedBossLevels: number[],
   currentBossBattle?: BossBattle
-): number | null => {
+): BossTriggerResult | null => {
   if (currentBossBattle?.active) return null;
 
-  const crossedBossLevel = BOSS_CONFIG.TRIGGER_LEVELS.find(
-    triggerLvl => oldLevel < triggerLvl && newLevel >= triggerLvl
-  );
+  // Check Papa John (level 10)
+  if (oldLevel < BOSS_CONFIG.PAPA_JOHN_LEVEL && newLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL &&
+      !defeatedBossLevels.includes(BOSS_CONFIG.PAPA_JOHN_LEVEL)) {
+    return { type: 'papaJohn', level: BOSS_CONFIG.PAPA_JOHN_LEVEL };
+  }
 
-  if (crossedBossLevel !== undefined && !defeatedBossLevels.includes(crossedBossLevel)) {
-    return crossedBossLevel;
+  // Check Dominos (level 30)
+  if (oldLevel < BOSS_CONFIG.DOMINOS_LEVEL && newLevel >= BOSS_CONFIG.DOMINOS_LEVEL &&
+      !defeatedBossLevels.includes(BOSS_CONFIG.DOMINOS_LEVEL)) {
+    return { type: 'dominos', level: BOSS_CONFIG.DOMINOS_LEVEL };
   }
 
   return null;
@@ -44,9 +53,9 @@ export const checkBossTrigger = (
 /**
  * Create initial minions for a wave
  */
-export const createWaveMinions = (waveNumber: number, now: number): BossMinion[] => {
+export const createWaveMinions = (waveNumber: number, now: number, minionsPerWave: number): BossMinion[] => {
   const minions: BossMinion[] = [];
-  for (let i = 0; i < BOSS_CONFIG.MINIONS_PER_WAVE; i++) {
+  for (let i = 0; i < minionsPerWave; i++) {
     minions.push({
       id: `minion-${now}-${waveNumber}-${i}`,
       lane: i % 4,
@@ -59,19 +68,34 @@ export const createWaveMinions = (waveNumber: number, now: number): BossMinion[]
 };
 
 /**
+ * Get boss config based on boss type
+ */
+const getBossConfig = (bossType: BossType) => {
+  return bossType === 'papaJohn' ? PAPA_JOHN_CONFIG : DOMINOS_CONFIG;
+};
+
+/**
  * Initialize a new boss battle
  */
-export const initializeBossBattle = (now: number): BossBattle => {
+export const initializeBossBattle = (
+  now: number,
+  bossType: BossType
+): BossBattle => {
+  const config = getBossConfig(bossType);
+  // Papa John has no minions - immediately vulnerable
+  const isPapaJohn = bossType === 'papaJohn';
   return {
     active: true,
-    bossHealth: BOSS_CONFIG.HEALTH,
-    currentWave: 1,
-    minions: createWaveMinions(1, now),
-    bossVulnerable: false,
+    bossType,
+    bossHealth: config.HEALTH,
+    currentWave: isPapaJohn ? config.WAVES : 1, // Skip waves for Papa John
+    minions: isPapaJohn ? [] : createWaveMinions(1, now, config.MINIONS_PER_WAVE),
+    bossVulnerable: isPapaJohn, // Papa John is immediately vulnerable
     bossDefeated: false,
     bossPosition: BOSS_CONFIG.BOSS_POSITION,
     bossLane: 1.5, // Start in the middle (between lanes 1 and 2)
     bossLaneDirection: 1, // Start moving down
+    hitsReceived: 0, // Track hits for Papa John sprite changes
   };
 };
 
@@ -216,6 +240,7 @@ export const processSliceBossCollisions = (
     if (horizontalHit && verticalHit) {
       consumedSliceIds.add(slice.id);
       updatedBossBattle.bossHealth -= 1;
+      updatedBossBattle.hitsReceived = (updatedBossBattle.hitsReceived || 0) + 1;
 
       const points = SCORING.BOSS_HIT;
       scoreGained += points;
@@ -240,10 +265,12 @@ export const processSliceBossCollisions = (
         });
 
         // Find current boss level to mark as defeated
-        const currentBossLevel = BOSS_CONFIG.TRIGGER_LEVELS
-          .slice()
-          .reverse()
-          .find(lvl => currentLevel >= lvl);
+        let currentBossLevel: number | undefined;
+        if (updatedBossBattle.bossType === 'papaJohn') {
+          currentBossLevel = currentLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL ? BOSS_CONFIG.PAPA_JOHN_LEVEL : undefined;
+        } else {
+          currentBossLevel = currentLevel >= BOSS_CONFIG.DOMINOS_LEVEL ? BOSS_CONFIG.DOMINOS_LEVEL : undefined;
+        }
 
         if (currentBossLevel && !defeatedBossLevels.includes(currentBossLevel)) {
           defeatedBossLevel = currentBossLevel;
@@ -270,11 +297,12 @@ export const checkWaveCompletion = (
   }
 
   let updatedBossBattle = { ...bossBattle };
+  const config = getBossConfig(bossBattle.bossType);
 
-  if (bossBattle.currentWave < BOSS_CONFIG.WAVES) {
+  if (bossBattle.currentWave < config.WAVES) {
     const nextWave = bossBattle.currentWave + 1;
     updatedBossBattle.currentWave = nextWave;
-    updatedBossBattle.minions = createWaveMinions(nextWave, now);
+    updatedBossBattle.minions = createWaveMinions(nextWave, now, config.MINIONS_PER_WAVE);
     events.push({ type: 'WAVE_COMPLETE', nextWave });
   } else if (!bossBattle.bossVulnerable) {
     updatedBossBattle.bossVulnerable = true;
