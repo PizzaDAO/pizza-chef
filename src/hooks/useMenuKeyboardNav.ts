@@ -144,6 +144,12 @@ export const useMenuKeyboardNav = ({
     'data-selected': selectedIndex === index,
     onMouseEnter: () => setSelectedIndex(index),
     onClick: () => onSelect(index),
+    // Prevent space bar from triggering button click (browser default)
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+      }
+    },
   }), [selectedIndex, registerItem, onSelect]);
 
   return {
