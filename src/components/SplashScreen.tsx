@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { sprite } from '../lib/assets';
 
 const chefImg = sprite("chef.png");
@@ -8,6 +8,18 @@ interface SplashScreenProps {
 }
 
 const SplashScreen: React.FC<SplashScreenProps> = ({ onStart }) => {
+  // Allow Enter key to start the game
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        onStart();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onStart]);
+
   return (
     <div className="fixed inset-0 bg-red-600 flex items-center justify-center z-50">
       <div className="text-center space-y-3 p-8 relative">
