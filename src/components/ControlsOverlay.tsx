@@ -11,7 +11,7 @@ const ControlsOverlay: React.FC<ControlsOverlayProps> = ({ onClose }) => {
   // Close on Escape key or Enter key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+      if (e.key === 'Escape' || e.key === 'Enter') {
         e.preventDefault();
         onClose();
       }

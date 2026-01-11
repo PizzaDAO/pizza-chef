@@ -151,7 +151,7 @@ function App() {
     if (!showHighScores || gameState.gameOver) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === 'Escape' || e.key === ' ') {
+      if (e.key === 'Enter' || e.key === 'Escape') {
         e.preventDefault();
         setShowHighScores(false);
         setShowPauseMenu(true);

@@ -118,7 +118,6 @@ export const useMenuKeyboardNav = ({
           navigate('right');
           break;
         case 'Enter':
-        case ' ':
           e.preventDefault();
           onSelect(selectedIndex);
           break;

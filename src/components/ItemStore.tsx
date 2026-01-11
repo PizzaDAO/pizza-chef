@@ -147,7 +147,7 @@ const ItemStore: React.FC<ItemStoreProps> = ({
         return;
       }
 
-      if (key === 'Enter' || key === ' ') {
+      if (key === 'Enter') {
         menuActionsRef.current[selectedIndexRef.current]?.();
         return;
       }
