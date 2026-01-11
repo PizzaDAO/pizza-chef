@@ -272,10 +272,11 @@ export const processSliceBossCollisions = (
         const mask = getPapaJohnMask(updatedBossBattle.hitsReceived || 0);
         if (mask) {
           // Map game coords to sprite coords (0-1 range)
-          // Boss width is 24% of board, centered at bossPosition
-          const normalizedX = (slice.position - (updatedBossBattle.bossPosition - 12)) / 24;
-          // Boss height spans 1 lane, centered at bossLane
-          const normalizedY = (slice.lane - (updatedBossBattle.bossLane - 0.5)) / 1.0;
+          // Boss left edge is at bossPosition, width is 24%
+          const normalizedX = (slice.position - updatedBossBattle.bossPosition) / 24;
+          // Boss top edge is at bossLane (in lane units), height is 1 lane
+          // Slice is at center of its lane, so add 0.5 to align
+          const normalizedY = (slice.lane - updatedBossBattle.bossLane) + 0.5;
 
           if (!checkMaskCollision(mask, normalizedX, normalizedY)) {
             return; // Hit transparent area - skip this slice
