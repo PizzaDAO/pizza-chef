@@ -12,6 +12,7 @@ import DebugPanel from './components/DebugPanel';
 import ControlsOverlay from './components/ControlsOverlay';
 import PauseMenu from './components/PauseMenu';
 import { useGameLogic } from './hooks/useGameLogic';
+import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { bg } from './lib/assets';
 import { soundManager } from './utils/sounds';
 
@@ -31,6 +32,16 @@ function App() {
   const [marbleTop, setMarbleTop] = useState(0);
   const gameBoardRef = useRef<HTMLDivElement>(null);
   const SHOW_DEBUG = false;
+
+  // Preload game assets
+  const { progress: assetProgress, isComplete: assetsReady, failedAssets } = useAssetPreloader();
+
+  // Log failed assets in development
+  useEffect(() => {
+    if (failedAssets.length > 0) {
+      console.warn('Some assets failed to load:', failedAssets);
+    }
+  }, [failedAssets]);
 
   const {
     gameState,
@@ -297,7 +308,13 @@ function App() {
   // };
 
   if (showSplash) {
-    return <SplashScreen onStart={handleStartGame} />;
+    return (
+      <SplashScreen
+        onStart={handleStartGame}
+        isLoading={!assetsReady}
+        loadingProgress={assetProgress}
+      />
+    );
   }
 
   if (isLandscape) {
@@ -307,16 +324,16 @@ function App() {
         <div className="relative w-full h-full flex items-center justify-center">
           {/* Center area for ScoreBoard and GameBoard */}
           <div className="flex flex-col items-center justify-center h-full" style={{ width: '76%' }}>
-            {/* ScoreBoard at top */}
+            {/* ScoreBoard at top - compact mode for landscape */}
             <div className="w-full">
-              <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} />
+              <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} compact={true} />
             </div>
 
             {/* GameBoard - maintains 5:3 aspect ratio, scales to fit */}
             <div
               ref={gameBoardRef}
-              className="relative w-full max-h-[calc(100vh-60px)] aspect-[5/3] z-30"
-              style={{ maxWidth: 'calc((100vh - 60px) * 5 / 3)' }}
+              className="relative w-full max-h-[calc(100vh-36px)] aspect-[5/3] z-30"
+              style={{ maxWidth: 'calc((100vh - 36px) * 5 / 3)' }}
             >
               <GameBoard gameState={gameState} />
 

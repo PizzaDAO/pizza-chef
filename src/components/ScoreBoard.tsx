@@ -5,11 +5,12 @@ import { Star, Trophy, Timer, DollarSign, Pause, HelpCircle, Layers } from 'luci
 interface ScoreBoardProps {
   gameState: GameState;
   onPauseClick: () => void;
+  compact?: boolean;
 }
 
-const ScoreBoard: React.FC<ScoreBoardProps> = ({ gameState, onPauseClick }) => {
+const ScoreBoard: React.FC<ScoreBoardProps> = ({ gameState, onPauseClick, compact = false }) => {
   return (
-    <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-3 sm:p-4 sm:rounded-lg shadow-lg">
+    <div className={`bg-gradient-to-r from-red-600 to-red-700 text-white shadow-lg ${compact ? 'py-1 px-3' : 'p-3 sm:p-4 sm:rounded-lg'}`}>
       <div className="flex items-center justify-center sm:justify-between">
         <div className="flex items-center space-x-3 sm:space-x-6 text-sm sm:text-base">
           <div className="flex items-center space-x-2">
