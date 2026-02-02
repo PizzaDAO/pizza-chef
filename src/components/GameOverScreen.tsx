@@ -700,7 +700,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !playerName.trim()}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-semibold disabled:opacity-50"
                 >
                   {submitting ? '...' : (
@@ -800,7 +800,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
               <button
                 type="submit"
                 {...getMainItemProps(0)}
-                disabled={submitting}
+                disabled={submitting || !playerName.trim()}
                 className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-semibold disabled:opacity-50 ${mainSelectedIndex === 0 ? selectedRing : ''}`}
               >
                 {submitting ? '...' : (
