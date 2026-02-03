@@ -39,6 +39,7 @@ export const getUnlockedCustomerTypes = (level: number): CustomerVariant[] => {
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.BAD_LUCK_BRIAN) types.push('badLuckBrian');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.SCUMBAG_STEVE) types.push('scumbagSteve');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.HEALTH_INSPECTOR) types.push('healthInspector');
+  if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.PIZZA_MAFIA) types.push('pizzaMafia');
   return types;
 };
 
@@ -90,6 +91,7 @@ const getSpecialChances = (level: number) => {
     brian: LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN[idx],
     steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
     inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
+    mafia: LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA ? (LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA[idx] || 0) : 0,
   };
 };
 
@@ -166,6 +168,8 @@ export const trySpawnCustomer = (
     variant = 'scumbagSteve';
   } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
     variant = 'healthInspector';
+  } else if (unlockedTypes.includes('pizzaMafia') && Math.random() < chances.mafia) {
+    variant = 'pizzaMafia';
   }
 
   // Calculate speed with level speed multiplier
@@ -195,6 +199,7 @@ export const trySpawnCustomer = (
     badLuckBrian: variant === 'badLuckBrian',
     scumbagSteve: variant === 'scumbagSteve',
     healthInspector: variant === 'healthInspector',
+    pizzaMafia: variant === 'pizzaMafia',
     slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal

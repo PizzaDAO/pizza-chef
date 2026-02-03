@@ -53,6 +53,7 @@ export const PROBABILITIES = {
   CRITIC_CHANCE: 0.15,
   BAD_LUCK_BRIAN_CHANCE: 0.1, // If not critic
   SCUMBAG_STEVE_CHANCE: 0.08, // If not critic or brian
+  PIZZA_MAFIA_CHANCE: 0.05, // If not critic, brian, or steve
   POWERUP_STAR_CHANCE: 0.1,
 };
 
@@ -67,6 +68,13 @@ export const HEALTH_INSPECTOR = {
   CHANCE: 0.08, // 8% chance (if not other variant)
   MIN_LEVEL: 5,
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
+};
+
+export const MAFIA_SLICE_CONFIG = {
+  SLICE_COUNT: 8,
+  SPEED: 2.5,
+  LIFETIME: 2000, // ms
+  LANE_SPEED: 0.02, // Vertical movement speed
 };
 
 export const SCORING = {
@@ -151,6 +159,7 @@ export const LEVEL_SYSTEM = {
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
+    PIZZA_MAFIA: 6,
     PEPE: 5,
     MOLTOBENNY: 5,
   },
@@ -169,6 +178,7 @@ export const LEVEL_SYSTEM = {
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
+    MAFIA: [0, 0, 0, 0, 0, 0.05],
   },
 
   // Boss schedule
@@ -271,6 +281,7 @@ export const LAYOUT = {
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],
+  mafiaSlices: [],
   emptyPlates: [],
   powerUps: [],
   activePowerUps: [],
@@ -325,6 +336,8 @@ export const INITIAL_GAME_STATE = {
     },
     ovenUpgradesMade: 0,
     bestOfAwardsEarned: 0,
+    totalEarned: 0,
+    totalSpent: 0,
   },
   bossBattle: undefined,
   defeatedBossLevels: [],
