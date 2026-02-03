@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   GameState,
   PizzaSlice,
+  MafiaSlice,
   GameStats,
   PowerUpType,
   StarLostReason,
@@ -81,6 +82,12 @@ import {
   processPepeHelperTick,
   checkPepeHelpersExpired
 } from '../logic/pepeHelperSystem';
+
+import {
+  spawnMafiaSlices,
+  updateMafiaSlices,
+  checkMafiaSliceCollision
+} from '../logic/mafiaSliceSystem';
 
 // --- Store System (actions only) ---
 import {
@@ -369,6 +376,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 newState.cleanKitchenStartTime = now;
                 // Brian still pays $1 even when he drops the slice
                 newState.bank += SCORING.BASE_BANK_REWARD;
+                newState.stats.totalEarned += SCORING.BASE_BANK_REWARD;
               } else if (event === 'UNFROZEN_AND_SERVED') {
                 soundManager.customerUnfreeze();
 
@@ -378,6 +386,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
                 newState.stats = result.newStats;
                 customerScores.push(result.floatingScore);
@@ -397,6 +406,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 customerScores.push(result.floatingScore);
 
               } else if (event === 'STEVE_FIRST_SLICE') {
@@ -429,6 +439,31 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                   if (result.starGain) starGainsToAdd.push(result.starGain);
                 }
 
+              } else if (event === 'MAFIA_SERVED') {
+                // Pizza Mafia served - spawn 8 slices flying in all directions
+                soundManager.customerServed();
+
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
+
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
+                }
+
+                // Spawn 8 mafia slices radiating outward
+                const mafiaSlices = spawnMafiaSlices(customer.lane, customer.position, now);
+                newState.mafiaSlices = [...newState.mafiaSlices, ...mafiaSlices];
+
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {
                 soundManager.customerServed();
 
@@ -438,6 +473,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
                 newState.stats = result.newStats;
                 customerScores.push(result.floatingScore);
@@ -499,6 +535,69 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
         return customer;
       });
+
+      // --- 4a. MAFIA SLICES PROCESSING ---
+      if (newState.mafiaSlices.length > 0) {
+        // Update positions
+        newState.mafiaSlices = updateMafiaSlices(newState.mafiaSlices, now);
+
+        // Check collisions with customers
+        const mafiaSlicesToRemove = new Set<string>();
+        const mafiaScores: Array<{ points: number; lane: number; position: number }> = [];
+        const mafiaStarGains: Array<{ lane: number; position: number }> = [];
+
+        newState.mafiaSlices.forEach(slice => {
+          if (mafiaSlicesToRemove.has(slice.id)) return;
+
+          newState.customers = newState.customers.map(customer => {
+            if (mafiaSlicesToRemove.has(slice.id) || isCustomerLeaving(customer)) return customer;
+
+            if (checkMafiaSliceCollision(slice, customer)) {
+              mafiaSlicesToRemove.add(slice.id);
+              soundManager.customerServed();
+
+              const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                getStreakMultiplier(newState.stats.currentCustomerStreak),
+                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+              newState.score += result.scoreToAdd;
+              newState.bank += result.bankToAdd;
+              newState.stats.totalEarned += result.bankToAdd;
+              newState.happyCustomers = result.newHappyCustomers;
+              newState.stats = result.newStats;
+              mafiaScores.push(result.floatingScore);
+
+              if (result.livesToAdd > 0) {
+                newState.lives += result.livesToAdd;
+                if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                if (result.starGain) mafiaStarGains.push(result.starGain);
+              }
+
+              // Return empty plate and mark as served
+              newState.emptyPlates = [...newState.emptyPlates, {
+                id: `plate-${now}-${customer.id}-mafia`,
+                lane: customer.lane,
+                position: customer.position,
+                speed: ENTITY_SPEEDS.PLATE
+              }];
+
+              return { ...customer, served: true, hasPlate: false };
+            }
+            return customer;
+          });
+        });
+
+        // Remove consumed slices
+        newState.mafiaSlices = newState.mafiaSlices.filter(s => !mafiaSlicesToRemove.has(s.id));
+
+        // Add floating scores and stars
+        mafiaScores.forEach(({ points, lane, position }) => {
+          newState = addFloatingScore(points, lane, position, newState);
+        });
+        mafiaStarGains.forEach(({ lane, position }) => {
+          newState = addFloatingStar(true, lane, position, newState);
+        });
+      }
 
       // --- 4. POWER-UP EXPIRATIONS ---
       const expResult = processPowerUpExpirations(newState.activePowerUps, now);
@@ -657,6 +756,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
               newState.score += result.scoreToAdd;
               newState.bank += result.bankToAdd;
+              newState.stats.totalEarned += result.bankToAdd;
               newState.happyCustomers = result.newHappyCustomers;
               newState.stats = result.newStats;
               nyanScores.push(result.floatingScore);

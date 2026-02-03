@@ -63,6 +63,7 @@ export const trySpawnCustomer = (
     Math.random() < PROBABILITIES.CRITIC_CHANCE ? 'critic' :
     Math.random() < PROBABILITIES.BAD_LUCK_BRIAN_CHANCE ? 'badLuckBrian' :
     Math.random() < PROBABILITIES.SCUMBAG_STEVE_CHANCE ? 'scumbagSteve' :
+    Math.random() < PROBABILITIES.PIZZA_MAFIA_CHANCE ? 'pizzaMafia' :
     'normal';
 
   // Calculate speed (Steve is faster)
@@ -87,6 +88,7 @@ export const trySpawnCustomer = (
     critic: variant === 'critic',
     badLuckBrian: variant === 'badLuckBrian',
     scumbagSteve: variant === 'scumbagSteve',
+    pizzaMafia: variant === 'pizzaMafia',
     slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
