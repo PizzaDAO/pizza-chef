@@ -71,6 +71,8 @@ export const SCORING = {
   // Actions
   PLATE_CAUGHT: 50,
   POWERUP_COLLECTED: 100,
+  DOGE_COLLECTED: 420,
+  NYAN_COLLECTED: 777,
 
   // Boss
   MINION_DEFEAT: 100,

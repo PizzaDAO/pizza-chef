@@ -204,7 +204,7 @@ export const processChefPowerUpCollisions = (
 
             // Add base score for non-moltobenny power-ups
             if (powerUp.type !== 'moltobenny') {
-                const pointsEarned = calculatePowerUpScore(dogeMultiplier);
+                const pointsEarned = calculatePowerUpScore(dogeMultiplier, powerUp.type);
                 newState = { ...newState, score: newState.score + pointsEarned };
                 scores.push({ points: pointsEarned, lane: powerUp.lane, position: powerUp.position });
             }
