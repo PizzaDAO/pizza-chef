@@ -58,21 +58,32 @@ const DEFAULT_NAME = 'Pizza Trainee';
 
 function calculateSkillRating(stats: GameStats, score: number, level: number): { grade: string; stars: number; description: string } {
   let points = 0;
-  points += score / 1000;
-  points += Math.min(level * 0.1, 1);
-  points += Math.min(stats.longestCustomerStreak * 0.05, 1);
-  points += Math.min(stats.largestPlateStreak * 0.05, 0.5);
-  const efficiency = stats.slicesBaked > 0 ? (stats.customersServed / stats.slicesBaked) * 100 : 0;
-  points += Math.min(efficiency / 100, 1);
-  const totalPowerUps = Object.values(stats.powerUpsUsed).reduce((a, b) => a + b, 0);
-  points += Math.min(totalPowerUps * 0.05, 0.5);
 
-  if (points >= 70) return { grade: 'S+', stars: 5, description: 'Legendary Pizzaiolo' };
-  if (points >= 44) return { grade: 'S', stars: 5, description: 'Master Pizzaiolo' };
-  if (points >= 27) return { grade: 'A', stars: 4, description: 'Pizzaiolo' };
-  if (points >= 12) return { grade: 'B', stars: 3, description: 'Line Cook' };
-  if (points >= 6) return { grade: 'C', stars: 2, description: 'Prep Cook' };
-  if (points >= 3) return { grade: 'D', stars: 1, description: 'Busser' };
+  // Score contribution (reduced weight, soft cap)
+  points += Math.min(score / 2000, 25);                       // Max 25 points at 50k score
+
+  // Level progression
+  points += Math.min(level * 0.5, 10);                        // Max 10 points at level 20
+
+  // Skill metrics (increased weight)
+  points += Math.min(stats.longestCustomerStreak * 0.2, 5);   // Max 5 points at 25 streak
+  points += Math.min(stats.largestPlateStreak * 0.2, 3);      // Max 3 points at 15 streak
+  points += Math.min(stats.platesCaught * 0.1, 5);            // Max 5 points at 50 plates
+
+  // Efficiency (meaningful weight)
+  const efficiency = stats.slicesBaked > 0 ? (stats.customersServed / stats.slicesBaked) * 100 : 0;
+  points += Math.min(efficiency / 20, 5);                     // Max 5 points at 100% efficiency
+
+  // Power-up mastery
+  const totalPowerUps = Object.values(stats.powerUpsUsed).reduce((a, b) => a + b, 0);
+  points += Math.min(totalPowerUps * 0.1, 2);                 // Max 2 points
+
+  if (points >= 50) return { grade: 'S+', stars: 5, description: 'Legendary Pizzaiolo' };
+  if (points >= 40) return { grade: 'S', stars: 5, description: 'Master Pizzaiolo' };
+  if (points >= 30) return { grade: 'A', stars: 4, description: 'Pizzaiolo' };
+  if (points >= 20) return { grade: 'B', stars: 3, description: 'Line Cook' };
+  if (points >= 12) return { grade: 'C', stars: 2, description: 'Prep Cook' };
+  if (points >= 6) return { grade: 'D', stars: 1, description: 'Busser' };
   return { grade: 'F', stars: 0, description: 'Dishwasher' };
 }
 
@@ -700,7 +711,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || !playerName.trim()}
                   className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-semibold disabled:opacity-50"
                 >
                   {submitting ? '...' : (
@@ -800,7 +811,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
               <button
                 type="submit"
                 {...getMainItemProps(0)}
-                disabled={submitting}
+                disabled={submitting || !playerName.trim()}
                 className={`flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-lg hover:from-amber-600 hover:to-orange-600 transition-all font-semibold disabled:opacity-50 ${mainSelectedIndex === 0 ? selectedRing : ''}`}
               >
                 {submitting ? '...' : (
