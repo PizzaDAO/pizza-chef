@@ -133,11 +133,16 @@ export const calculateMinionScore = (): number => {
 
 /**
  * Calculates the score for collecting a power-up.
+ * Doge gives 420 pts, Nyan gives 777 pts, others give 100 pts.
  */
 export const calculatePowerUpScore = (
-  dogeMultiplier: number
+  dogeMultiplier: number,
+  powerUpType?: string
 ): number => {
-  return SCORING.POWERUP_COLLECTED * dogeMultiplier;
+  let baseScore = SCORING.POWERUP_COLLECTED;
+  if (powerUpType === 'doge') baseScore = SCORING.DOGE_COLLECTED;
+  else if (powerUpType === 'nyan') baseScore = SCORING.NYAN_COLLECTED;
+  return baseScore * dogeMultiplier;
 };
 
 /**
