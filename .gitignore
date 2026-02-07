@@ -22,3 +22,7 @@ dist-ssr
 *.sw?
 .env
 .vercel
+
+# Sheets-claude daemon worktrees
+.worktrees/
+.env*.local
