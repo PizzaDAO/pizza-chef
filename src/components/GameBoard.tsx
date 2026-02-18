@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import Customer from './Customer';
 import PizzaSlice from './PizzaSlice';
+import MafiaSlice from './MafiaSlice';
 import EmptyPlate from './EmptyPlate';
 import DroppedPlate from './DroppedPlate';
 import PowerUp from './PowerUp';
@@ -222,6 +223,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
 
       {gameState.pizzaSlices.map((slice) => (
         <PizzaSlice key={slice.id} slice={slice} />
+      ))}
+
+      {gameState.mafiaSlices.map((slice) => (
+        <MafiaSlice key={slice.id} slice={slice} />
       ))}
 
       {gameState.emptyPlates.map((plate) => (

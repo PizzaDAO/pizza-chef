@@ -14,6 +14,7 @@ const badLuckBrianImg = sprite("bad-luck-brian.png");
 const badLuckBrianPukeImg = sprite("bad-luck-brian-puke.png");
 const rainbowBrian = sprite("rainbow-brian.png");
 const scumbagSteveImg = sprite("scumbag-steve.png");
+const pizzaMafiaImg = sprite("pizza-mafia.png");
 
 interface CustomerProps {
   customer: CustomerType;
@@ -42,7 +43,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
 
   const getDisplay = () => {
     const variant = getCustomerVariant(customer);
-    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve';
+    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'pizzaMafia';
 
     // 🌈 Rainbow Brian (nyan hit) — special behavior override
     if (customer.brianNyaned) {
@@ -58,6 +59,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
     if (isSpecialCustomer) {
       if (variant === 'badLuckBrian') return { type: 'image', value: badLuckBrianImg, alt: 'badluckbrian' };
       if (variant === 'scumbagSteve') return { type: 'image', value: scumbagSteveImg, alt: 'scumbagsteve' };
+      if (variant === 'pizzaMafia') return { type: 'image', value: pizzaMafiaImg, alt: 'pizzamafia' };
     }
 
     // Status effects for normal customers and critics

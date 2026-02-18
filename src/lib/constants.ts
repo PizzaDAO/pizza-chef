@@ -52,6 +52,7 @@ export const PROBABILITIES = {
   CRITIC_CHANCE: 0.15,
   BAD_LUCK_BRIAN_CHANCE: 0.1, // If not critic
   SCUMBAG_STEVE_CHANCE: 0.08, // If not critic or brian
+  PIZZA_MAFIA_CHANCE: 0.05, // If not critic, brian, or steve
   POWERUP_STAR_CHANCE: 0.1,
 };
 
@@ -60,6 +61,13 @@ export const SCUMBAG_STEVE = {
   SLICES_REQUIRED: 2,
   LANE_CHANGE_INTERVAL: 1500, // ms between possible lane changes
   LANE_CHANGE_CHANCE: 0.3, // 30% chance to change lane each interval
+};
+
+export const MAFIA_SLICE_CONFIG = {
+  SLICE_COUNT: 8,
+  SPEED: 2.5,
+  LIFETIME: 2000, // ms
+  LANE_SPEED: 0.02, // Vertical movement speed
 };
 
 export const SCORING = {
@@ -162,6 +170,7 @@ export const LAYOUT = {
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],
+  mafiaSlices: [],
   emptyPlates: [],
   powerUps: [],
   activePowerUps: [],
@@ -214,6 +223,8 @@ export const INITIAL_GAME_STATE = {
       slow: 0,
     },
     ovenUpgradesMade: 0,
+    totalEarned: 0,
+    totalSpent: 0,
   },
   bossBattle: undefined,
   defeatedBossLevels: [],

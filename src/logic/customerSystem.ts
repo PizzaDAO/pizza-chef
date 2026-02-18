@@ -33,7 +33,8 @@ export type CustomerHitEvent =
   | 'UNFROZEN_AND_SERVED'
   | 'BRIAN_DROPPED_PLATE'
   | 'STEVE_FIRST_SLICE'
-  | 'STEVE_SERVED';
+  | 'STEVE_SERVED'
+  | 'MAFIA_SERVED';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -364,6 +365,30 @@ export const processCustomerHit = (
       },
       events,
       newEntities: { droppedPlate }
+    };
+  }
+
+  // 1.5. Pizza Mafia - spawns 8 slices flying in all directions
+  if (customer.pizzaMafia) {
+    events.push('MAFIA_SERVED');
+    newEntities.emptyPlate = {
+      id: `plate-${now}-${customer.id}`,
+      lane: customer.lane,
+      position: customer.position,
+      speed: ENTITY_SPEEDS.PLATE
+    };
+    return {
+      updatedCustomer: {
+        ...customer,
+        served: true,
+        hasPlate: false,
+        textMessage: "Bada bing!",
+        textMessageTime: now,
+        frozen: false,
+        woozy: false
+      },
+      events,
+      newEntities
     };
   }
 
