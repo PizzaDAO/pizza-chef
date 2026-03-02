@@ -71,7 +71,6 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
           top: 0,
           transform: ready ? `translate3d(${xPx}px, ${yPx}px, 0)` : undefined,
           willChange: 'transform',
-          transition: 'transform 100ms linear',
         }}
       >
         {display.type === 'image' ? (
@@ -108,7 +107,6 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
                 }`
               : 'translateX(-50%)',
             willChange: 'transform',
-            transition: 'transform 100ms linear',
           }}
         >
           {customer.textMessage}

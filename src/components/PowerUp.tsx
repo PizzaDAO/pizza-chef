@@ -58,7 +58,6 @@ const PowerUp: React.FC<PowerUpProps> = ({ powerUp, boardWidth, boardHeight }) =
         zIndex: 50,
         transform: ready ? `translate3d(${xPx}px, ${yPx}px, 0)` : undefined,
         willChange: 'transform',
-        transition: 'transform 100ms linear',
       }}
     >
       {image && (
