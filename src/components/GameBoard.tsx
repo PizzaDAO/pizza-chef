@@ -10,14 +10,14 @@ import FloatingStar from './FloatingStar';
 import Boss from './Boss';
 import PepeHelpers from './PepeHelpers';
 import { GameState } from '../types/game';
-import pizzaShopBg from '/pizza shop background v2.png';
-import { sprite } from '../lib/assets';
+import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
 import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
 
 const chefImg = sprite("chef.png");
 const sadChefImg = sprite("sad-chef.png");
 const nyanChefImg = sprite("nyan-chef.png");
+const pizzaShopBg = bg("pizza-shop-background.webp");
 
 interface GameBoardProps {
   gameState: GameState;

@@ -16,7 +16,7 @@ import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { bg } from './lib/assets';
 import { soundManager } from './utils/sounds';
 
-const counterImg = bg('counter.png');
+const counterImg = bg('counter.webp');
 
 function App() {
   const [showGameOver, setShowGameOver] = useState(false);

@@ -1,3 +1,5 @@
+import { bg } from './assets';
+
 // All sprites to preload before game starts
 export const PRELOAD_SPRITES = [
   // Characters
@@ -55,3 +57,9 @@ export const PRELOAD_SPRITES = [
 export const PRELOAD_UI = [
   'controls.png',
 ] as const;
+
+// Background images served from CDN — preloaded during splash screen
+export const PRELOAD_BACKGROUNDS: string[] = [
+  bg('pizza-shop-background.webp'),
+  bg('counter.webp'),
+];

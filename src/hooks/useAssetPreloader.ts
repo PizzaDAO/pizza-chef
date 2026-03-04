@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { sprite, ui } from '../lib/assets';
-import { PRELOAD_SPRITES, PRELOAD_UI } from '../lib/spriteManifest';
+import { PRELOAD_SPRITES, PRELOAD_UI, PRELOAD_BACKGROUNDS } from '../lib/spriteManifest';
 
 interface PreloadResult {
   progress: number;       // 0-100
@@ -21,10 +21,11 @@ export function useAssetPreloader(): PreloadResult {
   const [loaded, setLoaded] = useState(0);
   const [failedAssets, setFailedAssets] = useState<string[]>([]);
 
-  // Build full URL list
+  // Build full URL list: sprites + UI + backgrounds
   const allUrls = [
     ...PRELOAD_SPRITES.map(name => sprite(name)),
     ...PRELOAD_UI.map(name => ui(name)),
+    ...PRELOAD_BACKGROUNDS,
   ];
 
   const total = allUrls.length;
