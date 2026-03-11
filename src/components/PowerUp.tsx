@@ -6,6 +6,11 @@ import { sprite } from '../lib/assets';
 const beerImg = sprite("beer.png");
 const honeyImg = sprite("hot-honey.png");
 const sundaeImg = sprite("sundae.png");
+const dogeImg = sprite("doge.png");
+const nyanImg = sprite("nyan-cat.png");
+const moltobennyImg = sprite("molto-benny.png");
+const starImg = sprite("star.png");
+const pepeImg = sprite("pepe.png");
 
 interface PowerUpProps {
   powerUp: PowerUpType;
@@ -31,13 +36,15 @@ const PowerUp: React.FC<PowerUpProps> = ({ powerUp, boardWidth, boardHeight }) =
       case 'beer':
         return beerImg;
       case 'doge':
-        return 'https://i.imgur.com/TqnVUzO.png';
+        return dogeImg;
       case 'nyan':
-        return 'https://i.imgur.com/OLD9UC8.png';
+        return nyanImg;
       case 'moltobenny':
-        return 'https://i.imgur.com/5goVcAS.png';
+        return moltobennyImg;
       case 'star':
-        return 'https://i.imgur.com/hw0jkrq.png';
+        return starImg;
+      case 'pepe':
+        return pepeImg;
       default:
         return null;
     }
@@ -74,4 +81,17 @@ const PowerUp: React.FC<PowerUpProps> = ({ powerUp, boardWidth, boardHeight }) =
   );
 };
 
-export default PowerUp;
+function arePowerUpPropsEqual(prev: PowerUpProps, next: PowerUpProps): boolean {
+  const a = prev.powerUp;
+  const b = next.powerUp;
+  return (
+    a.id === b.id &&
+    a.position === b.position &&
+    a.lane === b.lane &&
+    a.type === b.type &&
+    prev.boardWidth === next.boardWidth &&
+    prev.boardHeight === next.boardHeight
+  );
+}
+
+export default React.memo(PowerUp, arePowerUpPropsEqual);

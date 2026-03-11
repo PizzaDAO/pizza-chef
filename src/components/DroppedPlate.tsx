@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { DroppedPlate as DroppedPlateType } from '../types/game';
-const slice1PlateImg = "https://i.imgur.com/XFdXriH.png";
+import { sprite } from '../lib/assets';
+
+const slicePlateImg = sprite("slice-plate.png");
 
 interface DroppedPlateProps {
   droppedPlate: DroppedPlateType;
@@ -41,9 +43,20 @@ const DroppedPlate: React.FC<DroppedPlateProps> = ({ droppedPlate }) => {
         opacity: visible ? 1 : 0,
       }}
     >
-      <img src={slice1PlateImg} alt="dropped plate" className="w-full h-full object-contain" />
+      <img src={slicePlateImg} alt="dropped plate" className="w-full h-full object-contain" />
     </div>
   );
 };
 
-export default DroppedPlate;
+function areDroppedPlatePropsEqual(prev: DroppedPlateProps, next: DroppedPlateProps): boolean {
+  const a = prev.droppedPlate;
+  const b = next.droppedPlate;
+  return (
+    a.id === b.id &&
+    a.lane === b.lane &&
+    a.position === b.position &&
+    a.startTime === b.startTime
+  );
+}
+
+export default React.memo(DroppedPlate, areDroppedPlatePropsEqual);
