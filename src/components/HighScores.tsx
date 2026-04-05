@@ -91,7 +91,7 @@ const HighScores: React.FC<HighScoresProps> = ({ userScore, refreshKey = 0 }) =>
                       }`}
                       onClick={() => score.game_session_id && handleNameClick(score)}
                     >
-                      {score.player_name.toUpperCase()}
+                      {score.player_name.length > 20 ? score.player_name.slice(0, 20).toUpperCase() + '…' : score.player_name.toUpperCase()}
                     </span>
                   </div>
                   <span className="font-bold text-xs sm:text-xl text-gray-800 ml-1 flex-shrink-0">{score.score.toLocaleString()}</span>
@@ -116,7 +116,7 @@ const HighScores: React.FC<HighScoresProps> = ({ userScore, refreshKey = 0 }) =>
                         }`}
                         onClick={() => score.game_session_id && handleNameClick(score)}
                       >
-                        {score.player_name.toUpperCase()}
+                        {score.player_name.length > 20 ? score.player_name.slice(0, 20).toUpperCase() + '…' : score.player_name.toUpperCase()}
                       </span>
                     </div>
                     <span className="font-bold text-xs sm:text-xl text-gray-800 ml-1 flex-shrink-0">{score.score.toLocaleString()}</span>

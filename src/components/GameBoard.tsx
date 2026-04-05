@@ -160,6 +160,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             transform: 'translate3d(0, -50%, 0)', // center on lane
             zIndex: gameState.gameOver ? 19 : 10,
             willChange: 'transform',
+            transition: 'top 10ms ease-out',
           }}
         >
           <img
