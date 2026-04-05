@@ -165,9 +165,10 @@ export interface BossMinion {
   position: number;
   speed: number;
   defeated: boolean;
+  sprite?: string;
 }
 
-export type BossType = 'dominos' | 'papaJohn';
+export type BossType = 'dominos' | 'papaJohn' | 'chuckECheese';
 
 export interface BossBattle {
   active: boolean;
