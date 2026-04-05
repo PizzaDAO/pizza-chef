@@ -33,10 +33,7 @@ export const checkBossTrigger = (
   oldLevel: number,
   newLevel: number,
   defeatedBossLevels: number[],
-  currentBossBattle?: BossBattle
 ): BossTriggerResult | null => {
-  if (currentBossBattle?.active) return null;
-
   // Check Papa John (level 10)
   if (oldLevel < BOSS_CONFIG.PAPA_JOHN_LEVEL && newLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL &&
       !defeatedBossLevels.includes(BOSS_CONFIG.PAPA_JOHN_LEVEL)) {

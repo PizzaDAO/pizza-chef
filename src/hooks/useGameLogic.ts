@@ -764,10 +764,14 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           oldLevel,
           targetLevel,
           newState.defeatedBossLevels,
-          newState.bossBattle
         );
         if (bossTrigger !== null) {
-          newState.bossBattle = initializeBossBattle(now, bossTrigger.type);
+          if (newState.bossBattle?.active) {
+            // Queue the boss for after the current battle ends
+            newState.pendingBossTrigger = bossTrigger;
+          } else {
+            newState.bossBattle = initializeBossBattle(now, bossTrigger.type);
+          }
         }
       }
 
@@ -800,6 +804,12 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Handle defeated boss level
         if (bossResult.defeatedBossLevel !== undefined) {
           newState.defeatedBossLevels = [...newState.defeatedBossLevels, bossResult.defeatedBossLevel];
+
+          // Spawn queued boss if one was pending
+          if (newState.pendingBossTrigger) {
+            newState.bossBattle = initializeBossBattle(now, newState.pendingBossTrigger.type);
+            newState.pendingBossTrigger = undefined;
+          }
         }
 
         // Play sounds and add floating scores for events
