@@ -121,7 +121,8 @@ function areBossPropsEqual(prev: BossProps, next: BossProps): boolean {
     a.bossPosition !== b.bossPosition ||
     a.bossLane !== b.bossLane ||
     a.hitsReceived !== b.hitsReceived ||
-    a.minions.length !== b.minions.length
+    a.minions.length !== b.minions.length ||
+    a.slimesRemainingInWave !== b.slimesRemainingInWave
   ) {
     return false;
   }

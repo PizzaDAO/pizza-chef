@@ -185,6 +185,10 @@ export interface BossBattle {
   bossLaneDirection: number; // 1 = moving down, -1 = moving up
   bossXDirection: number; // 1 = moving right, -1 = moving left
   hitsReceived?: number; // Track hits for Papa John sprite changes
+  // Pizza the Hut staggered slime spawning
+  slimesRemainingInWave?: number; // How many slimes left to throw this wave
+  nextSlimeSpawnTime?: number; // When the next slime should be thrown
+  slimeWaveIndex?: number; // Counter for unique slime IDs within wave
 }
 
 export interface GameStats {
