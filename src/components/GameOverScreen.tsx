@@ -36,6 +36,8 @@ function getStarLostMessage(reason?: StarLostReason): string {
       return 'You tried to bribe the health inspector!';
     case 'health_inspector_failed':
       return 'The health inspector found a burnt oven!';
+    case 'inspector_vomit':
+      return 'The health inspector had too much beer!';
     case 'steve_disappointed':
       return 'Scumbag Steve wanted more pizza!';
     case 'papajohn_minion_reached':

@@ -39,7 +39,8 @@ export type CustomerHitEvent =
   | 'BRIAN_DROPPED_PLATE'
   | 'STEVE_FIRST_SLICE'
   | 'STEVE_SERVED'
-  | 'HEALTH_INSPECTOR_BRIBED';
+  | 'HEALTH_INSPECTOR_BRIBED'
+  | 'HEALTH_INSPECTOR_TIPSY_SERVED';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -353,8 +354,32 @@ export const processCustomerHit = (
   const events: CustomerHitEvent[] = [];
   const newEntities: { droppedPlate?: DroppedPlate; emptyPlate?: EmptyPlate } = {};
 
-  // 0. Health Inspector - rejects pizza ("No bribes!")
+  // 0. Health Inspector
   if (customer.healthInspector) {
+    if (customer.inspectorTipsy) {
+      // Tipsy inspector accepts pizza — leaves happy
+      events.push('HEALTH_INSPECTOR_TIPSY_SERVED');
+      newEntities.emptyPlate = {
+        id: `plate-${now}-${customer.id}`,
+        lane: customer.lane,
+        position: customer.position,
+        speed: ENTITY_SPEEDS.PLATE,
+        createdAt: now
+      };
+      return {
+        updatedCustomer: {
+          ...customer,
+          served: true,
+          hasPlate: false,
+          inspectorTipsy: false,
+          textMessage: "See you next month!",
+          textMessageTime: now,
+        },
+        events,
+        newEntities
+      };
+    }
+    // Not tipsy — rejects pizza ("No bribes!")
     events.push('HEALTH_INSPECTOR_BRIBED');
     return {
       updatedCustomer: {
