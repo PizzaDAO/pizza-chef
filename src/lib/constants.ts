@@ -116,7 +116,7 @@ export const BOSS_CONFIG = {
   DOMINOS_LEVEL: 70,
   PAPA_JOHN_LEVEL: 10,
   CHUCK_E_CHEESE_LEVEL: 30,
-  PIZZA_THE_HUT_LEVEL: 1, // TEST: spawn immediately (was 50)
+  PIZZA_THE_HUT_LEVEL: 50,
   BOSS_POSITION: 85,
 };
 
