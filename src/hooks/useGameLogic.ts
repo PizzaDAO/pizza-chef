@@ -209,8 +209,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
   const moveChef = useCallback((direction: 'up' | 'down') => {
     if (gameState.gameOver || gameState.paused || gameState.nyanSweep?.active) return;
     setGameState(prev => {
-      // Chef slow: block movement while slowed by cheese slime
-      if (prev.chefSlowedUntil && Date.now() < prev.chefSlowedUntil) return prev;
+      // Chef slime: movement is allowed but lane changes animate slowly (handled in GameBoard CSS transition)
       let newLane = prev.chefLane;
       if (direction === 'up' && newLane > GAME_CONFIG.LANE_TOP) newLane -= 1;
       else if (direction === 'down' && newLane < GAME_CONFIG.LANE_BOTTOM) newLane += 1;

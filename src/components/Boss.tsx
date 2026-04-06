@@ -99,6 +99,7 @@ const Boss: React.FC<BossProps> = ({ bossBattle }) => {
               src={minion.slime ? cheeseSlimeImg : (minion.sprite || bossSprite)}
               alt={minion.slime ? "cheese slime" : "minion"}
               className="w-full h-full object-contain"
+              style={minion.slime ? { transform: 'scale(1.5)' } : undefined}
             />
           </div>
         );
