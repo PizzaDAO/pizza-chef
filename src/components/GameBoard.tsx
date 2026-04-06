@@ -164,7 +164,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             transform: 'translate3d(0, -50%, 0)', // center on lane
             zIndex: gameState.gameOver ? 19 : 10,
             willChange: 'transform',
-            transition: isSlimed ? 'top 1500ms ease-in-out' : 'top 10ms ease-out',
+            transition: isSlimed ? 'top 300ms ease-in-out' : 'top 150ms ease-out',
             filter: isSlimed ? 'brightness(1.2) sepia(0.8) saturate(2.5) hue-rotate(10deg)' : undefined,
           }}
         >
