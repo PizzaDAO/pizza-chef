@@ -61,6 +61,7 @@ export const PRELOAD_SPRITES = [
   'papa-john-6.png',
   'franco-pepe.png',
   'frank-pepe.png',
+  'intern.png',
 ] as const;
 
 // UI assets to preload (separate array for different CDN path)

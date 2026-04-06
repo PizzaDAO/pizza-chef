@@ -210,10 +210,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
           }}
         >
           <img
-            src={sprite("franco-pepe.png")}
+            src={sprite("intern.png")}
             alt="Hired worker"
             className="w-full h-full object-contain"
-            style={{ filter: 'hue-rotate(180deg)' }}
           />
           {gameState.hiredWorker.availableSlices > 0 && (
             <div
