@@ -68,8 +68,19 @@ export const processPowerUpCollection = (
         let lastReason: StarLostReason | undefined;
 
         newState.customers = newState.customers.map(customer => {
-            // Health Inspector is immune to all power-ups
-            if (customer.healthInspector) return customer;
+            // Health Inspector beer interaction
+            if (customer.healthInspector) {
+                // Skip if already leaving/served/vomit/disappointed
+                if (customer.served || customer.leaving || customer.vomit || customer.disappointed) return customer;
+                // Second beer while tipsy: vomit
+                if (customer.inspectorTipsy) {
+                    livesLost += 1;
+                    lastReason = 'inspector_vomit';
+                    return { ...customer, vomit: true, disappointed: true, movingRight: true, inspectorTipsy: false, textMessage: "I think I'm sick.", textMessageTime: now };
+                }
+                // First beer: become tipsy
+                return { ...customer, inspectorTipsy: true, textMessage: "I'll have one.", textMessageTime: now };
+            }
 
             // Impact on Critic
             if (customer.critic) {

@@ -50,6 +50,7 @@ export interface Customer {
   badLuckBrian?: boolean;
   scumbagSteve?: boolean;
   healthInspector?: boolean;
+  inspectorTipsy?: boolean;
   slicesReceived?: number; // For Steve who needs 2 slices
   lastLaneChangeTime?: number; // For Steve's random lane changes
   leaving?: boolean;
@@ -224,6 +225,7 @@ export type StarLostReason =
   | 'brian_hurled'
   | 'health_inspector_bribed'
   | 'health_inspector_failed'
+  | 'inspector_vomit'
   | 'beer_around_kids'
   | 'steve_disappointed'
   | 'papajohn_minion_reached'

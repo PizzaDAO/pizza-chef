@@ -425,7 +425,26 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             if (hitResult.newEntities.emptyPlate) newState.emptyPlates = [...newState.emptyPlates, hitResult.newEntities.emptyPlate];
 
             hitResult.events.forEach(event => {
-              if (event === 'HEALTH_INSPECTOR_BRIBED') {
+              if (event === 'HEALTH_INSPECTOR_TIPSY_SERVED') {
+                // Tipsy inspector accepted pizza — treat as a happy serve
+                soundManager.customerServed();
+
+                const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
+
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
+                }
+              } else if (event === 'HEALTH_INSPECTOR_BRIBED') {
                 // Lose a star for trying to bribe the inspector
                 soundManager.lifeLost();
                 newState.lives = Math.max(0, newState.lives - 1);
@@ -527,7 +546,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             // Update the customer map so subsequent slices see this customer as served/updated
             customerMap.set(currentCustomer.id, hitResult.updatedCustomer);
             // Health inspector is NOT consumed (stays on screen) — only the pizza disappears
-            if (!currentCustomer.healthInspector) {
+            // UNLESS tipsy-served, in which case the inspector leaves happy (consumed)
+            if (!currentCustomer.healthInspector || hitResult.events.includes('HEALTH_INSPECTOR_TIPSY_SERVED')) {
               consumedCustomerIds.add(currentCustomer.id);
             }
           }

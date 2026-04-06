@@ -157,6 +157,7 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.badLuckBrian === b.badLuckBrian &&
     a.scumbagSteve === b.scumbagSteve &&
     a.healthInspector === b.healthInspector &&
+    a.inspectorTipsy === b.inspectorTipsy &&
     a.critic === b.critic &&
     a.leaving === b.leaving &&
     prev.boardWidth === next.boardWidth &&
