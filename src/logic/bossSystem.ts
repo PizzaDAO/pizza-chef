@@ -1,4 +1,4 @@
-import { GameState, BossBattle, BossMinion, PizzaSlice, BossType } from '../types/game';
+import { GameState, BossBattle, BossMinion, PizzaSlice, BossType, ActivePowerUp } from '../types/game';
 import { BOSS_CONFIG, PAPA_JOHN_CONFIG, DOMINOS_CONFIG, CHUCK_E_CHEESE_CONFIG, PIZZA_THE_HUT_CONFIG, POSITIONS, ENTITY_SPEEDS, SCORING, GAME_CONFIG } from '../lib/constants';
 import { sprite } from '../lib/assets';
 import { checkSliceMinionCollision, checkMinionReachedChef } from './collisionSystem';
@@ -228,10 +228,12 @@ export const updateBossLane = (bossBattle: BossBattle): BossBattle => {
 /**
  * Update minion positions (move left)
  */
-export const updateMinionPositions = (minions: BossMinion[]): BossMinion[] => {
+export const updateMinionPositions = (minions: BossMinion[], iceCreamActive?: boolean): BossMinion[] => {
   return minions.map(minion => {
     if (minion.defeated) return minion;
-    return { ...minion, position: minion.position - minion.speed };
+    // Kids run faster when ice cream is out
+    const speedMultiplier = iceCreamActive && minion.sprite ? CHUCK_E_CHEESE_CONFIG.KID_ICE_CREAM_SPEED_MULTIPLIER / CHUCK_E_CHEESE_CONFIG.KID_SPEED_MULTIPLIER : 1;
+    return { ...minion, position: minion.position - minion.speed * speedMultiplier };
   });
 };
 
@@ -515,7 +517,8 @@ export const processBossTick = (
   currentLevel: number,
   defeatedBossLevels: number[],
   now: number,
-  chefLane?: number
+  chefLane?: number,
+  activePowerUps?: ActivePowerUp[]
 ): BossTickResult => {
   if (!bossBattle.active || bossBattle.bossDefeated) {
     return {
@@ -555,7 +558,8 @@ export const processBossTick = (
   }
 
   // 1. Move minions
-  let currentMinions = updateMinionPositions(updatedBoss.minions);
+  const iceCreamActive = activePowerUps?.some(p => p.type === 'ice-cream') ?? false;
+  let currentMinions = updateMinionPositions(updatedBoss.minions, iceCreamActive);
 
   // 2. Check minions reaching chef
   const reachResult = checkMinionsReachedChef(currentMinions);

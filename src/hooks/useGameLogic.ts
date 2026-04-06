@@ -862,7 +862,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           newState.level,
           newState.defeatedBossLevels,
           now,
-          newState.chefLane
+          newState.chefLane,
+          newState.activePowerUps
         );
 
         newState.bossBattle = bossResult.nextBossBattle;
