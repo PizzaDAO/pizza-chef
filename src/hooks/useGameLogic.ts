@@ -283,6 +283,17 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.cleanKitchenStartTime = now;
       }
 
+      // TEST: Trigger Pizza the Hut boss immediately at game start
+      if (!newState.bossBattle && newState.defeatedBossLevels.length === 0) {
+        const bossTriggers = checkBossTrigger(0, newState.level, newState.defeatedBossLevels);
+        if (bossTriggers.length > 0) {
+          const pthTrigger = bossTriggers.find(b => b.type === 'pizzaTheHut');
+          if (pthTrigger) {
+            newState.bossBattle = initializeBossBattle(now, 'pizzaTheHut');
+          }
+        }
+      }
+
       // 1. PROCESS OVENS (Logic from ovenSystem)
       const ovenTickResult = processOvenTick(
         newState.ovens,
