@@ -158,6 +158,7 @@ export interface OvenState {
   cleaningStartTime: number;
   pausedElapsed?: number;
   sliceCount: number;
+  slimeDisabledUntil?: number;
 }
 
 export interface BossMinion {
@@ -166,9 +167,11 @@ export interface BossMinion {
   position: number;
   speed: number;
   defeated: boolean;
+  sprite?: string;
+  slime?: boolean;
 }
 
-export type BossType = 'dominos' | 'papaJohn';
+export type BossType = 'dominos' | 'papaJohn' | 'chuckECheese' | 'pizzaTheHut';
 
 export interface BossBattle {
   active: boolean;
@@ -183,6 +186,10 @@ export interface BossBattle {
   bossLaneDirection: number; // 1 = moving down, -1 = moving up
   bossXDirection: number; // 1 = moving right, -1 = moving left
   hitsReceived?: number; // Track hits for Papa John sprite changes
+  // Pizza the Hut staggered slime spawning
+  slimesRemainingInWave?: number; // How many slimes left to throw this wave
+  nextSlimeSpawnTime?: number; // When the next slime should be thrown
+  slimeWaveIndex?: number; // Counter for unique slime IDs within wave
 }
 
 export interface GameStats {
@@ -217,6 +224,7 @@ export type StarLostReason =
   | 'brian_hurled'
   | 'health_inspector_bribed'
   | 'health_inspector_failed'
+  | 'beer_around_kids'
   | 'steve_disappointed'
   | 'papajohn_minion_reached'
   | 'dominos_minion_reached';
@@ -260,4 +268,5 @@ export interface GameState {
   lastCleanKitchenBonusTime?: number;
   cleanKitchenBonusAlert?: { endTime: number };
   lastPauseTime?: number; // Track when game was paused for timer adjustments
+  chefSlowedUntil?: number;
 }
