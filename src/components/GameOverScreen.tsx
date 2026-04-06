@@ -60,6 +60,7 @@ interface LoadedImages {
   nyancat: HTMLImageElement | null;
   star: HTMLImageElement | null;
   moltobenny: HTMLImageElement | null;
+  pepe: HTMLImageElement | null;
 }
 
 const DEFAULT_NAME = 'Pizza Trainee';
@@ -199,6 +200,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
         nyancat,
         star,
         moltobenny,
+        pepe,
       ] = await Promise.all([
         loadImage(sprite("chef.png")),
         loadImage(ui("pizzadao-logo-white.png")),
@@ -213,7 +215,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
         loadImage(sprite("nyan-cat.png")),
         loadImage(sprite("star.png")),
         loadImage(sprite("molto-benny.png")),
-
+        loadImage(sprite("pepe.png")),
       ]);
 
       imagesRef.current = {
@@ -229,6 +231,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
         nyancat,
         star,
         moltobenny,
+        pepe,
       };
       setImagesLoaded(true);
     }
@@ -451,6 +454,7 @@ export default function GameOverScreen({ stats, score, level, lastStarLostReason
       { img: images.doge, count: stats.powerUpsUsed.doge },
       { img: images.nyancat, count: stats.powerUpsUsed.nyan },
       { img: images.moltobenny, count: stats.powerUpsUsed.moltobenny },
+      { img: images.pepe, count: stats.powerUpsUsed.pepe },
     ];
 
     const powerUpSize = 40 * scale;
