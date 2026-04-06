@@ -94,7 +94,8 @@ export const createWaveMinions = (waveNumber: number, now: number, minionsPerWav
  * Get the total number of slimes for a Pizza the Hut wave
  */
 export const getSlimeWaveCount = (waveNumber: number): number => {
-  return PIZZA_THE_HUT_CONFIG.MINIONS_PER_WAVE + (waveNumber - 1) * 2;
+  const baseCount = PIZZA_THE_HUT_CONFIG.MINIONS_PER_WAVE + (waveNumber - 1) * 2;
+  return Math.round(baseCount * 0.75);
 };
 
 /**

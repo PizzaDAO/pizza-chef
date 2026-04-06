@@ -133,7 +133,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
               </div>
             )}
             <div className="relative" style={{ zIndex: 10 }}>
-              {oven.slimeDisabledUntil && Date.now() < oven.slimeDisabledUntil ? '🧀' :
+              {oven.slimeDisabledUntil && Date.now() < oven.slimeDisabledUntil && oven.slimeCleaningStartTime ? '🧹' :
+               oven.slimeDisabledUntil && Date.now() < oven.slimeDisabledUntil ? '🧀' :
                ovenStatus === 'burned' ? '💀' :
                ovenStatus === 'extinguishing' ? '🧯' :
                ovenStatus === 'sweeping' ? '🧹' :
@@ -164,7 +165,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState }) => {
             zIndex: gameState.gameOver ? 19 : 10,
             willChange: 'transform',
             transition: isSlimed ? 'top 1500ms ease-in-out' : 'top 10ms ease-out',
-            filter: isSlimed ? 'saturate(0.3) brightness(0.7)' : undefined,
+            filter: isSlimed ? 'brightness(1.2) sepia(0.8) saturate(2.5) hue-rotate(10deg)' : undefined,
           }}
         >
           <img
