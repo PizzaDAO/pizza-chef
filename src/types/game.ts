@@ -170,7 +170,7 @@ export interface BossMinion {
   slime?: boolean;
 }
 
-export type BossType = 'dominos' | 'papaJohn' | 'pizzaTheHut';
+export type BossType = 'dominos' | 'papaJohn' | 'chuckECheese' | 'pizzaTheHut';
 
 export interface BossBattle {
   active: boolean;
@@ -223,6 +223,7 @@ export type StarLostReason =
   | 'brian_hurled'
   | 'health_inspector_bribed'
   | 'health_inspector_failed'
+  | 'beer_around_kids'
   | 'steve_disappointed'
   | 'papajohn_minion_reached'
   | 'dominos_minion_reached';

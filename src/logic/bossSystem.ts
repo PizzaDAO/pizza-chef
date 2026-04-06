@@ -1,5 +1,6 @@
 import { GameState, BossBattle, BossMinion, PizzaSlice, BossType } from '../types/game';
-import { BOSS_CONFIG, PAPA_JOHN_CONFIG, DOMINOS_CONFIG, PIZZA_THE_HUT_CONFIG, POSITIONS, ENTITY_SPEEDS, SCORING, GAME_CONFIG } from '../lib/constants';
+import { BOSS_CONFIG, PAPA_JOHN_CONFIG, DOMINOS_CONFIG, CHUCK_E_CHEESE_CONFIG, PIZZA_THE_HUT_CONFIG, POSITIONS, ENTITY_SPEEDS, SCORING, GAME_CONFIG } from '../lib/constants';
+import { sprite } from '../lib/assets';
 import { checkSliceMinionCollision, checkMinionReachedChef } from './collisionSystem';
 import { getPapaJohnMask, checkMaskCollision } from './bossCollisionMasks';
 import { buildLaneBuckets, getEntitiesInLane, LaneBuckets } from './laneBuckets';
@@ -38,6 +39,12 @@ export const checkBossTrigger = (
   newLevel: number,
   defeatedBossLevels: number[],
 ): BossTriggerResult | null => {
+  // Check Chuck E. Cheese (level 5)
+  if (oldLevel < BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL && newLevel >= BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL &&
+      !defeatedBossLevels.includes(BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL)) {
+    return { type: 'chuckECheese', level: BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL };
+  }
+
   // Check Papa John (level 10)
   if (oldLevel < BOSS_CONFIG.PAPA_JOHN_LEVEL && newLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL &&
       !defeatedBossLevels.includes(BOSS_CONFIG.PAPA_JOHN_LEVEL)) {
@@ -62,15 +69,27 @@ export const checkBossTrigger = (
 /**
  * Create initial minions for a wave
  */
-export const createWaveMinions = (waveNumber: number, now: number, minionsPerWave: number): BossMinion[] => {
+export const createWaveMinions = (waveNumber: number, now: number, minionsPerWave: number, bossType?: BossType): BossMinion[] => {
   const minions: BossMinion[] = [];
+  const isChuckECheese = bossType === 'chuckECheese';
+
   for (let i = 0; i < minionsPerWave; i++) {
+    let speed = ENTITY_SPEEDS.MINION;
+    let minionSprite: string | undefined;
+
+    if (isChuckECheese) {
+      const baseSpeed = ENTITY_SPEEDS.MINION * CHUCK_E_CHEESE_CONFIG.KID_SPEED_MULTIPLIER * Math.pow(CHUCK_E_CHEESE_CONFIG.WAVE_SPEED_MULTIPLIER, waveNumber - 1);
+      speed = baseSpeed * (1 + (Math.random() * 2 - 1) * CHUCK_E_CHEESE_CONFIG.SPEED_VARIANCE);
+      minionSprite = sprite(`kid-${Math.floor(Math.random() * CHUCK_E_CHEESE_CONFIG.KID_SPRITE_COUNT) + 1}.png`);
+    }
+
     minions.push({
       id: `minion-${now}-${waveNumber}-${i}`,
       lane: i % 4,
       position: POSITIONS.SPAWN_X + (Math.floor(i / 4) * 15),
-      speed: ENTITY_SPEEDS.MINION,
+      speed,
       defeated: false,
+      ...(minionSprite ? { sprite: minionSprite } : {}),
     });
   }
   return minions;
@@ -110,6 +129,7 @@ export const createSingleSlime = (
  */
 const getBossConfig = (bossType: BossType) => {
   if (bossType === 'papaJohn') return PAPA_JOHN_CONFIG;
+  if (bossType === 'chuckECheese') return CHUCK_E_CHEESE_CONFIG;
   if (bossType === 'pizzaTheHut') return PIZZA_THE_HUT_CONFIG;
   return DOMINOS_CONFIG;
 };
@@ -123,28 +143,31 @@ export const initializeBossBattle = (
 ): BossBattle => {
   const config = getBossConfig(bossType);
   // Papa John has no minions - immediately vulnerable
+  // Chuck E. Cheese spawns kid waves but is also immediately vulnerable
   const isPapaJohn = bossType === 'papaJohn';
+  const isChuckECheese = bossType === 'chuckECheese';
   const isPizzaTheHut = bossType === 'pizzaTheHut';
+  const alwaysVulnerable = isPapaJohn || isChuckECheese || isPizzaTheHut;
 
   const result: BossBattle = {
     active: true,
     bossType,
     bossHealth: config.HEALTH,
-    currentWave: isPapaJohn ? config.WAVES : 1, // Skip waves for Papa John
-    minions: isPapaJohn || isPizzaTheHut ? [] : createWaveMinions(1, now, config.MINIONS_PER_WAVE),
-    bossVulnerable: isPapaJohn || isPizzaTheHut, // Papa John and Pizza the Hut are immediately vulnerable
+    currentWave: isPapaJohn ? config.WAVES : 1,
+    minions: isPapaJohn || isPizzaTheHut ? [] : createWaveMinions(1, now, config.MINIONS_PER_WAVE, bossType),
+    bossVulnerable: alwaysVulnerable,
     bossDefeated: false,
-    bossPosition: isPapaJohn ? 50 : BOSS_CONFIG.BOSS_POSITION, // Papa John starts in the middle
-    bossLane: 1.5, // Start in the middle (between lanes 1 and 2)
-    bossLaneDirection: 1, // Start moving down
-    bossXDirection: -1, // Start moving left
-    hitsReceived: 0, // Track hits for Papa John sprite changes
+    bossPosition: isPapaJohn ? 50 : BOSS_CONFIG.BOSS_POSITION,
+    bossLane: 1.5,
+    bossLaneDirection: 1,
+    bossXDirection: -1,
+    hitsReceived: 0,
   };
 
   // Pizza the Hut: set up staggered slime spawning instead of bulk wave
   if (isPizzaTheHut) {
     result.slimesRemainingInWave = getSlimeWaveCount(1);
-    result.nextSlimeSpawnTime = now; // Throw first slime immediately
+    result.nextSlimeSpawnTime = now;
     result.slimeWaveIndex = 0;
   }
 
@@ -375,6 +398,8 @@ export const processSliceBossCollisions = (
         let currentBossLevel: number | undefined;
         if (updatedBossBattle.bossType === 'papaJohn') {
           currentBossLevel = currentLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL ? BOSS_CONFIG.PAPA_JOHN_LEVEL : undefined;
+        } else if (updatedBossBattle.bossType === 'chuckECheese') {
+          currentBossLevel = currentLevel >= BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL ? BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL : undefined;
         } else if (updatedBossBattle.bossType === 'pizzaTheHut') {
           currentBossLevel = currentLevel >= BOSS_CONFIG.PIZZA_THE_HUT_LEVEL ? BOSS_CONFIG.PIZZA_THE_HUT_LEVEL : undefined;
         } else {
@@ -427,7 +452,7 @@ export const checkWaveCompletion = (
       updatedBossBattle.nextSlimeSpawnTime = now;
       updatedBossBattle.slimeWaveIndex = 0;
     } else {
-      updatedBossBattle.minions = createWaveMinions(nextWave, now, config.MINIONS_PER_WAVE);
+      updatedBossBattle.minions = createWaveMinions(nextWave, now, config.MINIONS_PER_WAVE, bossBattle.bossType);
     }
     events.push({ type: 'WAVE_COMPLETE', nextWave });
   } else if (!bossBattle.bossVulnerable) {
