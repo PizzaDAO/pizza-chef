@@ -115,7 +115,7 @@ export const WORKER_CONFIG = {
 export const BOSS_CONFIG = {
   DOMINOS_LEVEL: 30,
   PAPA_JOHN_LEVEL: 10, // Single appearance at level 10
-  CHUCK_E_CHEESE_LEVEL: 20,
+  CHUCK_E_CHEESE_LEVEL: 5,
   BOSS_POSITION: 85,
 };
 

@@ -35,16 +35,16 @@ export const checkBossTrigger = (
   newLevel: number,
   defeatedBossLevels: number[],
 ): BossTriggerResult | null => {
+  // Check Chuck E. Cheese (level 5)
+  if (oldLevel < BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL && newLevel >= BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL &&
+      !defeatedBossLevels.includes(BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL)) {
+    return { type: 'chuckECheese', level: BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL };
+  }
+
   // Check Papa John (level 10)
   if (oldLevel < BOSS_CONFIG.PAPA_JOHN_LEVEL && newLevel >= BOSS_CONFIG.PAPA_JOHN_LEVEL &&
       !defeatedBossLevels.includes(BOSS_CONFIG.PAPA_JOHN_LEVEL)) {
     return { type: 'papaJohn', level: BOSS_CONFIG.PAPA_JOHN_LEVEL };
-  }
-
-  // Check Chuck E. Cheese (level 20)
-  if (oldLevel < BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL && newLevel >= BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL &&
-      !defeatedBossLevels.includes(BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL)) {
-    return { type: 'chuckECheese', level: BOSS_CONFIG.CHUCK_E_CHEESE_LEVEL };
   }
 
   // Check Dominos (level 30)
