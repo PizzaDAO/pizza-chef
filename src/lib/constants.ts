@@ -113,9 +113,9 @@ export const WORKER_CONFIG = {
 };
 
 export const BOSS_CONFIG = {
-  DOMINOS_LEVEL: 30,
-  PAPA_JOHN_LEVEL: 10, // Single appearance at level 10
-  PIZZA_THE_HUT_LEVEL: 5,
+  DOMINOS_LEVEL: 70,
+  PAPA_JOHN_LEVEL: 10,
+  PIZZA_THE_HUT_LEVEL: 50,
   BOSS_POSITION: 85,
 };
 
