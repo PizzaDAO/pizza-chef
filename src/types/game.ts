@@ -175,6 +175,33 @@ export interface BossMinion {
 
 export type BossType = 'dominos' | 'papaJohn' | 'chuckECheese' | 'pizzaTheHut';
 
+// Level system types
+export type LevelPhase = 'playing' | 'boss_incoming' | 'boss' | 'complete' | 'store';
+
+export interface LevelProgress {
+  customersServed: number;
+  customersRequired: number;
+  levelStartTime: number;
+  starsLostThisLevel: number;
+}
+
+export interface LevelAnnouncement {
+  level: number;
+  endTime: number;
+}
+
+export interface BossIncomingAlert {
+  endTime: number;
+}
+
+export interface LevelCompleteInfo {
+  level: number;
+  customersServed: number;
+  starsLost: number;
+  rewards: number;
+  bossDefeated: boolean;
+}
+
 export interface BossBattle {
   active: boolean;
   bossType: BossType;
@@ -215,6 +242,7 @@ export interface GameStats {
     slow: number;
   };
   ovenUpgradesMade: number;
+  bestOfAwardsEarned: number;
 }
 
 export type StarLostReason =
@@ -231,6 +259,19 @@ export type StarLostReason =
   | 'steve_disappointed'
   | 'papajohn_minion_reached'
   | 'dominos_minion_reached';
+
+// Snapshot type for death replay - contains only the visual fields GameBoard needs
+export type GameStateSnapshot = Pick<GameState,
+  | 'customers' | 'pizzaSlices' | 'emptyPlates' | 'droppedPlates'
+  | 'powerUps' | 'chefLane' | 'ovens' | 'availableSlices'
+  | 'fallingPizza' | 'nyanSweep' | 'pepeHelpers' | 'hiredWorker'
+  | 'bossBattle' | 'floatingScores' | 'floatingStars'
+  | 'activePowerUps' | 'starPowerActive' | 'levelPhase'
+  | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
+  | 'levelCompleteInfo' | 'gameOver' | 'paused'
+  | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
+  | 'ovenSpeedUpgrades'
+>;
 
 export interface GameState {
   customers: Customer[];
@@ -272,4 +313,14 @@ export interface GameState {
   cleanKitchenBonusAlert?: { endTime: number };
   lastPauseTime?: number; // Track when game was paused for timer adjustments
   chefSlowedUntil?: number;
+  // Level system
+  levelPhase: LevelPhase;
+  levelProgress: LevelProgress;
+  levelAnnouncement?: LevelAnnouncement;
+  bossIncomingAlert?: BossIncomingAlert;
+  levelCompleteInfo?: LevelCompleteInfo;
+  // Best Of Award
+  bestOfStreakCount: number;
+  bestOfAwardCount: number;
+  bestOfAwardAlert?: { endTime: number };
 }

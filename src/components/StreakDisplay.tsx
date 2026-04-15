@@ -2,6 +2,8 @@ import { GameStats } from '../types/game';
 
 interface StreakDisplayProps {
   stats: GameStats;
+  cleanKitchenBonus?: boolean;
+  bestOfStreak?: number;
 }
 
 export function getStreakMultiplier(streak: number): number {
@@ -11,11 +13,12 @@ export function getStreakMultiplier(streak: number): number {
   return 1.0 + 0.01 * streak;
 }
 
-export default function StreakDisplay({ stats }: StreakDisplayProps) {
+export default function StreakDisplay({ stats, cleanKitchenBonus, bestOfStreak }: StreakDisplayProps) {
   const showCustomerStreak = stats.currentCustomerStreak >= 5;
   const showPlateStreak = stats.currentPlateStreak >= 5;
+  const showBestOf = (bestOfStreak ?? 0) > 0;
 
-  if (!showCustomerStreak && !showPlateStreak) {
+  if (!showCustomerStreak && !showPlateStreak && !cleanKitchenBonus && !showBestOf) {
     return null;
   }
 
@@ -53,6 +56,34 @@ export default function StreakDisplay({ stats }: StreakDisplayProps) {
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-bold">{stats.currentPlateStreak}</span>
                 <span className="text-sm font-semibold bg-white/20 px-2 py-0.5 rounded">{plateMultiplier.toFixed(2)}x</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {cleanKitchenBonus && (
+        <div className="bg-gradient-to-br from-green-400 to-emerald-500 text-white px-4 py-2 rounded-lg shadow-lg border-2 border-yellow-300 animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">✨</span>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide">Clean Kitchen</div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold">Bonus!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showBestOf && (
+        <div className="bg-gradient-to-br from-amber-400 to-yellow-600 text-white px-4 py-2 rounded-lg shadow-lg border-2 border-amber-200 animate-pulse">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">🏆</span>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-wide">Best Of</div>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold">{bestOfStreak}/5</span>
               </div>
             </div>
           </div>
