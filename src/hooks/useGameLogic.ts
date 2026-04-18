@@ -1115,12 +1115,26 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             const bossType = getBossForLevel(newState.level);
             if (bossType) {
               // Boss level - transition to boss_incoming
+              // Pause any cooking ovens so they don't burn during the alert
+              const needsBossPause = Object.values(newState.ovens).some(
+                (o: any) => o.cooking && !o.burned && o.pausedElapsed === undefined
+              );
+              if (needsBossPause) {
+                newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
+              }
               newState.levelPhase = 'boss_incoming';
               newState.bossIncomingAlert = { endTime: now + 2000 }; // 2 second alert
               // Clear all remaining approaching customers from the board
               newState.customers = newState.customers.filter(c => c.served || c.leaving || c.disappointed || c.vomit);
             } else {
               // Non-boss level - transition to complete
+              // Pause any cooking ovens so they don't burn during the complete/store screens
+              const needsCompletePause = Object.values(newState.ovens).some(
+                (o: any) => o.cooking && !o.burned && o.pausedElapsed === undefined
+              );
+              if (needsCompletePause) {
+                newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
+              }
               newState.levelPhase = 'complete';
               const rewards = calculateLevelRewards(
                 newState.levelProgress.starsLostThisLevel,
