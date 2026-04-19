@@ -41,7 +41,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
   const textYOffset = isBottomLane ? 5 : 18;
   const textYPx = ((customer.lane * 25 + textYOffset) / 100) * boardHeight;
 
-  const getDisplay = () => {
+  const getDisplay = (): { type: string; value: string; alt?: string; zombie?: boolean } => {
     const variant = getCustomerVariant(customer);
     const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector';
 
@@ -75,6 +75,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
 
     // Base appearance by variant
     if (variant === 'critic') return { type: 'image', value: criticImg, alt: 'critic' };
+    if (customer.zombie) return { type: 'image', value: droolfaceImg, alt: 'zombie', zombie: true };
     return { type: 'image', value: droolfaceImg, alt: 'drool' };
   };
 
@@ -105,6 +106,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
                   ? 'scaleX(-1)'
                   : 'none',
               animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
+              filter: display.zombie ? 'hue-rotate(120deg) saturate(2)' : undefined,
             }}
           />
         ) : (
@@ -156,6 +158,7 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.woozyState === b.woozyState &&
     a.hotHoneyAffected === b.hotHoneyAffected &&
     a.flipped === b.flipped &&
+    a.zombie === b.zombie &&
     a.brianNyaned === b.brianNyaned &&
     a.textMessage === b.textMessage &&
     a.badLuckBrian === b.badLuckBrian &&

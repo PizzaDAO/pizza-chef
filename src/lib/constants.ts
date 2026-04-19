@@ -268,6 +268,55 @@ export const LAYOUT = {
   LANE_Y_OFFSET: 6,         // Vertical offset within lane (%)
 };
 
+// --- Special Themed Levels ---
+export interface SpecialLevelConfig {
+  name: string;                          // "Spooky Night", "Grand Opening", "The Answer"
+  announcementSubtitle: string;          // Replaces "Serve N customers" in overlay
+  bgTint?: string;                       // CSS background overlay color (e.g., "rgba(0,0,0,0.4)")
+  bgFilter?: string;                     // CSS filter on background (e.g., "hue-rotate(200deg) brightness(0.6)")
+  spawnIntervalOverride?: number;        // Override spawn interval (ms)
+  speedMultiplierOverride?: number;      // Override customer speed multiplier
+  customersRequiredOverride?: number;    // Override customer count for level
+  customerScoreOverride?: number;        // Override base score per normal customer
+  criticEveryN?: number;                 // Force every Nth customer to be a critic
+  missedPenaltyStars?: number;           // Stars lost for missing a customer (default 1)
+  rewardMultiplier?: number;             // Multiply bank rewards
+  singleCustomer?: boolean;             // If true, spawn exactly 1 customer then stop
+}
+
+export const SPECIAL_LEVELS: Record<number, SpecialLevelConfig> = {
+  13: {
+    name: 'Spooky Night',
+    announcementSubtitle: 'Zombie horde incoming! Serve them all!',
+    bgTint: 'rgba(20, 0, 40, 0.45)',
+    bgFilter: 'hue-rotate(200deg) brightness(0.6)',
+    spawnIntervalOverride: 800,
+    speedMultiplierOverride: 0.6,
+    customersRequiredOverride: 60,
+    customerScoreOverride: 75,
+  },
+  25: {
+    name: 'Grand Opening',
+    announcementSubtitle: 'Double customers, double rewards! Critics are watching!',
+    rewardMultiplier: 2,
+    spawnIntervalOverride: 600,
+    criticEveryN: 5,
+    customersRequiredOverride: 80,
+  },
+  42: {
+    name: 'The Answer',
+    announcementSubtitle: 'One customer. 42,000 points. Do not miss.',
+    singleCustomer: true,
+    customersRequiredOverride: 1,
+    speedMultiplierOverride: 0.15,
+    customerScoreOverride: 42000,
+    missedPenaltyStars: 3,
+  },
+};
+
+export const getSpecialLevel = (level: number): SpecialLevelConfig | undefined =>
+  SPECIAL_LEVELS[level];
+
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],

@@ -3,7 +3,7 @@ import {
   GameStats,
   GameState
 } from '../types/game';
-import { SCORING, GAME_CONFIG } from '../lib/constants';
+import { SCORING, GAME_CONFIG, getSpecialLevel } from '../lib/constants';
 import { getCustomerVariant } from '../types/game';
 
 /**
@@ -39,13 +39,15 @@ export const applyCustomerScoring = (
   state: GameState,
   dogeMultiplier: number,
   streakMultiplier: number,
-  options: CustomerScoringOptions
+  options: CustomerScoringOptions,
+  level?: number
 ): CustomerScoringResult => {
   const { points, bank } = calculateCustomerScore(
     customer,
     dogeMultiplier,
     streakMultiplier,
-    options.isFirstSlice
+    options.isFirstSlice,
+    level
   );
 
   let newHappyCustomers = state.happyCustomers;
@@ -101,18 +103,24 @@ export const calculateCustomerScore = (
   customer: Customer,
   dogeMultiplier: number,
   streakMultiplier: number,
-  isFirstSlice: boolean = false
+  isFirstSlice: boolean = false,
+  level?: number
 ): { points: number; bank: number } => {
+  const special = level !== undefined ? getSpecialLevel(level) : undefined;
   let baseScore = 0;
 
   if (isFirstSlice) {
     baseScore = SCORING.CUSTOMER_FIRST_SLICE;
+  } else if (special?.customerScoreOverride !== undefined && !customer.critic) {
+    // Special level score override for normal customers
+    baseScore = special.customerScoreOverride;
   } else {
     baseScore = customer.critic ? SCORING.CUSTOMER_CRITIC : SCORING.CUSTOMER_NORMAL;
   }
 
-  const points = Math.floor(baseScore * dogeMultiplier * streakMultiplier);
-  const bank = SCORING.BASE_BANK_REWARD * dogeMultiplier;
+  const rewardMult = special?.rewardMultiplier ?? 1;
+  const points = Math.floor(baseScore * dogeMultiplier * streakMultiplier * rewardMult);
+  const bank = SCORING.BASE_BANK_REWARD * dogeMultiplier * rewardMult;
 
   return { points, bank };
 };

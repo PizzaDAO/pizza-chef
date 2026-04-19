@@ -9,6 +9,7 @@ import {
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
+  getSpecialLevel,
 } from '../lib/constants';
 
 export interface SpawnResult<T> {
@@ -22,6 +23,10 @@ export interface SpawnResult<T> {
  * Get the number of customers required for a given level
  */
 export const getCustomersForLevel = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.customersRequiredOverride !== undefined) {
+    return special.customersRequiredOverride;
+  }
   if (level <= LEVEL_SYSTEM.CUSTOMERS_PER_LEVEL.length) {
     return LEVEL_SYSTEM.CUSTOMERS_PER_LEVEL[level - 1];
   }
@@ -62,6 +67,10 @@ export const getUnlockedPowerUpTypes = (level: number): PowerUpType[] => {
  * Get customer speed multiplier for a given level
  */
 export const getLevelSpeedMultiplier = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.speedMultiplierOverride !== undefined) {
+    return special.speedMultiplierOverride;
+  }
   if (level <= LEVEL_SYSTEM.SPEED_MULTIPLIERS.length) {
     return LEVEL_SYSTEM.SPEED_MULTIPLIERS[level - 1];
   }
@@ -74,6 +83,10 @@ export const getLevelSpeedMultiplier = (level: number): number => {
  * Get spawn interval for a given level
  */
 export const getLevelSpawnInterval = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.spawnIntervalOverride !== undefined) {
+    return special.spawnIntervalOverride;
+  }
   if (level <= LEVEL_SYSTEM.SPAWN_INTERVALS.length) {
     return LEVEL_SYSTEM.SPAWN_INTERVALS[level - 1];
   }
@@ -136,6 +149,12 @@ export const trySpawnCustomer = (
     }
   }
 
+  // Special level: single customer gate (e.g., Level 42 "The Answer")
+  const special = getSpecialLevel(level);
+  if (special?.singleCustomer && totalCustomersSpawned !== undefined && totalCustomersSpawned >= 1) {
+    return { shouldSpawn: false };
+  }
+
   const spawnDelay = getLevelSpawnInterval(level);
 
   // Check time gate
@@ -154,18 +173,28 @@ export const trySpawnCustomer = (
   const disappointedEmojis = ['😢', '😭', '😠', '🤬'];
 
   // Determine customer variant based on level unlock schedule
-  const unlockedTypes = getUnlockedCustomerTypes(level);
-  const chances = getSpecialChances(level);
-
   let variant: CustomerVariant = 'normal';
-  if (unlockedTypes.includes('critic') && Math.random() < chances.critic) {
+
+  // Special level: Level 13 "Spooky Night" — all customers are normal (zombies)
+  if (special && special.name === 'Spooky Night') {
+    variant = 'normal';
+  // Special level: criticEveryN — force every Nth customer to be a critic
+  } else if (special?.criticEveryN && totalCustomersSpawned !== undefined &&
+             (totalCustomersSpawned + 1) % special.criticEveryN === 0) {
     variant = 'critic';
-  } else if (unlockedTypes.includes('badLuckBrian') && Math.random() < chances.brian) {
-    variant = 'badLuckBrian';
-  } else if (unlockedTypes.includes('scumbagSteve') && Math.random() < chances.steve) {
-    variant = 'scumbagSteve';
-  } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
-    variant = 'healthInspector';
+  } else {
+    const unlockedTypes = getUnlockedCustomerTypes(level);
+    const chances = getSpecialChances(level);
+
+    if (unlockedTypes.includes('critic') && Math.random() < chances.critic) {
+      variant = 'critic';
+    } else if (unlockedTypes.includes('badLuckBrian') && Math.random() < chances.brian) {
+      variant = 'badLuckBrian';
+    } else if (unlockedTypes.includes('scumbagSteve') && Math.random() < chances.steve) {
+      variant = 'scumbagSteve';
+    } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
+      variant = 'healthInspector';
+    }
   }
 
   // Calculate speed with level speed multiplier
@@ -198,6 +227,8 @@ export const trySpawnCustomer = (
     slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
+    // Zombie flag for Level 13 Spooky Night
+    zombie: special?.name === 'Spooky Night' ? true : undefined,
   };
 
   return { shouldSpawn: true, entity: customer };

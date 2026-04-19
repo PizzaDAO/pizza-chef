@@ -1,6 +1,6 @@
 // src/logic/storeSystem.ts
 import { GameState, PowerUp } from '../types/game';
-import { COSTS, ENTITY_SPEEDS, POSITIONS, GAME_CONFIG, OVEN_CONFIG, LEVEL_REWARDS } from '../lib/constants';
+import { COSTS, ENTITY_SPEEDS, POSITIONS, GAME_CONFIG, OVEN_CONFIG, LEVEL_REWARDS, getSpecialLevel } from '../lib/constants';
 import { initializeHiredWorker } from './workerSystem';
 
 export type StoreEvent = { type: 'LIFE_GAINED' };
@@ -11,10 +11,16 @@ export type StoreEvent = { type: 'LIFE_GAINED' };
 export const calculateLevelRewards = (
   starsLostThisLevel: number,
   bossDefeated: boolean,
+  level?: number,
 ): number => {
   let reward = LEVEL_REWARDS.BASE_COMPLETION;
   if (starsLostThisLevel === 0) reward += LEVEL_REWARDS.PERFECT_BONUS;
   if (bossDefeated) reward += LEVEL_REWARDS.BOSS_BONUS;
+  // Apply special level reward multiplier
+  const special = level !== undefined ? getSpecialLevel(level) : undefined;
+  if (special?.rewardMultiplier !== undefined) {
+    reward = Math.floor(reward * special.rewardMultiplier);
+  }
   return reward;
 };
 

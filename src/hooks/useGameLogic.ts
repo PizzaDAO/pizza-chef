@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  getSpecialLevel,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -432,21 +433,24 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           newState.bestOfStreakCount = 0;
         }
         if (event.type === 'STAR_LOST_NORMAL') {
-          newState.lives = Math.max(0, newState.lives - 1);
+          const penalty = getSpecialLevel(newState.level)?.missedPenaltyStars ?? 1;
+          newState.lives = Math.max(0, newState.lives - penalty);
           newState.lastStarLostReason = 'disappointed_customer';
-          newState = addFloatingStar(false, event.lane, event.position, newState);
+          newState = addFloatingStar(false, event.lane, event.position, newState, penalty);
           newState.bestOfStreakCount = 0;
         }
         if (event.type === 'STAR_LOST_WOOZY_NORMAL') {
-          newState.lives = Math.max(0, newState.lives - 1);
+          const penalty = getSpecialLevel(newState.level)?.missedPenaltyStars ?? 1;
+          newState.lives = Math.max(0, newState.lives - penalty);
           newState.lastStarLostReason = 'woozy_customer_reached';
-          newState = addFloatingStar(false, event.lane, event.position, newState);
+          newState = addFloatingStar(false, event.lane, event.position, newState, penalty);
           newState.bestOfStreakCount = 0;
         }
         if (event.type === 'STAR_LOST_STEVE') {
-          newState.lives = Math.max(0, newState.lives - 1);
+          const penalty = getSpecialLevel(newState.level)?.missedPenaltyStars ?? 1;
+          newState.lives = Math.max(0, newState.lives - penalty);
           newState.lastStarLostReason = 'steve_disappointed';
-          newState = addFloatingStar(false, event.lane, event.position, newState);
+          newState = addFloatingStar(false, event.lane, event.position, newState, penalty);
           newState.bestOfStreakCount = 0;
         }
         if (event.type === 'GAME_OVER' && newState.lives === 0) {
@@ -530,7 +534,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
@@ -569,7 +574,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
@@ -591,7 +597,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: true, countsAsServed: false, isFirstSlice: true, checkLifeGain: false });
+                  { includeBank: true, countsAsServed: false, isFirstSlice: true, checkLifeGain: false },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
@@ -603,7 +610,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: false, countsAsServed: false, isFirstSlice: true, checkLifeGain: false });
+                  { includeBank: false, countsAsServed: false, isFirstSlice: true, checkLifeGain: false },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 customerScores.push(result.floatingScore);
@@ -614,7 +622,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: false, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+                  { includeBank: false, countsAsServed: true, isFirstSlice: false, checkLifeGain: true },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
@@ -635,7 +644,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
                   getStreakMultiplier(newState.stats.currentCustomerStreak),
-                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true },
+                  newState.level);
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
@@ -910,7 +920,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
               const result = applyCustomerScoring(customer, newState, dogeMultiplier,
                 getStreakMultiplier(newState.stats.currentCustomerStreak),
-                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true },
+                newState.level);
 
               newState.score += result.scoreToAdd;
               newState.bank += result.bankToAdd;
@@ -1139,6 +1150,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
               const rewards = calculateLevelRewards(
                 newState.levelProgress.starsLostThisLevel,
                 false,
+                newState.level,
               );
               newState.bank += rewards;
               newState.levelCompleteInfo = {
@@ -1180,6 +1192,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           const rewards = calculateLevelRewards(
             newState.levelProgress.starsLostThisLevel,
             true,
+            newState.level,
           );
           newState.bank += rewards;
           newState.levelCompleteInfo = {
