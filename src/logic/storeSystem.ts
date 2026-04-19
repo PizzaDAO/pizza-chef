@@ -1,6 +1,6 @@
 // src/logic/storeSystem.ts
-import { GameState, PowerUp } from '../types/game';
-import { COSTS, ENTITY_SPEEDS, POSITIONS, GAME_CONFIG, OVEN_CONFIG, LEVEL_REWARDS } from '../lib/constants';
+import { GameState, PowerUp, WorkerTraining } from '../types/game';
+import { COSTS, ENTITY_SPEEDS, POSITIONS, GAME_CONFIG, OVEN_CONFIG, LEVEL_REWARDS, WORKER_CONFIG } from '../lib/constants';
 import { initializeHiredWorker } from './workerSystem';
 
 export type StoreEvent = { type: 'LIFE_GAINED' };
@@ -111,7 +111,8 @@ export const hireWorker = (prev: GameState, chefLane: number): GameState => {
   return {
     ...prev,
     bank: prev.bank - hireCost,
-    hiredWorker: initializeHiredWorker(chefLane),
+    hiredWorker: initializeHiredWorker(chefLane, prev.workerTrainingSaved),
+    workerTrainingSaved: undefined, // Clear saved training after restoring
   };
 };
 
@@ -126,9 +127,48 @@ export const processWorkerRetention = (prev: GameState): GameState => {
     };
   }
 
-  // Can't afford retention — worker quits
+  // Can't afford retention — worker quits, but save training for re-hire
   return {
     ...prev,
+    workerTrainingSaved: prev.hiredWorker.training,
     hiredWorker: undefined,
+  };
+};
+
+/**
+ * Train a specific worker stat. Deducts cost from bank and increments the stat level.
+ */
+export const trainWorker = (prev: GameState, stat: keyof WorkerTraining): GameState => {
+  if (!prev.hiredWorker?.active) return prev;
+
+  // Only allow training speed, capacity, smarts, hustle
+  if (stat === 'xp' || stat === 'xpLevel') return prev;
+
+  const training = prev.hiredWorker.training;
+  const currentLevel = training[stat] as number;
+  if (currentLevel >= WORKER_CONFIG.MAX_STAT_LEVEL) return prev;
+
+  const costs = WORKER_CONFIG.TRAINING_COSTS[stat];
+  if (!costs) return prev;
+
+  const cost = costs[currentLevel]; // Cost to go from currentLevel to currentLevel+1
+  if (prev.bank < cost) return prev;
+
+  const newTraining: WorkerTraining = {
+    ...training,
+    [stat]: currentLevel + 1,
+  };
+
+  // If upgrading capacity, also add the extra starting slice immediately
+  const capacitySliceBonus = stat === 'capacity' ? 1 : 0;
+
+  return {
+    ...prev,
+    bank: prev.bank - cost,
+    hiredWorker: {
+      ...prev.hiredWorker,
+      training: newTraining,
+      availableSlices: prev.hiredWorker.availableSlices + capacitySliceBonus,
+    },
   };
 };

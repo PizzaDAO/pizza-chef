@@ -65,6 +65,7 @@ function App() {
     bribeReviewer,
     buyPowerUp,
     hireWorker,
+    trainWorker,
     debugActivatePowerUp,
     openLevelStore,
     getReplayFrames,
@@ -481,6 +482,7 @@ function App() {
                         onBribeReviewer={bribeReviewer}
                         onBuyPowerUp={buyPowerUp}
                         onHireWorker={hireWorker}
+                        onTrainWorker={trainWorker}
                         onClose={closeStore}
                       />
                     </div>
@@ -618,6 +620,7 @@ function App() {
                       onBribeReviewer={bribeReviewer}
                       onBuyPowerUp={buyPowerUp}
                       onHireWorker={hireWorker}
+                      onTrainWorker={trainWorker}
                       onClose={closeStore}
                     />
                   </div>

@@ -97,11 +97,21 @@ export interface PepeHelper {
   lastActionTime: number;
 }
 
+export interface WorkerTraining {
+  speed: number;      // 0-5
+  capacity: number;   // 0-5
+  smarts: number;     // 0-5
+  hustle: number;     // 0-5
+  xp: number;
+  xpLevel: number;    // 0-5, derived from XP thresholds
+}
+
 export interface HiredWorker {
   active: boolean;
   lane: number;
   availableSlices: number;
   lastActionTime: number;
+  training: WorkerTraining;
 }
 
 export interface PepeHelpers {
@@ -304,6 +314,7 @@ export interface GameState {
   nyanSweep?: NyanSweep;
   pepeHelpers?: PepeHelpers;
   hiredWorker?: HiredWorker;
+  workerTrainingSaved?: WorkerTraining;
   stats: GameStats;
   bossBattle?: BossBattle;
   defeatedBossLevels: number[];
