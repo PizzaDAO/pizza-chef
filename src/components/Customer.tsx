@@ -43,7 +43,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
 
   const getDisplay = () => {
     const variant = getCustomerVariant(customer);
-    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector';
+    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'deliveryDriver';
 
     // 🌈 Rainbow Brian (nyan hit) — special behavior override
     if (customer.brianNyaned) {
@@ -60,6 +60,10 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
       if (variant === 'badLuckBrian') return { type: 'image', value: badLuckBrianImg, alt: 'badluckbrian' };
       if (variant === 'scumbagSteve') return { type: 'image', value: scumbagSteveImg, alt: 'scumbagsteve' };
       if (variant === 'healthInspector') return { type: 'image', value: healthInspectorImg, alt: 'health-inspector' };
+      if (variant === 'deliveryDriver') {
+        if (customer.served) return { type: 'image', value: yumfaceImg, alt: 'delivery-happy' };
+        return { type: 'emoji', value: '\uD83D\uDEF5' };
+      }
     }
 
     // Status effects for normal customers and critics
@@ -117,6 +121,23 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
         )}
       </div>
 
+      {customer.deliveryDriver && !customer.served && !customer.disappointed && (
+        <div
+          className="absolute bg-orange-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5"
+          style={{
+            left: 0,
+            top: 0,
+            transform: ready
+              ? `translate3d(${xPx + 20}px, ${yPx - 10}px, 0)`
+              : undefined,
+            willChange: 'transform',
+            transition: 'transform 100ms linear',
+          }}
+        >
+          {customer.slicesReceived || 0}/{customer.deliverySlicesNeeded || 8}
+        </div>
+      )}
+
       {customer.textMessage && (
         <div
           className="z-50 absolute px-2 py-1 bg-white text-black rounded border-2 border-black text-xs font-bold whitespace-nowrap"
@@ -162,6 +183,9 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.scumbagSteve === b.scumbagSteve &&
     a.healthInspector === b.healthInspector &&
     a.inspectorTipsy === b.inspectorTipsy &&
+    a.deliveryDriver === b.deliveryDriver &&
+    a.deliverySlicesNeeded === b.deliverySlicesNeeded &&
+    a.slicesReceived === b.slicesReceived &&
     a.critic === b.critic &&
     a.leaving === b.leaving &&
     prev.boardWidth === next.boardWidth &&

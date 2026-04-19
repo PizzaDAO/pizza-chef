@@ -6,7 +6,7 @@ export type CustomerState =
   | 'leaving'      // Generic leaving (Brian complaining, etc.)
   | 'vomit';       // Beer+woozy = sick
 
-export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector';
+export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'deliveryDriver';
 
 export type WoozyState = 'normal' | 'drooling' | 'satisfied';
 
@@ -18,6 +18,7 @@ export const isCustomerApproaching = (c: Customer): boolean =>
   !isCustomerLeaving(c);
 
 export const getCustomerVariant = (c: Customer): CustomerVariant => {
+  if (c.deliveryDriver) return 'deliveryDriver';
   if (c.healthInspector) return 'healthInspector';
   if (c.scumbagSteve) return 'scumbagSteve';
   if (c.badLuckBrian) return 'badLuckBrian';
@@ -26,7 +27,7 @@ export const getCustomerVariant = (c: Customer): CustomerVariant => {
 };
 
 export const isCustomerAffectedByPowerUps = (c: Customer): boolean =>
-  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.served && !c.leaving && !c.disappointed;
+  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.deliveryDriver && !c.served && !c.leaving && !c.disappointed;
 
 export interface Customer {
   id: string;
@@ -51,7 +52,9 @@ export interface Customer {
   scumbagSteve?: boolean;
   healthInspector?: boolean;
   inspectorTipsy?: boolean;
-  slicesReceived?: number; // For Steve who needs 2 slices
+  deliveryDriver?: boolean;
+  deliverySlicesNeeded?: number; // Always 8 for now, but configurable
+  slicesReceived?: number; // For Steve who needs 2 slices, or delivery driver who needs 8
   lastLaneChangeTime?: number; // For Steve's random lane changes
   leaving?: boolean;
   brianNyaned?: boolean; // Brian got hit by Nyan + is flying away
@@ -258,7 +261,8 @@ export type StarLostReason =
   | 'beer_around_kids'
   | 'steve_disappointed'
   | 'papajohn_minion_reached'
-  | 'dominos_minion_reached';
+  | 'dominos_minion_reached'
+  | 'delivery_driver_disappointed';
 
 // Snapshot type for death replay - contains only the visual fields GameBoard needs
 export type GameStateSnapshot = Pick<GameState,

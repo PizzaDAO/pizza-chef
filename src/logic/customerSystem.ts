@@ -7,7 +7,7 @@ import {
   isCustomerAffectedByPowerUps,
   getCustomerVariant
 } from '../types/game';
-import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE } from '../lib/constants';
+import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE, DELIVERY_DRIVER } from '../lib/constants';
 
 // --- Types for the Update Result ---
 export type CustomerUpdateEvent =
@@ -40,7 +40,9 @@ export type CustomerHitEvent =
   | 'STEVE_FIRST_SLICE'
   | 'STEVE_SERVED'
   | 'HEALTH_INSPECTOR_BRIBED'
-  | 'HEALTH_INSPECTOR_TIPSY_SERVED';
+  | 'HEALTH_INSPECTOR_TIPSY_SERVED'
+  | 'DELIVERY_DRIVER_PARTIAL'
+  | 'DELIVERY_DRIVER_COMPLETE';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -283,6 +285,28 @@ export const updateCustomerPositions = (
       return;
     }
 
+    // 6.6. Delivery Driver Movement (parks + blocks lane)
+    if (processedCustomer.deliveryDriver && !isDeparting) {
+      if (processedCustomer.movingRight) {
+        // Leaving after completion
+        processedCustomer.position += processedCustomer.speed * 2;
+        nextCustomers.push(processedCustomer);
+        return;
+      }
+
+      const waitPos = DELIVERY_DRIVER.WAIT_POSITION;
+      if (processedCustomer.position <= waitPos) {
+        // Parked -- don't move
+        processedCustomer.position = waitPos;
+      } else {
+        // Still approaching wait position
+        const newPos = processedCustomer.position - processedCustomer.speed;
+        processedCustomer.position = Math.max(newPos, waitPos);
+      }
+      nextCustomers.push(processedCustomer);
+      return;
+    }
+
     // 6.75. Health Inspector Movement
     if (processedCustomer.healthInspector && !isDeparting) {
       if (processedCustomer.movingRight) {
@@ -315,8 +339,30 @@ export const updateCustomerPositions = (
     }
 
     // 7. Standard Customer Movement (Approaching)
+
+    // Check if a delivery driver is blocking this lane
+    const blockingDriver = customers.find(
+      c => c.deliveryDriver && !isCustomerLeaving(c) && c.lane === processedCustomer.lane
+        && c.position < processedCustomer.position
+    );
+    if (blockingDriver) {
+      // Don't move past the driver's position + a small buffer
+      const minPosition = blockingDriver.position + 3; // 3% gap behind driver
+      if (processedCustomer.position <= minPosition) {
+        processedCustomer.position = minPosition;
+        nextCustomers.push(processedCustomer);
+        return;
+      }
+    }
+
     const speedMod = processedCustomer.hotHoneyAffected ? 0.5 : 1;
-    const newPos = processedCustomer.position - (processedCustomer.speed * speedMod);
+    let newPos = processedCustomer.position - (processedCustomer.speed * speedMod);
+
+    // Clamp position if blocked by delivery driver
+    if (blockingDriver) {
+      const minPosition = blockingDriver.position + 3;
+      newPos = Math.max(newPos, minPosition);
+    }
 
     if (newPos <= GAME_CONFIG.CHEF_X_POSITION) {
       // Reached Chef -> Angry -> Life Lost
@@ -497,6 +543,57 @@ export const processCustomerHit = (
       };
       return {
         updatedCustomer: { ...customer, woozy: false, woozyState: 'satisfied', served: true, hasPlate: false },
+        events,
+        newEntities
+      };
+    }
+  }
+
+  // 3.5. Delivery Driver (Multi-Slice Requirement)
+  if (customer.deliveryDriver) {
+    const slicesReceived = (customer.slicesReceived || 0) + 1;
+    const slicesNeeded = customer.deliverySlicesNeeded || DELIVERY_DRIVER.SLICES_NEEDED;
+
+    if (slicesReceived < slicesNeeded) {
+      // Intermediate slice -- keep accepting
+      events.push('DELIVERY_DRIVER_PARTIAL');
+      newEntities.emptyPlate = {
+        id: `plate-${now}-${customer.id}-${slicesReceived}`,
+        lane: customer.lane,
+        position: customer.position,
+        speed: ENTITY_SPEEDS.PLATE,
+        createdAt: now
+      };
+      return {
+        updatedCustomer: {
+          ...customer,
+          slicesReceived,
+          textMessage: `${slicesReceived}/${slicesNeeded}`,
+          textMessageTime: now,
+        },
+        events,
+        newEntities
+      };
+    } else {
+      // Final slice -- delivery complete!
+      events.push('DELIVERY_DRIVER_COMPLETE');
+      newEntities.emptyPlate = {
+        id: `plate-${now}-${customer.id}-final`,
+        lane: customer.lane,
+        position: customer.position,
+        speed: ENTITY_SPEEDS.PLATE,
+        createdAt: now
+      };
+      return {
+        updatedCustomer: {
+          ...customer,
+          served: true,
+          hasPlate: false,
+          slicesReceived,
+          movingRight: true,
+          textMessage: "Full delivery! Thanks!",
+          textMessageTime: now,
+        },
         events,
         newEntities
       };
