@@ -69,6 +69,16 @@ export const HEALTH_INSPECTOR = {
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
+export const ALIEN = {
+  SPAWN_CHANCE: 0.02,             // 2% per spawn cycle
+  MIN_LEVEL: 6,                   // Only after level 5 (i.e., level 6+)
+  SPEED_MULTIPLIER: 0.8,          // Slightly slower base advance (compensated by harder-to-hit movement)
+  LANE_SWITCH_INTERVAL: 1000,     // Change target lane every ~1 second
+  LANE_LERP_SPEED: 0.003,         // Fractional lane interpolation per ms (~0.15/frame at 50ms tick)
+  UFO_FLY_DURATION: 1500,         // UFO crosses screen in 1.5 seconds
+  UFO_DROP_X: 75,                 // X-position where alien is deposited (percentage)
+};
+
 export const SCORING = {
   // Customer Service
   CUSTOMER_NORMAL: 150,
@@ -153,6 +163,7 @@ export const LEVEL_SYSTEM = {
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
+    ALIEN: 6,
   },
 
   // Customer speed multiplier per level
@@ -169,6 +180,7 @@ export const LEVEL_SYSTEM = {
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
+    ALIEN: [0, 0, 0, 0, 0, 0.02],  // Only at level 6+
   },
 
   // Boss schedule
@@ -346,4 +358,5 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  ufoAnimation: undefined,
 };

@@ -41,11 +41,22 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
   const textYOffset = isBottomLane ? 5 : 18;
   const textYPx = ((customer.lane * 25 + textYOffset) / 100) * boardHeight;
 
+  // Don't render the alien while it's waiting to be dropped from the UFO
+  if (customer.alienWaitingForDrop) {
+    return null;
+  }
+
   const getDisplay = () => {
     const variant = getCustomerVariant(customer);
-    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector';
+    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'alien';
 
-    // 🌈 Rainbow Brian (nyan hit) — special behavior override
+    // Alien customer display
+    if (variant === 'alien') {
+      if (customer.disappointed) return { type: 'emoji', value: '👾' };
+      return { type: 'emoji', value: '👽' };
+    }
+
+    // Rainbow Brian (nyan hit) — special behavior override
     if (customer.brianNyaned) {
       return { type: 'image', value: rainbowBrian, alt: 'rainbow-brian' };
     }
@@ -110,7 +121,9 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
         ) : (
           <div style={{
             fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-            animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
+            animation: customer.alien && !customer.served && !customer.disappointed
+              ? 'alien-wobble 0.8s ease-in-out infinite'
+              : customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
           }}>
             {display.value}
           </div>
@@ -163,6 +176,8 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.healthInspector === b.healthInspector &&
     a.inspectorTipsy === b.inspectorTipsy &&
     a.critic === b.critic &&
+    a.alien === b.alien &&
+    a.alienWaitingForDrop === b.alienWaitingForDrop &&
     a.leaving === b.leaving &&
     prev.boardWidth === next.boardWidth &&
     prev.boardHeight === next.boardHeight

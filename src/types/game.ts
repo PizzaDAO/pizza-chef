@@ -6,7 +6,7 @@ export type CustomerState =
   | 'leaving'      // Generic leaving (Brian complaining, etc.)
   | 'vomit';       // Beer+woozy = sick
 
-export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector';
+export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'alien';
 
 export type WoozyState = 'normal' | 'drooling' | 'satisfied';
 
@@ -18,6 +18,7 @@ export const isCustomerApproaching = (c: Customer): boolean =>
   !isCustomerLeaving(c);
 
 export const getCustomerVariant = (c: Customer): CustomerVariant => {
+  if (c.alien) return 'alien';
   if (c.healthInspector) return 'healthInspector';
   if (c.scumbagSteve) return 'scumbagSteve';
   if (c.badLuckBrian) return 'badLuckBrian';
@@ -26,7 +27,7 @@ export const getCustomerVariant = (c: Customer): CustomerVariant => {
 };
 
 export const isCustomerAffectedByPowerUps = (c: Customer): boolean =>
-  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.served && !c.leaving && !c.disappointed;
+  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.alien && !c.served && !c.leaving && !c.disappointed;
 
 export interface Customer {
   id: string;
@@ -58,6 +59,11 @@ export interface Customer {
   flipped?: boolean;
   textMessage?: string;
   textMessageTime?: number;
+  alien?: boolean;
+  alienTargetLane?: number;       // The integer lane the alien is zigzagging toward
+  alienLaneProgress?: number;     // 0-1 interpolation progress toward target lane
+  alienLastLaneSwitchTime?: number; // Timestamp of last lane-change decision
+  alienWaitingForDrop?: boolean;  // True while alien is still inside the UFO
 }
 
 export interface PizzaSlice {
@@ -79,6 +85,15 @@ export interface EmptyPlate {
   startLane?: number;
   startPosition?: number;
   targetLane?: number;
+}
+
+export interface UfoAnimationState {
+  active: boolean;
+  xPosition: number;
+  dropLane: number;
+  dropPosition: number;
+  startTime: number;
+  dropped: boolean;
 }
 
 export interface NyanSweep {
@@ -270,7 +285,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades'
+  | 'ovenSpeedUpgrades' | 'ufoAnimation'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -323,4 +338,5 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  ufoAnimation?: UfoAnimationState;
 }

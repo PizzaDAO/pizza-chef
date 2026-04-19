@@ -331,6 +331,20 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
         />
       ))}
 
+      {/* UFO Animation */}
+      {gameState.ufoAnimation?.active && (
+        <div
+          className="absolute w-[10%] aspect-square z-30"
+          style={{
+            left: `${gameState.ufoAnimation.xPosition}%`,
+            top: '2%',
+            transition: 'left 50ms linear',
+          }}
+        >
+          <div style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>🛸</div>
+        </div>
+      )}
+
       {/* Falling pizza when game over */}
       {gameState.fallingPizza && (
         <div

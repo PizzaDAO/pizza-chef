@@ -6,6 +6,7 @@ import {
   POWERUPS,
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
+  ALIEN,
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
@@ -14,6 +15,7 @@ import {
 export interface SpawnResult<T> {
   shouldSpawn: boolean;
   entity?: T;
+  triggerUfo?: boolean;
 }
 
 // --- Level-aware helper functions ---
@@ -39,6 +41,7 @@ export const getUnlockedCustomerTypes = (level: number): CustomerVariant[] => {
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.BAD_LUCK_BRIAN) types.push('badLuckBrian');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.SCUMBAG_STEVE) types.push('scumbagSteve');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.HEALTH_INSPECTOR) types.push('healthInspector');
+  if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.ALIEN) types.push('alien');
   return types;
 };
 
@@ -90,6 +93,7 @@ const getSpecialChances = (level: number) => {
     brian: LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN[idx],
     steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
     inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
+    alien: LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN[idx] || 0,
   };
 };
 
@@ -166,6 +170,8 @@ export const trySpawnCustomer = (
     variant = 'scumbagSteve';
   } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
     variant = 'healthInspector';
+  } else if (unlockedTypes.includes('alien') && Math.random() < chances.alien) {
+    variant = 'alien';
   }
 
   // Calculate speed with level speed multiplier
@@ -174,6 +180,8 @@ export const trySpawnCustomer = (
     ? ENTITY_SPEEDS.CUSTOMER_BASE * SCUMBAG_STEVE.SPEED_MULTIPLIER
     : variant === 'healthInspector'
     ? ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER
+    : variant === 'alien'
+    ? ENTITY_SPEEDS.CUSTOMER_BASE * ALIEN.SPEED_MULTIPLIER
     : ENTITY_SPEEDS.CUSTOMER_BASE;
   const speed = baseSpeed * speedMultiplier;
 
@@ -181,7 +189,7 @@ export const trySpawnCustomer = (
   const customer: Customer = {
     id: `customer-${now}-${lane}`,
     lane,
-    position: POSITIONS.SPAWN_X,
+    position: variant === 'alien' ? ALIEN.UFO_DROP_X : POSITIONS.SPAWN_X,
     speed,
     // Initial state: approaching (not served, leaving, or disappointed)
     served: false,
@@ -195,12 +203,16 @@ export const trySpawnCustomer = (
     badLuckBrian: variant === 'badLuckBrian',
     scumbagSteve: variant === 'scumbagSteve',
     healthInspector: variant === 'healthInspector',
+    alien: variant === 'alien',
     slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
+    alienTargetLane: variant === 'alien' ? lane : undefined,
+    alienLastLaneSwitchTime: variant === 'alien' ? now : undefined,
+    alienWaitingForDrop: variant === 'alien' ? true : undefined,
   };
 
-  return { shouldSpawn: true, entity: customer };
+  return { shouldSpawn: true, entity: customer, triggerUfo: variant === 'alien' };
 };
 
 /**
@@ -270,6 +282,7 @@ export const processSpawning = (
   newPowerUp?: PowerUp;
   updateCustomerSpawnTime: boolean;
   updatePowerUpSpawnTime: boolean;
+  triggerUfo?: boolean;
 } => {
   const customerResult = trySpawnCustomer(
     lastCustomerSpawn, now, level, bossActive,
@@ -282,5 +295,6 @@ export const processSpawning = (
     newPowerUp: powerUpResult.entity,
     updateCustomerSpawnTime: customerResult.shouldSpawn,
     updatePowerUpSpawnTime: powerUpResult.shouldSpawn,
+    triggerUfo: customerResult.triggerUfo,
   };
 };

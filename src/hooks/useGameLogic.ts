@@ -4,6 +4,7 @@ import {
   GameState,
   GameStateSnapshot,
   PizzaSlice,
+  PowerUp,
   GameStats,
   PowerUpType,
   StarLostReason,
@@ -27,6 +28,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  ALIEN,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -84,7 +86,13 @@ import { initializeBossMasks } from '../logic/bossCollisionMasks';
 import {
   processSpawning,
   getCustomersForLevel,
+  getUnlockedPowerUpTypes,
 } from '../logic/spawnSystem';
+
+import {
+  initializeUfo,
+  updateUfoAnimation,
+} from '../logic/ufoSystem';
 
 import {
   processPlates
@@ -478,6 +486,20 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       });
 
+      // 2b. UFO ANIMATION TICK
+      if (newState.ufoAnimation?.active) {
+        newState.ufoAnimation = updateUfoAnimation(newState.ufoAnimation, now);
+        if (newState.ufoAnimation.dropped) {
+          // Unfreeze the alien customer (clear alienWaitingForDrop)
+          newState.customers = newState.customers.map(c =>
+            c.alienWaitingForDrop ? { ...c, alienWaitingForDrop: false } : c
+          );
+        }
+        if (!newState.ufoAnimation.active) {
+          newState.ufoAnimation = undefined;
+        }
+      }
+
       // 3. COLLISION LOOP (Slices vs Customers) — lane-bucketed for perf
       newState.pizzaSlices = newState.pizzaSlices.map(slice => ({ ...slice, position: slice.position + slice.speed }));
 
@@ -507,7 +529,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         for (const customer of newState.customers) {
           if (consumed) break;
           // Fast lane check — skip customers not in this slice's lane
-          if (customer.lane !== slice.lane) continue;
+          // Aliens use fractional lanes so allow tolerance of 0.6
+          if (customer.alien ? Math.abs(customer.lane - slice.lane) >= 0.6 : customer.lane !== slice.lane) continue;
 
           // Get the latest version of this customer (may have been updated by a prior slice)
           const currentCustomer = customerMap.get(customer.id)!;
@@ -651,6 +674,30 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 if (result.wouldHaveGained > 0) {
                   newState = processBestOfStreak(newState, result.wouldHaveGained, dogeMultiplier, now);
                 }
+              } else if (event === 'SERVED_ALIEN') {
+                soundManager.alienServed();
+
+                // Drop a random power-up at the alien's position
+                const unlockedTypes = getUnlockedPowerUpTypes(newState.level);
+                if (unlockedTypes.length > 0) {
+                  const randomType = unlockedTypes[Math.floor(Math.random() * unlockedTypes.length)];
+                  const droppedPowerUp: PowerUp = {
+                    id: `powerup-alien-${now}-${Math.round(currentCustomer.lane)}`,
+                    lane: Math.round(currentCustomer.lane), // Snap to integer lane for power-up
+                    position: currentCustomer.position,
+                    speed: ENTITY_SPEEDS.POWERUP,
+                    type: randomType,
+                  };
+                  newState.powerUps = [...newState.powerUps, droppedPowerUp];
+                }
+
+                // Counts as served for level progress but NO score/bank
+                newState.happyCustomers += 1;
+                newState.stats = {
+                  ...newState.stats,
+                  customersServed: newState.stats.customersServed + 1,
+                };
+                newState.stats = updateStatsForStreak(newState.stats, 'customer');
               }
             });
 
@@ -1464,6 +1511,15 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         lastCustomerSpawnRef.current = now;
         customersSpawnedThisLevelRef.current += 1;
         next = { ...next, customers: [...next.customers, spawnResult.newCustomer] };
+
+        // If this is an alien customer, start the UFO fly-by animation
+        if (spawnResult.triggerUfo && spawnResult.newCustomer.alien) {
+          soundManager.ufoFlyby();
+          next = {
+            ...next,
+            ufoAnimation: initializeUfo(spawnResult.newCustomer.lane, ALIEN.UFO_DROP_X, now),
+          };
+        }
       }
 
       if (spawnResult.newPowerUp) {
@@ -1512,6 +1568,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      ufoAnimation: gameState.ufoAnimation,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;
