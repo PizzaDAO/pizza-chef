@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  HEALTH_DEPT_RAID,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -84,6 +85,7 @@ import { initializeBossMasks } from '../logic/bossCollisionMasks';
 import {
   processSpawning,
   getCustomersForLevel,
+  tryTriggerHealthDeptRaid,
 } from '../logic/spawnSystem';
 
 import {
@@ -1230,6 +1232,49 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.bestOfAwardAlert = undefined;
       }
 
+      // --- HEALTH DEPT RAID RESOLUTION ---
+      if (newState.healthDeptRaid?.active) {
+        const raid = newState.healthDeptRaid;
+        // Check if all raid inspectors have left the board
+        const raidInspectorsRemaining = newState.customers.filter(
+          c => raid.inspectorIds.includes(c.id) && !isCustomerLeaving(c)
+        );
+        const raidInspectorsOnScreen = newState.customers.filter(
+          c => raid.inspectorIds.includes(c.id)
+        );
+
+        if (raidInspectorsRemaining.length === 0 && raidInspectorsOnScreen.length === 0) {
+          // All raid inspectors gone - check result
+          const lostStars = raid.starsAtRaidStart - newState.lives;
+          const success = lostStars === 0;
+
+          if (success) {
+            // "Clean Record!" bonus
+            newState.score += HEALTH_DEPT_RAID.BONUS_POINTS * dogeMultiplier;
+            newState.bank += HEALTH_DEPT_RAID.BONUS_CASH;
+            newState = addFloatingScore(
+              HEALTH_DEPT_RAID.BONUS_POINTS * dogeMultiplier,
+              newState.chefLane, GAME_CONFIG.CHEF_X_POSITION, newState
+            );
+            soundManager.lifeGained(); // celebratory sound
+          }
+
+          newState.healthDeptRaid = {
+            ...raid,
+            active: false,
+          };
+          newState.healthDeptRaidResult = {
+            success,
+            endTime: now + HEALTH_DEPT_RAID.RESULT_DURATION,
+          };
+        }
+      }
+
+      // Clear expired raid result alert
+      if (newState.healthDeptRaidResult && now >= newState.healthDeptRaidResult.endTime) {
+        newState.healthDeptRaidResult = undefined;
+      }
+
       return newState;
     });
   }, [addFloatingScore, addFloatingStar, triggerGameOver, processBestOfStreak]); // ✅ removed gameState.* and ovenSoundStates deps
@@ -1273,6 +1318,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Clear boss battle state if any
         bossBattle: undefined,
         pendingBossQueue: undefined,
+        // Reset raid state for new level
+        healthDeptRaid: undefined,
+        healthDeptRaidResult: undefined,
       };
     });
   }, []);
@@ -1471,6 +1519,29 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
       }
 
+      // --- HEALTH DEPT RAID TRIGGER ---
+      if (!next.healthDeptRaid?.active && !next.healthDeptRaid?.raidTriggeredThisLevel) {
+        const raidResult = tryTriggerHealthDeptRaid(
+          next.level, next.levelPhase,
+          false, false,
+          next.levelProgress.levelStartTime, now
+        );
+        if (raidResult.shouldTrigger && raidResult.inspectors) {
+          next = {
+            ...next,
+            customers: [...next.customers, ...raidResult.inspectors],
+            healthDeptRaid: {
+              active: true,
+              inspectorIds: raidResult.inspectors.map(i => i.id),
+              starsAtRaidStart: next.lives,
+              alertEndTime: now + HEALTH_DEPT_RAID.ALERT_DURATION,
+              raidTriggeredThisLevel: true,
+            },
+          };
+          soundManager.lifeLost(); // dramatic sound for raid start
+        }
+      }
+
       return next;
     });
   }, [updateGame]);
@@ -1512,6 +1583,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      healthDeptRaid: gameState.healthDeptRaid,
+      healthDeptRaidResult: gameState.healthDeptRaidResult,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;

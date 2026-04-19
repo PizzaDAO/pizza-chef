@@ -69,6 +69,18 @@ export const HEALTH_INSPECTOR = {
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
+export const HEALTH_DEPT_RAID = {
+  MIN_LEVEL: 5,
+  TRIGGER_CHANCE: 0.10,         // 10% per spawn tick (checked once per level)
+  INSPECTOR_COUNT: 3,
+  ALERT_DURATION: 2000,         // 2s "HEALTH DEPT RAID!" overlay
+  RESULT_DURATION: 3000,        // 3s "Clean Record!" overlay
+  BONUS_POINTS: 3000,
+  BONUS_CASH: 20,
+  MIN_LEVEL_TIME: 10000,        // Don't trigger in first 10s of a level
+  SPAWN_STAGGER: 200,           // ms stagger between inspector spawns (visual effect)
+};
+
 export const SCORING = {
   // Customer Service
   CUSTOMER_NORMAL: 150,
@@ -346,4 +358,7 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Health Department Raid
+  healthDeptRaid: undefined as { active: boolean; inspectorIds: string[]; starsAtRaidStart: number; alertEndTime: number; raidTriggeredThisLevel: boolean } | undefined,
+  healthDeptRaidResult: undefined as { success: boolean; endTime: number } | undefined,
 };

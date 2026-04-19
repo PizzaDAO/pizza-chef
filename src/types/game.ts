@@ -270,7 +270,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades'
+  | 'ovenSpeedUpgrades' | 'healthDeptRaid' | 'healthDeptRaidResult'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -323,4 +323,16 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  // Health Department Raid
+  healthDeptRaid?: {
+    active: boolean;
+    inspectorIds: string[];
+    starsAtRaidStart: number;
+    alertEndTime: number;
+    raidTriggeredThisLevel: boolean;
+  };
+  healthDeptRaidResult?: {
+    success: boolean;
+    endTime: number;
+  };
 }

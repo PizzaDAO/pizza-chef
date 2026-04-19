@@ -6,6 +6,7 @@ import {
   POWERUPS,
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
+  HEALTH_DEPT_RAID,
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
@@ -283,4 +284,50 @@ export const processSpawning = (
     updateCustomerSpawnTime: customerResult.shouldSpawn,
     updatePowerUpSpawnTime: powerUpResult.shouldSpawn,
   };
+};
+
+/**
+ * Try to trigger a Health Department Raid event.
+ * 3 health inspectors spawn simultaneously across 3 different lanes.
+ */
+export const tryTriggerHealthDeptRaid = (
+  level: number,
+  levelPhase: LevelPhase,
+  raidActive: boolean,
+  raidTriggeredThisLevel: boolean,
+  levelStartTime: number,
+  now: number,
+): { shouldTrigger: boolean; inspectors?: Customer[] } => {
+  if (level < HEALTH_DEPT_RAID.MIN_LEVEL) return { shouldTrigger: false };
+  if (levelPhase !== 'playing') return { shouldTrigger: false };
+  if (raidActive || raidTriggeredThisLevel) return { shouldTrigger: false };
+  if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false };
+  if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false };
+
+  // Pick 3 unique lanes out of 4
+  const lanes = [0, 1, 2, 3];
+  const shuffled = lanes.sort(() => Math.random() - 0.5);
+  const selectedLanes = shuffled.slice(0, HEALTH_DEPT_RAID.INSPECTOR_COUNT);
+
+  const speedMultiplier = getLevelSpeedMultiplier(level);
+  const baseSpeed = ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER;
+  const speed = baseSpeed * speedMultiplier;
+
+  const inspectors: Customer[] = selectedLanes.map((lane) => ({
+    id: `raid-inspector-${now}-${lane}`,
+    lane,
+    position: POSITIONS.SPAWN_X,
+    speed,
+    served: false,
+    hasPlate: false,
+    leaving: false,
+    disappointed: false,
+    movingRight: false,
+    healthInspector: true,
+    critic: false,
+    badLuckBrian: false,
+    scumbagSteve: false,
+  }));
+
+  return { shouldTrigger: true, inspectors };
 };
