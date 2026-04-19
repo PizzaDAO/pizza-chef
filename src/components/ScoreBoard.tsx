@@ -6,9 +6,10 @@ interface ScoreBoardProps {
   gameState: GameState;
   onPauseClick: () => void;
   compact?: boolean;
+  rushHourActive?: boolean;
 }
 
-const ScoreBoard: React.FC<ScoreBoardProps> = ({ gameState, onPauseClick, compact = false }) => {
+const ScoreBoard: React.FC<ScoreBoardProps> = ({ gameState, onPauseClick, compact = false, rushHourActive = false }) => {
   const { customersServed, customersRequired } = gameState.levelProgress;
   const progressPercent = Math.min((customersServed / customersRequired) * 100, 100);
 
@@ -19,7 +20,7 @@ const ScoreBoard: React.FC<ScoreBoardProps> = ({ gameState, onPauseClick, compac
           <div className="flex items-center space-x-2">
             <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
             <span className="hidden sm:inline text-sm font-medium">Score:</span>
-            <span className="text-lg sm:text-xl font-bold">{gameState.score.toLocaleString()}</span>
+            <span className={`text-lg sm:text-xl font-bold ${rushHourActive ? 'text-yellow-300 animate-pulse' : ''}`}>{gameState.score.toLocaleString()}</span>
           </div>
 
           <div className="flex items-center space-x-2">

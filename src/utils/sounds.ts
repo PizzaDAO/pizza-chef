@@ -212,6 +212,18 @@ ovenReady() {
     ]);
   }
 
+  rushHourBell() {
+    // Dinner bell: rapid metallic triple-ding
+    this.playMultiTone([
+      { frequency: 1200, delay: 0,   duration: 0.12, type: 'triangle', volume: 0.3 },
+      { frequency: 1400, delay: 120, duration: 0.12, type: 'triangle', volume: 0.3 },
+      { frequency: 1600, delay: 240, duration: 0.15, type: 'triangle', volume: 0.35 },
+      { frequency: 1200, delay: 400, duration: 0.12, type: 'triangle', volume: 0.25 },
+      { frequency: 1400, delay: 520, duration: 0.12, type: 'triangle', volume: 0.25 },
+      { frequency: 1600, delay: 640, duration: 0.18, type: 'triangle', volume: 0.3 },
+    ]);
+  }
+
   private nyanNotes: Array<{ frequency: number; delay: number; duration: number; type: OscillatorType; volume: number }> = [
     { frequency: 1046.5, delay: 0,    duration: 0.188, type: 'square', volume: 0.22 },
     { frequency: 1174.7, delay: 188,  duration: 0.095, type: 'square', volume: 0.22 },

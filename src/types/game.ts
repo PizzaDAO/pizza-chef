@@ -245,6 +245,12 @@ export interface GameStats {
   bestOfAwardsEarned: number;
 }
 
+export interface RushHour {
+  active: boolean;
+  startTime: number;
+  endTime: number;
+}
+
 export type StarLostReason =
   | 'burned_pizza'
   | 'disappointed_customer'
@@ -271,6 +277,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
   | 'ovenSpeedUpgrades'
+  | 'rushHour'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -323,4 +330,7 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  // Rush Hour event
+  rushHour?: RushHour;
+  rushHourTriggeredThisLevel: boolean;
 }

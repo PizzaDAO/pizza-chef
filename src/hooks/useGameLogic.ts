@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  RUSH_HOUR,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -368,7 +369,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
       const hasDoge = newState.activePowerUps.some(p => p.type === 'doge');
       const hasStar = newState.activePowerUps.some(p => p.type === 'star');
-      const dogeMultiplier = hasDoge ? 2 : 1;
+      const rushHourActive = newState.rushHour?.active && now < newState.rushHour.endTime;
+      const dogeMultiplier = (hasDoge ? 2 : 1) * (rushHourActive ? RUSH_HOUR.SCORE_MULTIPLIER : 1);
 
       // Initialize clean kitchen timer if not set
       if (newState.cleanKitchenStartTime === undefined) {
@@ -1220,6 +1222,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       }
 
+      // Rush Hour expiration
+      if (newState.rushHour?.active && now >= newState.rushHour.endTime) {
+        newState.rushHour = undefined;
+      }
+
       // Clear expired clean kitchen bonus alert
       if (newState.cleanKitchenBonusAlert && now >= newState.cleanKitchenBonusAlert.endTime) {
         newState.cleanKitchenBonusAlert = undefined;
@@ -1273,6 +1280,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Clear boss battle state if any
         bossBattle: undefined,
         pendingBossQueue: undefined,
+        // Reset Rush Hour for the new level
+        rushHourTriggeredThisLevel: false,
+        rushHour: undefined,
       };
     });
   }, []);
@@ -1379,18 +1389,25 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       // Handle clean kitchen timer pause/resume
       let cleanKitchenStartTime = prev.cleanKitchenStartTime;
       let lastPauseTime = prev.lastPauseTime;
+      let rushHour = prev.rushHour;
 
       if (newPaused) {
         // Starting pause - record when we paused
         lastPauseTime = now;
-      } else if (prev.lastPauseTime && cleanKitchenStartTime) {
-        // Resuming - adjust clean kitchen start time to exclude pause duration
+      } else if (prev.lastPauseTime) {
         const pauseDuration = now - prev.lastPauseTime;
-        cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+        // Resuming - adjust clean kitchen start time to exclude pause duration
+        if (cleanKitchenStartTime) {
+          cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+        }
+        // Adjust Rush Hour end time to exclude pause duration
+        if (rushHour?.active) {
+          rushHour = { ...rushHour, endTime: rushHour.endTime + pauseDuration };
+        }
         lastPauseTime = undefined;
       }
 
-      return { ...prev, paused: newPaused, ovens: updatedOvens, cleanKitchenStartTime, lastPauseTime };
+      return { ...prev, paused: newPaused, ovens: updatedOvens, cleanKitchenStartTime, lastPauseTime, rushHour };
     });
   }, []);
 
@@ -1418,9 +1435,15 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       setGameState(prev => {
         // Adjust clean kitchen start time to exclude pause duration
         let cleanKitchenStartTime = prev.cleanKitchenStartTime;
-        if (prev.lastPauseTime && cleanKitchenStartTime) {
+        let rushHour = prev.rushHour;
+        if (prev.lastPauseTime) {
           const pauseDuration = now - prev.lastPauseTime;
-          cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+          if (cleanKitchenStartTime) {
+            cleanKitchenStartTime = cleanKitchenStartTime + pauseDuration;
+          }
+          if (rushHour?.active) {
+            rushHour = { ...rushHour, endTime: rushHour.endTime + pauseDuration };
+          }
         }
         return {
           ...prev,
@@ -1428,6 +1451,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           ovens: calculateOvenPauseState(prev.ovens, false, now),
           cleanKitchenStartTime,
           lastPauseTime: undefined,
+          rushHour,
         };
       });
     }
@@ -1456,6 +1480,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         current.levelProgress.customersServed,
         current.levelProgress.customersRequired,
         customersSpawnedThisLevelRef.current,
+        current.rushHour?.active ?? false,
       );
 
       let next = current;
@@ -1469,6 +1494,23 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       if (spawnResult.newPowerUp) {
         lastPowerUpSpawnRef.current = now;
         next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
+      }
+
+      // Rush Hour trigger: 5% chance per spawn cycle, level 3+, max once per level
+      if (
+        !next.rushHour?.active &&
+        !next.rushHourTriggeredThisLevel &&
+        next.level >= RUSH_HOUR.MIN_LEVEL &&
+        next.levelPhase === 'playing' &&
+        spawnResult.updateCustomerSpawnTime && // Only check on actual spawn cycles
+        Math.random() < RUSH_HOUR.TRIGGER_CHANCE
+      ) {
+        next = {
+          ...next,
+          rushHour: { active: true, startTime: now, endTime: now + RUSH_HOUR.DURATION },
+          rushHourTriggeredThisLevel: true,
+        };
+        soundManager.rushHourBell();
       }
 
       return next;
@@ -1512,6 +1554,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      rushHour: gameState.rushHour,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;

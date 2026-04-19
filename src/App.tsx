@@ -414,7 +414,7 @@ function App() {
           <div className="flex flex-col items-center justify-center h-full" style={{ width: '76%' }}>
             {/* ScoreBoard at top - compact mode for landscape */}
             <div className="w-full">
-              <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} compact={true} />
+              <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} compact={true} rushHourActive={!!gameState.rushHour?.active} />
             </div>
 
             {/* GameBoard - maintains 5:3 aspect ratio, scales to fit */}
@@ -453,6 +453,19 @@ function App() {
                         </div>
                         <div className="text-sm sm:text-base text-center mt-1 font-semibold">
                           +5,000 pts &bull; +$25
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {gameState.rushHour?.active && !gameState.paused && (
+                    <div className="absolute inset-x-0 top-2 sm:top-4 flex items-start justify-center z-[55] pointer-events-none">
+                      <div className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-6 py-3 rounded-xl shadow-2xl border-4 border-yellow-300">
+                        <div className="text-xl sm:text-2xl font-bold text-center drop-shadow-lg">
+                          RUSH HOUR!
+                        </div>
+                        <div className="text-sm sm:text-base text-center mt-1 font-semibold">
+                          2x Points &bull; 2x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
                         </div>
                       </div>
                     </div>
@@ -553,7 +566,7 @@ function App() {
             } ${isMobile ? 'relative' : ''}`}
         >
           <div className={`w-full ${isMobile ? '' : 'max-w-6xl'}`}>
-            <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} />
+            <ScoreBoard gameState={gameState} onPauseClick={handlePauseToggle} rushHourActive={!!gameState.rushHour?.active} />
           </div>
 
           <div
@@ -590,6 +603,19 @@ function App() {
                       </div>
                       <div className="text-sm sm:text-base text-center mt-1 font-semibold">
                         +5,000 pts &bull; +$25
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {gameState.rushHour?.active && !gameState.paused && (
+                  <div className="absolute inset-x-0 top-2 sm:top-4 flex items-start justify-center z-[55] pointer-events-none">
+                    <div className="bg-gradient-to-r from-yellow-500 to-orange-600 text-white px-6 py-3 rounded-xl shadow-2xl border-4 border-yellow-300">
+                      <div className="text-xl sm:text-2xl font-bold text-center drop-shadow-lg">
+                        RUSH HOUR!
+                      </div>
+                      <div className="text-sm sm:text-base text-center mt-1 font-semibold">
+                        2x Points &bull; 2x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
                       </div>
                     </div>
                   </div>

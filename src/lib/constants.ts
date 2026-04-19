@@ -246,6 +246,15 @@ export const PEPE_CONFIG = {
   STARTING_SLICES: 4,     // Famous chefs come prepared
 };
 
+export const RUSH_HOUR = {
+  DURATION: 15000,           // 15 seconds
+  TRIGGER_CHANCE: 0.05,      // 5% per spawn cycle
+  MIN_LEVEL: 3,              // Only triggers at level 3+
+  SCORE_MULTIPLIER: 2,       // 2x points during rush hour
+  SPAWN_INTERVAL_DIVISOR: 2, // Halve spawn interval (2x customers)
+  ANNOUNCE_DURATION: 2000,   // "RUSH HOUR!" banner lingers for 2s before fading
+};
+
 export const TIMINGS = {
   FLOATING_SCORE_LIFETIME: 1000,
   DROPPED_PLATE_LIFETIME: 1000,
@@ -346,4 +355,7 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Rush Hour event
+  rushHour: undefined,
+  rushHourTriggeredThisLevel: false,
 };
