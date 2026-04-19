@@ -200,6 +200,19 @@ ovenReady() {
     ]);
   }
 
+  danceParty() {
+    // Funky disco riff: ascending notes with square wave for retro feel
+    this.playMultiTone([
+      { frequency: 440, delay: 0,   duration: 0.12, type: 'square', volume: 0.25 },   // A4
+      { frequency: 554, delay: 120, duration: 0.12, type: 'square', volume: 0.25 },   // C#5
+      { frequency: 659, delay: 240, duration: 0.12, type: 'square', volume: 0.25 },   // E5
+      { frequency: 880, delay: 360, duration: 0.18, type: 'square', volume: 0.3 },    // A5
+      { frequency: 784, delay: 500, duration: 0.12, type: 'square', volume: 0.25 },   // G5
+      { frequency: 880, delay: 620, duration: 0.12, type: 'square', volume: 0.25 },   // A5
+      { frequency: 1047, delay: 740, duration: 0.25, type: 'square', volume: 0.3 },   // C6
+    ]);
+  }
+
   bestOfAward() {
     // Ascending major chord fanfare - celebratory and distinct
     this.playMultiTone([

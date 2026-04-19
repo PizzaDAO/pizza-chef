@@ -276,6 +276,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
           customer={customer}
           boardWidth={boardSize.width}
           boardHeight={boardSize.height}
+          dancePartyActive={!!gameState.danceParty?.active}
         />
       ))}
 
@@ -366,6 +367,66 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
             <h2 className="text-2xl sm:text-4xl font-bold text-red-300">BOSS INCOMING!</h2>
           </div>
         </div>
+      )}
+
+      {/* Dance Party Overlay */}
+      {gameState.danceParty?.active && (
+        <>
+          {/* Disco ball dropping from top center */}
+          <div
+            className="absolute z-[55] pointer-events-none"
+            style={{
+              left: '50%',
+              top: '2%',
+              transform: 'translateX(-50%)',
+              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              animation: 'dance-bob 0.5s ease-in-out infinite',
+            }}
+          >
+            {'\u{1FAA9}'}
+          </div>
+
+          {/* Rainbow/party light overlay (semi-transparent, animated) */}
+          <div
+            className="absolute inset-0 pointer-events-none z-[54]"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,0,0,0.06), rgba(255,165,0,0.06), rgba(255,255,0,0.06), rgba(0,128,0,0.06), rgba(0,0,255,0.06), rgba(128,0,128,0.06))',
+              animation: 'rainbow-shift 1s linear infinite',
+            }}
+          />
+
+          {/* Music note emojis floating up */}
+          <div className="absolute inset-0 pointer-events-none z-[53] overflow-hidden">
+            {[0, 1, 2, 3, 4].map(i => (
+              <div
+                key={i}
+                className="absolute"
+                style={{
+                  left: `${15 + i * 17}%`,
+                  bottom: '-10%',
+                  fontSize: 'clamp(1rem, 2vw, 1.5rem)',
+                  animation: `float-up ${2 + i * 0.3}s linear infinite`,
+                  animationDelay: `${i * 0.4}s`,
+                }}
+              >
+                {i % 2 === 0 ? '\u{1F3B5}' : '\u{1F3B6}'}
+              </div>
+            ))}
+          </div>
+
+          {/* "DANCE PARTY!" text banner */}
+          <div className="absolute inset-x-0 top-[15%] flex justify-center pointer-events-none z-[56]">
+            <div
+              className="text-white font-bold text-xl sm:text-3xl drop-shadow-lg px-4 py-2"
+              style={{
+                textShadow: '0 0 10px rgba(255,0,255,0.8), 0 0 20px rgba(0,255,255,0.6)',
+                animation: 'dance-bob 0.4s ease-in-out infinite',
+              }}
+            >
+              DANCE PARTY!
+            </div>
+          </div>
+        </>
       )}
 
       {/* Level Complete Overlay (hidden during replay) */}

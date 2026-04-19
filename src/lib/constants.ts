@@ -153,6 +153,7 @@ export const LEVEL_SYSTEM = {
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
+    DANCE_PARTY: 3,
   },
 
   // Customer speed multiplier per level
@@ -223,6 +224,13 @@ export const DOMINOS_CONFIG = {
   HEALTH: 24,
   WAVES: 3,
   MINIONS_PER_WAVE: 4,
+};
+
+export const DANCE_PARTY = {
+  DURATION: 5000,             // 5 seconds
+  TRIGGER_CHANCE: 0.05,       // 5% per spawn cycle
+  MIN_LEVEL: 3,               // Available from level 3 (after level 2)
+  ALERT_DURATION: 5000,       // Same as duration (overlay persists for full event)
 };
 
 export const POWERUPS = {
@@ -346,4 +354,7 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Dance Party
+  danceParty: undefined,
+  dancePartyUsedThisLevel: false,
 };

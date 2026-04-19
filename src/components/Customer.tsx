@@ -1,6 +1,6 @@
 // src/components/Customer.tsx
 import React from 'react';
-import { Customer as CustomerType, getCustomerVariant } from '../types/game';
+import { Customer as CustomerType, getCustomerVariant, isCustomerLeaving } from '../types/game';
 import { sprite } from '../lib/assets';
 
 // Sprites (all hosted on Cloudflare)
@@ -20,9 +20,10 @@ interface CustomerProps {
   customer: CustomerType;
   boardWidth: number;
   boardHeight: number;
+  dancePartyActive?: boolean;
 }
 
-const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }) => {
+const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight, dancePartyActive }) => {
   // 1. Define 'ready' first to avoid ReferenceErrors
   const ready = boardWidth > 0 && boardHeight > 0;
 
@@ -104,13 +105,21 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
                 : customer.flipped
                   ? 'scaleX(-1)'
                   : 'none',
-              animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
+              animation: customer.woozy
+                ? 'woozy-wobble 0.6s ease-in-out infinite'
+                : (dancePartyActive && !isCustomerLeaving(customer))
+                  ? 'dance-bob 0.3s ease-in-out infinite'
+                  : undefined,
             }}
           />
         ) : (
           <div style={{
             fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-            animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
+            animation: customer.woozy
+              ? 'woozy-wobble 0.6s ease-in-out infinite'
+              : (dancePartyActive && !isCustomerLeaving(customer))
+                ? 'dance-bob 0.3s ease-in-out infinite'
+                : undefined,
           }}>
             {display.value}
           </div>
@@ -165,7 +174,8 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.critic === b.critic &&
     a.leaving === b.leaving &&
     prev.boardWidth === next.boardWidth &&
-    prev.boardHeight === next.boardHeight
+    prev.boardHeight === next.boardHeight &&
+    prev.dancePartyActive === next.dancePartyActive
   );
 }
 

@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  DANCE_PARTY,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -412,7 +413,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       });
 
       // 2. PROCESS CUSTOMERS (Movement & AI from customerSystem)
-      const customerUpdate = updateCustomerPositions(newState.customers, newState.activePowerUps, now, newState.ovens);
+      const customerUpdate = updateCustomerPositions(newState.customers, newState.activePowerUps, now, newState.ovens, newState.danceParty?.active ?? false);
       newState.customers = customerUpdate.nextCustomers;
 
       if (customerUpdate.statsUpdate.customerStreakReset) {
@@ -1230,6 +1231,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.bestOfAwardAlert = undefined;
       }
 
+      // Dance Party expiration
+      if (newState.danceParty?.active && now >= newState.danceParty.endTime) {
+        newState.danceParty = undefined;
+      }
+
       return newState;
     });
   }, [addFloatingScore, addFloatingStar, triggerGameOver, processBestOfStreak]); // ✅ removed gameState.* and ovenSoundStates deps
@@ -1273,6 +1279,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Clear boss battle state if any
         bossBattle: undefined,
         pendingBossQueue: undefined,
+        // Reset dance party for new level
+        dancePartyUsedThisLevel: false,
+        danceParty: undefined,
       };
     });
   }, []);
@@ -1471,6 +1480,28 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
       }
 
+      // Dance Party trigger: random chance per spawn cycle, after level 2, max once per level
+      if (
+        !next.danceParty?.active &&
+        !next.dancePartyUsedThisLevel &&
+        next.level >= DANCE_PARTY.MIN_LEVEL &&
+        next.levelPhase === 'playing' &&
+        !next.bossBattle?.active &&
+        spawnResult.updateCustomerSpawnTime &&  // Only check on actual spawn cycles
+        Math.random() < DANCE_PARTY.TRIGGER_CHANCE
+      ) {
+        next = {
+          ...next,
+          danceParty: {
+            active: true,
+            startTime: now,
+            endTime: now + DANCE_PARTY.DURATION,
+          },
+          dancePartyUsedThisLevel: true,
+        };
+        soundManager.danceParty();
+      }
+
       return next;
     });
   }, [updateGame]);
@@ -1512,6 +1543,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      danceParty: gameState.danceParty,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;
