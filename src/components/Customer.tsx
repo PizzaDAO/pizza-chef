@@ -62,6 +62,12 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
       if (variant === 'healthInspector') return { type: 'image', value: healthInspectorImg, alt: 'health-inspector' };
     }
 
+    // Wedding party guests (before status effects - show wedding sprite when approaching)
+    if (customer.weddingParty && !customer.served && !customer.disappointed) {
+      if (customer.isBridezilla) return { type: 'emoji', value: '\u{1F470}' }; // bride emoji
+      return { type: 'emoji', value: '\u{1F935}' }; // person in tuxedo emoji
+    }
+
     // Status effects for normal customers and critics
     if (customer.frozen) return { type: 'image', value: frozenfaceImg, alt: 'frozen' };
     if (customer.vomit) return { type: 'emoji', value: '🤮' };
@@ -164,6 +170,8 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.inspectorTipsy === b.inspectorTipsy &&
     a.critic === b.critic &&
     a.leaving === b.leaving &&
+    a.weddingParty === b.weddingParty &&
+    a.isBridezilla === b.isBridezilla &&
     prev.boardWidth === next.boardWidth &&
     prev.boardHeight === next.boardHeight
   );

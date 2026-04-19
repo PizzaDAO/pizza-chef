@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  WEDDING_PARTY,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -84,6 +85,7 @@ import { initializeBossMasks } from '../logic/bossCollisionMasks';
 import {
   processSpawning,
   getCustomersForLevel,
+  spawnWeddingParty,
 } from '../logic/spawnSystem';
 
 import {
@@ -139,6 +141,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
   const ovenSoundStatesRef = useRef<{ [key: number]: OvenSoundState }>({ ...DEFAULT_OVEN_SOUND_STATES });
 
   const prevShowStoreRef = useRef(false);
+  const lastWeddingLevelRef = useRef(0);
 
   /**
    * Death replay ring buffer - stores 60 snapshots (3 seconds at 50ms/tick).
@@ -478,6 +481,30 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       });
 
+      // Track disappointed wedding guests by comparing state before/after customer update
+      if (newState.weddingPartyEvent?.active) {
+        const weddingGuestIds = new Set(newState.weddingPartyEvent.guestIds);
+        // Count wedding guests that became disappointed this tick
+        // (they were not disappointed in prev.customers but are now)
+        let newlyDisappointed = 0;
+        for (const c of newState.customers) {
+          if (c.weddingParty && c.disappointed && weddingGuestIds.has(c.id)) {
+            // Check if this customer was NOT disappointed in the previous state
+            const prevCustomer = prev.customers.find(pc => pc.id === c.id);
+            if (prevCustomer && !prevCustomer.disappointed) {
+              newlyDisappointed++;
+            }
+          }
+        }
+
+        if (newlyDisappointed > 0) {
+          newState.weddingPartyEvent = {
+            ...newState.weddingPartyEvent,
+            guestsDisappointed: newState.weddingPartyEvent.guestsDisappointed + newlyDisappointed,
+          };
+        }
+      }
+
       // 3. COLLISION LOOP (Slices vs Customers) — lane-bucketed for perf
       newState.pizzaSlices = newState.pizzaSlices.map(slice => ({ ...slice, position: slice.position + slice.speed }));
 
@@ -701,6 +728,46 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       }
       customerScores.forEach(({ points, lane, position }) => { newState = addFloatingScore(points, lane, position, newState); });
       starGainsToAdd.forEach(({ lane, position }) => { newState = addFloatingStar(true, lane, position, newState); });
+
+      // --- 3b. WEDDING PARTY TRACKING (served guests) ---
+      if (newState.weddingPartyEvent?.active) {
+        // Count newly served wedding guests this tick
+        const newlyServedWedding = consumedCustomerIds.size > 0
+          ? Array.from(consumedCustomerIds).filter(id => {
+              const c = customerMap.get(id);
+              return c && c.weddingParty && c.served;
+            }).length
+          : 0;
+
+        if (newlyServedWedding > 0) {
+          const updatedServed = newState.weddingPartyEvent.guestsServed + newlyServedWedding;
+          newState.weddingPartyEvent = {
+            ...newState.weddingPartyEvent,
+            guestsServed: updatedServed,
+          };
+
+          // Check if all served with none disappointed -> Perfect Reception!
+          if (updatedServed === newState.weddingPartyEvent.totalGuests
+              && newState.weddingPartyEvent.guestsDisappointed === 0
+              && !newState.weddingPartyEvent.perfectReceptionAwarded) {
+            newState.weddingPartyEvent = {
+              ...newState.weddingPartyEvent,
+              perfectReceptionAwarded: true,
+            };
+            newState.score += WEDDING_PARTY.PERFECT_RECEPTION_BONUS;
+            newState.bank += WEDDING_PARTY.PERFECT_RECEPTION_CASH;
+            newState.weddingPartyAlert = { endTime: now + WEDDING_PARTY.ALERT_DURATION };
+            newState = addFloatingScore(WEDDING_PARTY.PERFECT_RECEPTION_BONUS, newState.chefLane, GAME_CONFIG.CHEF_X_POSITION, newState);
+            soundManager.bestOfAward();
+          }
+        }
+
+        // Check if event is complete (all guests accounted for)
+        const totalAccountedFor = newState.weddingPartyEvent.guestsServed + newState.weddingPartyEvent.guestsDisappointed;
+        if (totalAccountedFor >= newState.weddingPartyEvent.totalGuests) {
+          newState.weddingPartyEvent = { ...newState.weddingPartyEvent, active: false };
+        }
+      }
 
       // --- 4. CLEANUP EXPIRATIONS ---
       newState.floatingScores = newState.floatingScores.filter(fs => now - fs.startTime < TIMINGS.FLOATING_SCORE_LIFETIME);
@@ -1230,6 +1297,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.bestOfAwardAlert = undefined;
       }
 
+      // Clear expired Wedding Party alert
+      if (newState.weddingPartyAlert && now >= newState.weddingPartyAlert.endTime) {
+        newState.weddingPartyAlert = undefined;
+      }
+
       return newState;
     });
   }, [addFloatingScore, addFloatingStar, triggerGameOver, processBestOfStreak]); // ✅ removed gameState.* and ovenSoundStates deps
@@ -1256,6 +1328,34 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       // Unpause any ovens that were paused for the level transition so they resume
       // cleanly on the new level (preserves any in-flight cooking progress)
       const resumedOvens = calculateOvenPauseState(closed.ovens, false, now);
+
+      // Wedding Party event trigger check
+      let weddingPartyEvent = undefined as typeof closed.weddingPartyEvent;
+      let weddingPartyAlert = undefined as typeof closed.weddingPartyAlert;
+      let weddingCustomers: typeof closed.customers = [];
+      const levelsSinceLastWedding = nextLevel - lastWeddingLevelRef.current;
+
+      if (
+        nextLevel >= WEDDING_PARTY.MIN_LEVEL &&
+        levelsSinceLastWedding >= WEDDING_PARTY.COOLDOWN_LEVELS &&
+        Math.random() < WEDDING_PARTY.CHANCE_PER_LEVEL
+      ) {
+        const { guests } = spawnWeddingParty(now, nextLevel);
+        const guestIds = guests.map(g => g.id);
+        weddingPartyEvent = {
+          active: true,
+          guestIds,
+          totalGuests: guests.length,
+          guestsServed: 0,
+          guestsDisappointed: 0,
+          perfectReceptionAwarded: false,
+        };
+        weddingPartyAlert = { endTime: now + WEDDING_PARTY.ALERT_DURATION };
+        weddingCustomers = guests;
+        lastWeddingLevelRef.current = nextLevel;
+        soundManager.bestOfAward(); // reuse celebratory sound
+      }
+
       return {
         ...closed,
         ovens: resumedOvens,
@@ -1273,6 +1373,13 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Clear boss battle state if any
         bossBattle: undefined,
         pendingBossQueue: undefined,
+        // Wedding party
+        ...(weddingPartyEvent ? {
+          weddingPartyEvent,
+          weddingPartyAlert,
+          lastWeddingEventLevel: nextLevel,
+          customers: [...closed.customers, ...weddingCustomers],
+        } : {}),
       };
     });
   }, []);
@@ -1356,6 +1463,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     lastCustomerSpawnRef.current = 0;
     lastPowerUpSpawnRef.current = 0;
     customersSpawnedThisLevelRef.current = 0;
+    lastWeddingLevelRef.current = 0;
     // ✅ reset ref (no render)
     ovenSoundStatesRef.current = { ...DEFAULT_OVEN_SOUND_STATES };
     // Reset replay buffer
@@ -1512,6 +1620,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      weddingPartyEvent: gameState.weddingPartyEvent,
+      weddingPartyAlert: gameState.weddingPartyAlert,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;

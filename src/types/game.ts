@@ -58,6 +58,8 @@ export interface Customer {
   flipped?: boolean;
   textMessage?: string;
   textMessageTime?: number;
+  weddingParty?: boolean;    // true for all wedding guests
+  isBridezilla?: boolean;    // true for the one Bridezilla in the group
 }
 
 export interface PizzaSlice {
@@ -271,6 +273,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
   | 'ovenSpeedUpgrades'
+  | 'weddingPartyEvent' | 'weddingPartyAlert'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -323,4 +326,15 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  // Wedding Party Event
+  weddingPartyEvent?: {
+    active: boolean;
+    guestIds: string[];
+    totalGuests: number;
+    guestsServed: number;
+    guestsDisappointed: number;
+    perfectReceptionAwarded: boolean;
+  };
+  weddingPartyAlert?: { endTime: number };
+  lastWeddingEventLevel?: number;
 }

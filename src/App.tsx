@@ -17,6 +17,7 @@ import { useAssetPreloader } from './hooks/useAssetPreloader';
 import { GameStateSnapshot } from './types/game';
 import { bg } from './lib/assets';
 import { soundManager } from './utils/sounds';
+import { WEDDING_PARTY } from './lib/constants';
 
 const counterImg = bg('counter.webp');
 
@@ -458,6 +459,18 @@ function App() {
                     </div>
                   )}
 
+                  {gameState.weddingPartyAlert && !gameState.paused && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                      <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-xl shadow-2xl border-4 border-pink-300 animate-bounce">
+                        <div className="text-2xl sm:text-3xl font-bold text-center drop-shadow-lg">
+                          {gameState.weddingPartyEvent?.perfectReceptionAwarded
+                            ? `Perfect Reception! +${WEDDING_PARTY.PERFECT_RECEPTION_BONUS}`
+                            : 'Wedding Party!'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {showControlsOverlay && <ControlsOverlay onClose={handleCloseControlsOverlay} />}
 
                   {!gameState.gameOver && !showControlsOverlay && (
@@ -590,6 +603,18 @@ function App() {
                       </div>
                       <div className="text-sm sm:text-base text-center mt-1 font-semibold">
                         +5,000 pts &bull; +$25
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {gameState.weddingPartyAlert && !gameState.paused && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                    <div className="bg-gradient-to-r from-pink-500 to-purple-600 text-white px-8 py-4 rounded-xl shadow-2xl border-4 border-pink-300 animate-bounce">
+                      <div className="text-2xl sm:text-3xl font-bold text-center drop-shadow-lg">
+                        {gameState.weddingPartyEvent?.perfectReceptionAwarded
+                          ? `Perfect Reception! +${WEDDING_PARTY.PERFECT_RECEPTION_BONUS}`
+                          : 'Wedding Party!'}
                       </div>
                     </div>
                   </div>
