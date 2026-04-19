@@ -69,6 +69,13 @@ export const HEALTH_INSPECTOR = {
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
+export const MUKBANGER = {
+  SLICES_REQUIRED: 3,
+  SCORE_MULTIPLIER: 5, // 5x on final slice
+  SPEED_MULTIPLIER: 1.0, // Normal speed
+  CHAT_EMOJIS: ['🔥', '😋', '💯', '🍕', '👀', '❤️'],
+};
+
 export const SCORING = {
   // Customer Service
   CUSTOMER_NORMAL: 150,
@@ -89,6 +96,9 @@ export const SCORING = {
   // Special
   MOLTOBENNY_POINTS: 10000,
   MOLTOBENNY_CASH: 69,
+
+  // Mukbanger
+  MUKBANGER_PARTIAL_SLICE: 75, // Points per intermediate slice (slices 1 & 2)
 
   // Bank
   BASE_BANK_REWARD: 1,
@@ -150,6 +160,7 @@ export const LEVEL_SYSTEM = {
     SCUMBAG_STEVE: 3,
     DOGE: 4,
     NYAN: 4,
+    MUKBANGER: 4,
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
@@ -168,6 +179,7 @@ export const LEVEL_SYSTEM = {
     CRITIC: [0.12, 0.15, 0.15, 0.15, 0.15], // Levels 1-5+
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
+    MUKBANGER: [0, 0, 0, 0.06, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
   },
 

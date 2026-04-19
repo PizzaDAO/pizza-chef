@@ -6,6 +6,7 @@ import {
   POWERUPS,
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
+  MUKBANGER,
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
@@ -38,6 +39,7 @@ export const getUnlockedCustomerTypes = (level: number): CustomerVariant[] => {
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.CRITIC) types.push('critic');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.BAD_LUCK_BRIAN) types.push('badLuckBrian');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.SCUMBAG_STEVE) types.push('scumbagSteve');
+  if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.MUKBANGER) types.push('mukbanger');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.HEALTH_INSPECTOR) types.push('healthInspector');
   return types;
 };
@@ -89,6 +91,7 @@ const getSpecialChances = (level: number) => {
     critic: LEVEL_SYSTEM.SPECIAL_CHANCES.CRITIC[idx],
     brian: LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN[idx],
     steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
+    mukbanger: LEVEL_SYSTEM.SPECIAL_CHANCES.MUKBANGER[idx],
     inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
   };
 };
@@ -166,6 +169,8 @@ export const trySpawnCustomer = (
     variant = 'scumbagSteve';
   } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
     variant = 'healthInspector';
+  } else if (unlockedTypes.includes('mukbanger') && Math.random() < chances.mukbanger) {
+    variant = 'mukbanger';
   }
 
   // Calculate speed with level speed multiplier
@@ -174,6 +179,8 @@ export const trySpawnCustomer = (
     ? ENTITY_SPEEDS.CUSTOMER_BASE * SCUMBAG_STEVE.SPEED_MULTIPLIER
     : variant === 'healthInspector'
     ? ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER
+    : variant === 'mukbanger'
+    ? ENTITY_SPEEDS.CUSTOMER_BASE * MUKBANGER.SPEED_MULTIPLIER
     : ENTITY_SPEEDS.CUSTOMER_BASE;
   const speed = baseSpeed * speedMultiplier;
 
@@ -195,7 +202,9 @@ export const trySpawnCustomer = (
     badLuckBrian: variant === 'badLuckBrian',
     scumbagSteve: variant === 'scumbagSteve',
     healthInspector: variant === 'healthInspector',
-    slicesReceived: variant === 'scumbagSteve' ? 0 : undefined,
+    mukbanger: variant === 'mukbanger',
+    mukbangerSlicesNeeded: variant === 'mukbanger' ? MUKBANGER.SLICES_REQUIRED : undefined,
+    slicesReceived: (variant === 'scumbagSteve' || variant === 'mukbanger') ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
   };

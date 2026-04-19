@@ -6,7 +6,7 @@ export type CustomerState =
   | 'leaving'      // Generic leaving (Brian complaining, etc.)
   | 'vomit';       // Beer+woozy = sick
 
-export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector';
+export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'mukbanger';
 
 export type WoozyState = 'normal' | 'drooling' | 'satisfied';
 
@@ -19,6 +19,7 @@ export const isCustomerApproaching = (c: Customer): boolean =>
 
 export const getCustomerVariant = (c: Customer): CustomerVariant => {
   if (c.healthInspector) return 'healthInspector';
+  if (c.mukbanger) return 'mukbanger';
   if (c.scumbagSteve) return 'scumbagSteve';
   if (c.badLuckBrian) return 'badLuckBrian';
   if (c.critic) return 'critic';
@@ -51,7 +52,9 @@ export interface Customer {
   scumbagSteve?: boolean;
   healthInspector?: boolean;
   inspectorTipsy?: boolean;
-  slicesReceived?: number; // For Steve who needs 2 slices
+  mukbanger?: boolean;
+  mukbangerSlicesNeeded?: number; // Always 3 for mukbanger
+  slicesReceived?: number; // For Steve who needs 2 slices, Mukbanger needs 3
   lastLaneChangeTime?: number; // For Steve's random lane changes
   leaving?: boolean;
   brianNyaned?: boolean; // Brian got hit by Nyan + is flying away
@@ -257,6 +260,7 @@ export type StarLostReason =
   | 'inspector_vomit'
   | 'beer_around_kids'
   | 'steve_disappointed'
+  | 'mukbanger_disappointed'
   | 'papajohn_minion_reached'
   | 'dominos_minion_reached';
 
