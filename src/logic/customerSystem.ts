@@ -285,7 +285,7 @@ export const updateCustomerPositions = (
       return;
     }
 
-    // 6.6. Delivery Driver Movement (parks + blocks lane)
+    // 6.6. Delivery Driver Movement (parks at counter, drivers stack behind each other)
     if (processedCustomer.deliveryDriver && !isDeparting) {
       if (processedCustomer.movingRight) {
         // Leaving after completion
@@ -294,7 +294,20 @@ export const updateCustomerPositions = (
         return;
       }
 
-      const waitPos = DELIVERY_DRIVER.WAIT_POSITION;
+      let waitPos = DELIVERY_DRIVER.WAIT_POSITION;
+
+      // Check if another delivery driver is already parked ahead in the same lane
+      const aheadDriver = customers.find(
+        c => c.deliveryDriver && !isCustomerLeaving(c) && c.lane === processedCustomer.lane
+          && c.id !== processedCustomer.id
+          && c.position <= waitPos + 1 // already parked (at or near wait position)
+          && c.position < processedCustomer.position
+      );
+      if (aheadDriver) {
+        // Stop behind the parked driver with a gap
+        waitPos = aheadDriver.position + DELIVERY_DRIVER.DRIVER_GAP;
+      }
+
       if (processedCustomer.position <= waitPos) {
         // Parked -- don't move
         processedCustomer.position = waitPos;
@@ -339,30 +352,10 @@ export const updateCustomerPositions = (
     }
 
     // 7. Standard Customer Movement (Approaching)
-
-    // Check if a delivery driver is blocking this lane
-    const blockingDriver = customers.find(
-      c => c.deliveryDriver && !isCustomerLeaving(c) && c.lane === processedCustomer.lane
-        && c.position < processedCustomer.position
-    );
-    if (blockingDriver) {
-      // Don't move past the driver's position + a small buffer
-      const minPosition = blockingDriver.position + 3; // 3% gap behind driver
-      if (processedCustomer.position <= minPosition) {
-        processedCustomer.position = minPosition;
-        nextCustomers.push(processedCustomer);
-        return;
-      }
-    }
+    // Customers walk through delivery drivers -- no blocking.
 
     const speedMod = processedCustomer.hotHoneyAffected ? 0.5 : 1;
     let newPos = processedCustomer.position - (processedCustomer.speed * speedMod);
-
-    // Clamp position if blocked by delivery driver
-    if (blockingDriver) {
-      const minPosition = blockingDriver.position + 3;
-      newPos = Math.max(newPos, minPosition);
-    }
 
     if (newPos <= GAME_CONFIG.CHEF_X_POSITION) {
       // Reached Chef -> Angry -> Life Lost

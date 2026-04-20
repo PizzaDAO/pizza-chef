@@ -121,23 +121,6 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
         )}
       </div>
 
-      {customer.deliveryDriver && !customer.served && !customer.disappointed && (
-        <div
-          className="absolute bg-orange-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5"
-          style={{
-            left: 0,
-            top: 0,
-            transform: ready
-              ? `translate3d(${xPx + 20}px, ${yPx - 10}px, 0)`
-              : undefined,
-            willChange: 'transform',
-            transition: 'transform 100ms linear',
-          }}
-        >
-          {customer.slicesReceived || 0}/{customer.deliverySlicesNeeded || 8}
-        </div>
-      )}
-
       {customer.textMessage && (
         <div
           className="z-50 absolute px-2 py-1 bg-white text-black rounded border-2 border-black text-xs font-bold whitespace-nowrap"

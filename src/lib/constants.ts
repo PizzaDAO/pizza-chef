@@ -71,11 +71,12 @@ export const HEALTH_INSPECTOR = {
 
 export const DELIVERY_DRIVER = {
   SLICES_NEEDED: 8,
-  WAIT_POSITION: 55,         // Parks at 55% -- middle of the board
+  WAIT_POSITION: GAME_CONFIG.CHEF_X_POSITION + 3, // Parks just in front of the counter
   SPEED_MULTIPLIER: 0.6,     // Slower approach than normal
   SCORE_BONUS: 2000,         // Points on completion
   BANK_BONUS: 30,            // Cash on completion
   PARTIAL_SCORE: 25,         // Points per intermediate slice
+  DRIVER_GAP: 4,             // Gap between stacked delivery drivers (%)
 };
 
 export const SCORING = {
