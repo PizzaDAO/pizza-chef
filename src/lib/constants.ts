@@ -163,7 +163,7 @@ export const LEVEL_SYSTEM = {
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
-    ALIEN: 6,
+    ALIEN: 1,
   },
 
   // Customer speed multiplier per level
@@ -180,7 +180,7 @@ export const LEVEL_SYSTEM = {
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
-    ALIEN: [0, 0, 0, 0, 0, 0.02],  // Only at level 6+
+    ALIEN: [1.0],  // 100% chance at level 1+ (demo mode)
   },
 
   // Boss schedule
