@@ -153,7 +153,7 @@ export const LEVEL_SYSTEM = {
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
-    DANCE_PARTY: 3,
+    DANCE_PARTY: 1,
   },
 
   // Customer speed multiplier per level
@@ -228,8 +228,8 @@ export const DOMINOS_CONFIG = {
 
 export const DANCE_PARTY = {
   DURATION: 5000,             // 5 seconds
-  TRIGGER_CHANCE: 0.05,       // 5% per spawn cycle
-  MIN_LEVEL: 3,               // Available from level 3 (after level 2)
+  TRIGGER_CHANCE: 1.0,        // 100% per spawn cycle (demo: force immediate trigger)
+  MIN_LEVEL: 1,               // Available from level 1 (demo: immediate)
   ALERT_DURATION: 5000,       // Same as duration (overlay persists for full event)
 };
 
