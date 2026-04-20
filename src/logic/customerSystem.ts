@@ -647,11 +647,17 @@ export const processCustomerHit = (
   // 4.5. Alien Customer (drops power-up instead of scoring)
   if (customer.alien) {
     events.push('SERVED_ALIEN');
-    // No empty plate (aliens don't throw back plates)
+    newEntities.emptyPlate = {
+      id: `plate-${now}-${customer.id}`,
+      lane: Math.round(customer.lane),
+      position: customer.position,
+      speed: ENTITY_SPEEDS.PLATE,
+      createdAt: now
+    };
     return {
       updatedCustomer: {
         ...customer,
-        lane: Math.round(customer.lane), // Snap to nearest integer lane before departing
+        lane: Math.round(customer.lane),
         served: true,
         hasPlate: false,
         movingRight: true,
@@ -660,7 +666,7 @@ export const processCustomerHit = (
         textMessageTime: now,
       },
       events,
-      newEntities: {}
+      newEntities
     };
   }
 
