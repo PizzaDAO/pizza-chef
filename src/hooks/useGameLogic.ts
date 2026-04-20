@@ -278,6 +278,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       ovens: pausedOvens,
       fallingPizza: shouldDropPizza ? { lane: state.chefLane, y: 0 } : state.fallingPizza,
       availableSlices: 0,
+      ufoAnimations: undefined, // Clear UFOs so they don't get stuck on screen
     };
   }, []);
 
@@ -490,8 +491,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       // 2b. UFO ANIMATION TICK — tick ALL active UFOs in the array
       if (newState.ufoAnimations && newState.ufoAnimations.length > 0) {
         const updatedUfos: typeof newState.ufoAnimations = [];
+        const maxLifetime = ALIEN.UFO_FLY_DURATION * 3; // Safety: max 2 full phases (drop + pickup-exit)
         for (const ufo of newState.ufoAnimations) {
           if (!ufo.active) continue;
+          // Safety timeout: force-remove UFOs that have been alive too long
+          if (now - ufo.startTime > maxLifetime) continue;
           const updated = updateUfoAnimation(ufo, now);
 
           // Drop phase complete — unfreeze the specific alien this UFO belongs to
@@ -1225,6 +1229,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
               }
               newState.levelPhase = 'complete';
+              newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
               const rewards = calculateLevelRewards(
                 newState.levelProgress.starsLostThisLevel,
                 false,
@@ -1266,6 +1271,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
           }
           newState.levelPhase = 'complete';
+          newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
           const rewards = calculateLevelRewards(
             newState.levelProgress.starsLostThisLevel,
             true,
