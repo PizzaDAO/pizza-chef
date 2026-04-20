@@ -7,7 +7,7 @@ import {
   isCustomerAffectedByPowerUps,
   getCustomerVariant
 } from '../types/game';
-import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE } from '../lib/constants';
+import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE, MUKBANGER } from '../lib/constants';
 
 // --- Types for the Update Result ---
 export type CustomerUpdateEvent =
@@ -18,7 +18,8 @@ export type CustomerUpdateEvent =
   | { type: 'STAR_LOST_WOOZY_NORMAL'; lane: number; position: number }
   | { type: 'STAR_LOST_STEVE'; lane: number; position: number }
   | { type: 'HEALTH_INSPECTOR_PASSED'; lane: number; position: number }
-  | { type: 'HEALTH_INSPECTOR_FAILED'; lane: number; position: number };
+  | { type: 'HEALTH_INSPECTOR_FAILED'; lane: number; position: number }
+  | { type: 'STAR_LOST_MUKBANGER'; lane: number; position: number };
 
 export interface CustomerUpdateResult {
   nextCustomers: Customer[];
@@ -40,7 +41,10 @@ export type CustomerHitEvent =
   | 'STEVE_FIRST_SLICE'
   | 'STEVE_SERVED'
   | 'HEALTH_INSPECTOR_BRIBED'
-  | 'HEALTH_INSPECTOR_TIPSY_SERVED';
+  | 'HEALTH_INSPECTOR_TIPSY_SERVED'
+  | 'MUKBANGER_SLICE_1'
+  | 'MUKBANGER_SLICE_2'
+  | 'MUKBANGER_SERVED';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -321,9 +325,13 @@ export const updateCustomerPositions = (
     if (newPos <= GAME_CONFIG.CHEF_X_POSITION) {
       // Reached Chef -> Angry -> Life Lost
       events.push({ type: 'LIFE_LOST', lane: processedCustomer.lane, position: newPos });
-      events.push(getCustomerVariant(processedCustomer) === 'critic'
-        ? { type: 'STAR_LOST_CRITIC', lane: processedCustomer.lane, position: newPos }
-        : { type: 'STAR_LOST_NORMAL', lane: processedCustomer.lane, position: newPos });
+      if (processedCustomer.mukbanger) {
+        events.push({ type: 'STAR_LOST_MUKBANGER', lane: processedCustomer.lane, position: newPos });
+      } else {
+        events.push(getCustomerVariant(processedCustomer) === 'critic'
+          ? { type: 'STAR_LOST_CRITIC', lane: processedCustomer.lane, position: newPos }
+          : { type: 'STAR_LOST_NORMAL', lane: processedCustomer.lane, position: newPos });
+      }
       events.push({ type: 'GAME_OVER' });
 
       processedCustomer.disappointed = true;
@@ -568,6 +576,51 @@ export const processCustomerHit = (
         },
         events,
         newEntities
+      };
+    }
+  }
+
+  // 4.5. Mukbanger (Three-Slice Requirement, 5x on final)
+  if (customer.mukbanger) {
+    const slicesReceived = (customer.slicesReceived || 0) + 1;
+    const slicesNeeded = customer.mukbangerSlicesNeeded || MUKBANGER.SLICES_REQUIRED;
+
+    newEntities.emptyPlate = {
+      id: `plate-${now}-${customer.id}-s${slicesReceived}`,
+      lane: customer.lane,
+      position: customer.position,
+      speed: ENTITY_SPEEDS.PLATE,
+      createdAt: now,
+    };
+
+    if (slicesReceived < slicesNeeded) {
+      // Intermediate slice -- keep walking, show chat emoji
+      events.push(slicesReceived === 1 ? 'MUKBANGER_SLICE_1' : 'MUKBANGER_SLICE_2');
+      const chatEmoji = MUKBANGER.CHAT_EMOJIS[Math.floor(Math.random() * MUKBANGER.CHAT_EMOJIS.length)];
+      return {
+        updatedCustomer: {
+          ...customer,
+          slicesReceived,
+          textMessage: chatEmoji,
+          textMessageTime: now,
+        },
+        events,
+        newEntities,
+      };
+    } else {
+      // Final slice -- served, 5x multiplier applied in useGameLogic
+      events.push('MUKBANGER_SERVED');
+      return {
+        updatedCustomer: {
+          ...customer,
+          served: true,
+          hasPlate: false,
+          slicesReceived,
+          textMessage: "MUKBANG COMPLETE! 🔥",
+          textMessageTime: now,
+        },
+        events,
+        newEntities,
       };
     }
   }

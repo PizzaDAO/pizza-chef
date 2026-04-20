@@ -43,7 +43,8 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
 
   const getDisplay = () => {
     const variant = getCustomerVariant(customer);
-    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector';
+    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve'
+      || variant === 'healthInspector' || variant === 'mukbanger';
 
     // 🌈 Rainbow Brian (nyan hit) — special behavior override
     if (customer.brianNyaned) {
@@ -60,6 +61,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
       if (variant === 'badLuckBrian') return { type: 'image', value: badLuckBrianImg, alt: 'badluckbrian' };
       if (variant === 'scumbagSteve') return { type: 'image', value: scumbagSteveImg, alt: 'scumbagsteve' };
       if (variant === 'healthInspector') return { type: 'image', value: healthInspectorImg, alt: 'health-inspector' };
+      if (variant === 'mukbanger') return { type: 'emoji', value: '🤳' };
     }
 
     // Status effects for normal customers and critics
@@ -115,6 +117,11 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
             {display.value}
           </div>
         )}
+        {customer.mukbanger && (
+          <div className="absolute -top-1 -right-1 text-sm" style={{ fontSize: 'clamp(0.8rem, 2vw, 1.2rem)' }}>
+            📱
+          </div>
+        )}
       </div>
 
       {customer.textMessage && (
@@ -162,6 +169,8 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.scumbagSteve === b.scumbagSteve &&
     a.healthInspector === b.healthInspector &&
     a.inspectorTipsy === b.inspectorTipsy &&
+    a.mukbanger === b.mukbanger &&
+    a.slicesReceived === b.slicesReceived &&
     a.critic === b.critic &&
     a.leaving === b.leaving &&
     prev.boardWidth === next.boardWidth &&

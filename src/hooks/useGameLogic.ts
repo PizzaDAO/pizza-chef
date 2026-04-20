@@ -27,6 +27,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  MUKBANGER,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -449,6 +450,12 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           newState = addFloatingStar(false, event.lane, event.position, newState);
           newState.bestOfStreakCount = 0;
         }
+        if (event.type === 'STAR_LOST_MUKBANGER') {
+          newState.lives = Math.max(0, newState.lives - 1);
+          newState.lastStarLostReason = 'mukbanger_disappointed';
+          newState = addFloatingStar(false, event.lane, event.position, newState);
+          newState.bestOfStreakCount = 0;
+        }
         if (event.type === 'GAME_OVER' && newState.lives === 0) {
           newState = triggerGameOver(newState, now);
         }
@@ -630,6 +637,38 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                   newState = processBestOfStreak(newState, result.wouldHaveGained, dogeMultiplier, now);
                 }
 
+              } else if (event === 'MUKBANGER_SLICE_1' || event === 'MUKBANGER_SLICE_2') {
+                // Intermediate slice -- partial score, no bank, doesn't count as served
+                soundManager.woozyServed(); // Reuse the partial-serve sound
+                const partialScore = Math.floor(SCORING.MUKBANGER_PARTIAL_SLICE * dogeMultiplier
+                  * getStreakMultiplier(newState.stats.currentCustomerStreak));
+                newState.score += partialScore;
+                customerScores.push({ points: partialScore, lane: currentCustomer.lane, position: currentCustomer.position });
+
+              } else if (event === 'MUKBANGER_SERVED') {
+                // Final slice -- 5x multiplier, counts as served
+                soundManager.customerServed();
+                const result = applyCustomerScoring(currentCustomer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+                // Apply the 5x mukbanger multiplier on top
+                const mukbangerScore = result.scoreToAdd * MUKBANGER.SCORE_MULTIPLIER;
+                newState.score += mukbangerScore;
+                newState.bank += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push({ points: mukbangerScore, lane: currentCustomer.lane, position: currentCustomer.position });
+
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
+                }
+                if (result.wouldHaveGained > 0) {
+                  newState = processBestOfStreak(newState, result.wouldHaveGained, dogeMultiplier, now);
+                }
+
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {
                 soundManager.customerServed();
 
@@ -659,7 +698,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             customerMap.set(currentCustomer.id, hitResult.updatedCustomer);
             // Health inspector is NOT consumed (stays on screen) — only the pizza disappears
             // UNLESS tipsy-served, in which case the inspector leaves happy (consumed)
-            if (!currentCustomer.healthInspector || hitResult.events.includes('HEALTH_INSPECTOR_TIPSY_SERVED')) {
+            // Mukbanger intermediate slices also don't consume — they need 3 slices total
+            const isMukbangerPartial = hitResult.events.includes('MUKBANGER_SLICE_1') || hitResult.events.includes('MUKBANGER_SLICE_2');
+            if ((!currentCustomer.healthInspector || hitResult.events.includes('HEALTH_INSPECTOR_TIPSY_SERVED')) && !isMukbangerPartial) {
               consumedCustomerIds.add(currentCustomer.id);
             }
           }
