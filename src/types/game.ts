@@ -271,6 +271,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
   | 'ovenSpeedUpgrades'
+  | 'danceParty'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -323,4 +324,11 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  // Dance Party
+  danceParty?: {
+    active: boolean;
+    startTime: number;
+    endTime: number;
+  };
+  dancePartyUsedThisLevel?: boolean;
 }

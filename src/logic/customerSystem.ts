@@ -59,7 +59,8 @@ export const updateCustomerPositions = (
   customers: Customer[],
   activePowerUps: { type: string; endTime: number }[],
   now: number,
-  ovens?: { [key: number]: OvenState }
+  ovens?: { [key: number]: OvenState },
+  dancePartyActive: boolean = false
 ): CustomerUpdateResult => {
   const events: CustomerUpdateEvent[] = [];
   const nextCustomers: Customer[] = [];
@@ -148,6 +149,12 @@ export const updateCustomerPositions = (
     if (processedCustomer.brianNyaned) {
       processedCustomer.position += (processedCustomer.speed * 3);
       processedCustomer.lane -= 0.06;
+      nextCustomers.push(processedCustomer);
+      return;
+    }
+
+    // 1.5 Dance Party (All non-leaving customers freeze)
+    if (dancePartyActive && !isDeparting) {
       nextCustomers.push(processedCustomer);
       return;
     }
