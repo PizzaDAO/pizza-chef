@@ -329,7 +329,7 @@ export const INITIAL_GAME_STATE = {
   chefLane: 0,
   score: 0,
   lives: GAME_CONFIG.STARTING_LIVES, // References the config defined at the top
-  level: 1,
+  level: 13,
   gameOver: false,
   paused: false,
   availableSlices: 0,
