@@ -159,7 +159,7 @@ export const LEVEL_SYSTEM = {
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
-    PIZZA_MAFIA: 6,
+    PIZZA_MAFIA: 1,
     PEPE: 5,
     MOLTOBENNY: 5,
   },
@@ -178,7 +178,7 @@ export const LEVEL_SYSTEM = {
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
-    MAFIA: [0, 0, 0, 0, 0, 0.05],
+    MAFIA: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
   },
 
   // Boss schedule
