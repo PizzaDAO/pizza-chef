@@ -1450,21 +1450,53 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
   const resetGame = useCallback(() => {
     soundManager.stopNyan();
+    const now = Date.now();
+
+    // Wedding Party event trigger check for level 1
+    // (closeStore only handles level 2+, so we must also check here)
+    let weddingPartyState: Record<string, unknown> = {};
+    if (
+      1 >= WEDDING_PARTY.MIN_LEVEL &&
+      Math.random() < WEDDING_PARTY.CHANCE_PER_LEVEL
+    ) {
+      const { guests } = spawnWeddingParty(now, 1);
+      const guestIds = guests.map(g => g.id);
+      weddingPartyState = {
+        weddingPartyEvent: {
+          active: true,
+          guestIds,
+          totalGuests: guests.length,
+          guestsServed: 0,
+          guestsDisappointed: 0,
+          perfectReceptionAwarded: false,
+        },
+        weddingPartyAlert: { endTime: now + WEDDING_PARTY.ALERT_DURATION },
+        lastWeddingEventLevel: 1,
+        customers: [...(INITIAL_GAME_STATE.customers || []), ...guests],
+      };
+      // Mark level 1 as having had a wedding so cooldown works
+      lastWeddingLevelRef.current = 1;
+      soundManager.bestOfAward(); // reuse celebratory sound
+    }
+
     setGameState({
       ...INITIAL_GAME_STATE,
       levelProgress: {
         customersServed: 0,
         customersRequired: getCustomersForLevel(1),
-        levelStartTime: Date.now(),
+        levelStartTime: now,
         starsLostThisLevel: 0,
       },
-      levelAnnouncement: { level: 1, endTime: Date.now() + 3000 },
+      levelAnnouncement: { level: 1, endTime: now + 3000 },
+      ...weddingPartyState,
     });
     lastCustomerSpawnRef.current = 0;
     lastPowerUpSpawnRef.current = 0;
     customersSpawnedThisLevelRef.current = 0;
-    lastWeddingLevelRef.current = 0;
-    // ✅ reset ref (no render)
+    if (!weddingPartyState.weddingPartyEvent) {
+      lastWeddingLevelRef.current = 0;
+    }
+    // reset ref (no render)
     ovenSoundStatesRef.current = { ...DEFAULT_OVEN_SOUND_STATES };
     // Reset replay buffer
     replayBufferRef.current = [];
