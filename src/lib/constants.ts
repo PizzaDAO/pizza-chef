@@ -248,8 +248,8 @@ export const PEPE_CONFIG = {
 
 export const RUSH_HOUR = {
   DURATION: 15000,           // 15 seconds
-  TRIGGER_CHANCE: 0.05,      // 5% per spawn cycle
-  MIN_LEVEL: 3,              // Only triggers at level 3+
+  TRIGGER_CHANCE: 1.0,       // 100% per spawn cycle (demo: always trigger)
+  MIN_LEVEL: 1,              // Triggers from level 1 (demo: immediate)
   SCORE_MULTIPLIER: 2,       // 2x points during rush hour
   SPAWN_INTERVAL_DIVISOR: 2, // Halve spawn interval (2x customers)
   ANNOUNCE_DURATION: 2000,   // "RUSH HOUR!" banner lingers for 2s before fading
