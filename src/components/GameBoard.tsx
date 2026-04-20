@@ -341,7 +341,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
             transition: 'left 50ms linear, top 50ms linear',
           }}
         >
-          <div style={{ fontSize: 'clamp(1rem, 3vw, 2rem)' }}>🛸</div>
+          <div style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>🛸</div>
         </div>
       )}
 

@@ -75,7 +75,7 @@ export const ALIEN = {
   SPEED_MULTIPLIER: 0.8,          // Slightly slower base advance (compensated by harder-to-hit movement)
   LANE_SWITCH_INTERVAL: 1000,     // Change target lane every ~1 second
   LANE_LERP_SPEED: 0.003,         // Fractional lane interpolation per ms (~0.15/frame at 50ms tick)
-  UFO_FLY_DURATION: 1500,         // UFO crosses screen in 1.5 seconds
+  UFO_FLY_DURATION: 3000,         // UFO crosses screen in 3 seconds
   UFO_DROP_X: 75,                 // X-position where alien is deposited (percentage)
 };
 
