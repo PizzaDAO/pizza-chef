@@ -72,13 +72,13 @@ export const HEALTH_INSPECTOR = {
 export const HEALTH_DEPT_RAID = {
   MIN_LEVEL: 1,
   TRIGGER_CHANCE: 1.0,          // 100% - always trigger (demo)
-  INSPECTOR_COUNT: 3,
+  INSPECTOR_COUNT: 4,
   ALERT_DURATION: 2000,         // 2s "HEALTH DEPT RAID!" overlay
   RESULT_DURATION: 3000,        // 3s "Clean Record!" overlay
   BONUS_POINTS: 3000,
   BONUS_CASH: 20,
   MIN_LEVEL_TIME: 0,            // No delay - trigger immediately (demo)
-  SPAWN_STAGGER: 200,           // ms stagger between inspector spawns (visual effect)
+  SPAWN_STAGGER: 12,            // position offset between inspector spawns (staggered entry)
 };
 
 export const SCORING = {

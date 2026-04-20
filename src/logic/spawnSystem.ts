@@ -288,7 +288,8 @@ export const processSpawning = (
 
 /**
  * Try to trigger a Health Department Raid event.
- * 3 health inspectors spawn simultaneously across 3 different lanes.
+ * 4 health inspectors spawn across all 4 lanes with staggered positions
+ * so they visually enter the board one after another.
  */
 export const tryTriggerHealthDeptRaid = (
   level: number,
@@ -304,19 +305,18 @@ export const tryTriggerHealthDeptRaid = (
   if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false };
   if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false };
 
-  // Pick 3 unique lanes out of 4
-  const lanes = [0, 1, 2, 3];
-  const shuffled = lanes.sort(() => Math.random() - 0.5);
-  const selectedLanes = shuffled.slice(0, HEALTH_DEPT_RAID.INSPECTOR_COUNT);
+  // One inspector per lane — all 4 lanes
+  const selectedLanes = [0, 1, 2, 3];
 
   const speedMultiplier = getLevelSpeedMultiplier(level);
   const baseSpeed = ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER;
   const speed = baseSpeed * speedMultiplier;
 
-  const inspectors: Customer[] = selectedLanes.map((lane) => ({
+  const inspectors: Customer[] = selectedLanes.map((lane, index) => ({
     id: `raid-inspector-${now}-${lane}`,
     lane,
-    position: POSITIONS.SPAWN_X,
+    // Stagger spawn positions so inspectors enter the board one at a time
+    position: POSITIONS.SPAWN_X + index * HEALTH_DEPT_RAID.SPAWN_STAGGER,
     speed,
     served: false,
     hasPlate: false,
