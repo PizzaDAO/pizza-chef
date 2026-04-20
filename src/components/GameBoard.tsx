@@ -337,8 +337,8 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
           className="absolute w-[10%] aspect-square z-30"
           style={{
             left: `${gameState.ufoAnimation.xPosition}%`,
-            top: '2%',
-            transition: 'left 50ms linear',
+            top: `${gameState.ufoAnimation.yPosition}%`,
+            transition: 'left 50ms linear, top 50ms linear',
           }}
         >
           <div style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>🛸</div>

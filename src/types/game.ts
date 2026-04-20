@@ -64,6 +64,7 @@ export interface Customer {
   alienLaneProgress?: number;     // 0-1 interpolation progress toward target lane
   alienLastLaneSwitchTime?: number; // Timestamp of last lane-change decision
   alienWaitingForDrop?: boolean;  // True while alien is still inside the UFO
+  alienPickedUp?: boolean;        // True when alien has been picked up by UFO at counter
 }
 
 export interface PizzaSlice {
@@ -90,10 +91,15 @@ export interface EmptyPlate {
 export interface UfoAnimationState {
   active: boolean;
   xPosition: number;
+  yPosition: number;           // vertical position (percentage from top)
   dropLane: number;
   dropPosition: number;
   startTime: number;
   dropped: boolean;
+  direction: 'left-to-right' | 'right-to-left';  // entry direction
+  phase: 'drop' | 'pickup' | 'pickup-exit';      // animation phase
+  pickupLane?: number;         // lane to fly to for pickup
+  pickupX?: number;            // x position for pickup
 }
 
 export interface NyanSweep {

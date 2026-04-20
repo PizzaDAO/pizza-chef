@@ -91,6 +91,7 @@ import {
 
 import {
   initializeUfo,
+  initializePickupUfo,
   updateUfoAnimation,
 } from '../logic/ufoSystem';
 
@@ -489,14 +490,34 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       // 2b. UFO ANIMATION TICK
       if (newState.ufoAnimation?.active) {
         newState.ufoAnimation = updateUfoAnimation(newState.ufoAnimation, now);
-        if (newState.ufoAnimation.dropped) {
+
+        if (newState.ufoAnimation.phase === 'drop' && newState.ufoAnimation.dropped) {
           // Unfreeze the alien customer (clear alienWaitingForDrop)
           newState.customers = newState.customers.map(c =>
             c.alienWaitingForDrop ? { ...c, alienWaitingForDrop: false } : c
           );
         }
+
+        // Pickup-exit phase complete — remove the picked-up alien
+        if (newState.ufoAnimation.phase === 'pickup-exit' && newState.ufoAnimation.dropped) {
+          newState.customers = newState.customers.filter(c => !c.alienPickedUp);
+        }
+
         if (!newState.ufoAnimation.active) {
           newState.ufoAnimation = undefined;
+        }
+      }
+
+      // 2c. ALIEN PICKUP CHECK — if an alien reached the counter and no UFO is active, send pickup UFO
+      if (!newState.ufoAnimation?.active) {
+        const pickedUpAlien = newState.customers.find(c => c.alien && c.alienPickedUp);
+        if (pickedUpAlien) {
+          soundManager.ufoFlyby();
+          newState.ufoAnimation = initializePickupUfo(
+            Math.round(pickedUpAlien.lane),
+            pickedUpAlien.position,
+            now
+          );
         }
       }
 
