@@ -65,19 +65,19 @@ export const SCUMBAG_STEVE = {
 
 export const HEALTH_INSPECTOR = {
   CHANCE: 0.08, // 8% chance (if not other variant)
-  MIN_LEVEL: 5,
+  MIN_LEVEL: 1,
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
 export const HEALTH_DEPT_RAID = {
-  MIN_LEVEL: 5,
-  TRIGGER_CHANCE: 0.10,         // 10% per spawn tick (checked once per level)
+  MIN_LEVEL: 1,
+  TRIGGER_CHANCE: 1.0,          // 100% - always trigger (demo)
   INSPECTOR_COUNT: 3,
   ALERT_DURATION: 2000,         // 2s "HEALTH DEPT RAID!" overlay
   RESULT_DURATION: 3000,        // 3s "Clean Record!" overlay
   BONUS_POINTS: 3000,
   BONUS_CASH: 20,
-  MIN_LEVEL_TIME: 10000,        // Don't trigger in first 10s of a level
+  MIN_LEVEL_TIME: 0,            // No delay - trigger immediately (demo)
   SPAWN_STAGGER: 200,           // ms stagger between inspector spawns (visual effect)
 };
 
@@ -162,7 +162,7 @@ export const LEVEL_SYSTEM = {
     SCUMBAG_STEVE: 3,
     DOGE: 4,
     NYAN: 4,
-    HEALTH_INSPECTOR: 5,
+    HEALTH_INSPECTOR: 1,
     PEPE: 5,
     MOLTOBENNY: 5,
   },
