@@ -508,10 +508,16 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       }
 
-      // 2c. ALIEN PICKUP CHECK — if an alien reached the counter and no UFO is active, send pickup UFO
+      // 2c. ALIEN PICKUP CHECK — when an alien with alienPickedUp walks far enough right, send pickup UFO
       if (!newState.ufoAnimation?.active) {
-        const pickedUpAlien = newState.customers.find(c => c.alien && c.alienPickedUp);
+        const pickedUpAlien = newState.customers.find(
+          c => c.alien && c.alienPickedUp && !c.alienFrozenForPickup && c.movingRight && c.position >= 80
+        );
         if (pickedUpAlien) {
+          // Freeze the alien in place so UFO can swoop in
+          newState.customers = newState.customers.map(c =>
+            c.id === pickedUpAlien.id ? { ...c, alienFrozenForPickup: true } : c
+          );
           soundManager.ufoFlyby();
           newState.ufoAnimation = initializePickupUfo(
             Math.round(pickedUpAlien.lane),

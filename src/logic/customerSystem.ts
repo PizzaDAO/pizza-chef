@@ -161,6 +161,11 @@ export const updateCustomerPositions = (
 
     // 3. Served/Leaving (Move Right Fast)
     if (processedCustomer.served && !processedCustomer.woozy) {
+       // Alien frozen for UFO pickup — stay in place
+       if (processedCustomer.alien && processedCustomer.alienFrozenForPickup) {
+         nextCustomers.push(processedCustomer);
+         return;
+       }
        processedCustomer.position += (processedCustomer.speed * 2);
        processedCustomer.hotHoneyAffected = false;
        nextCustomers.push(processedCustomer);
@@ -204,6 +209,11 @@ export const updateCustomerPositions = (
 
     // 5. Departed (Leaving screen)
     if (isDeparting) {
+      // Alien frozen for UFO pickup — stay in place
+      if (processedCustomer.alien && processedCustomer.alienFrozenForPickup) {
+        nextCustomers.push(processedCustomer);
+        return;
+      }
       processedCustomer.position += (processedCustomer.speed * 2);
       nextCustomers.push(processedCustomer);
       return;
@@ -292,14 +302,13 @@ export const updateCustomerPositions = (
         return;
       }
 
-      // Alien has been picked up by UFO — freeze in place until UFO removes it
-      if (processedCustomer.alienPickedUp) {
-        nextCustomers.push(processedCustomer);
-        return;
-      }
-
-      // Served alien leaves fast (moving right)
+      // Alien walking out (served or disappointed) — walk right until UFO picks it up
       if (processedCustomer.movingRight) {
+        // If alien is being picked up by UFO (frozen in place for pickup animation)
+        if (processedCustomer.alienPickedUp && processedCustomer.alienFrozenForPickup) {
+          nextCustomers.push(processedCustomer);
+          return;
+        }
         processedCustomer.position += processedCustomer.speed * 2;
         nextCustomers.push(processedCustomer);
         return;
@@ -330,12 +339,15 @@ export const updateCustomerPositions = (
       // Advance toward chef (x-axis) — aliens are immune to honey
       processedCustomer.position -= processedCustomer.speed;
 
-      // Reached chef -> NO penalty for aliens, they just get picked up by UFO
+      // Reached chef -> lose a star, alien turns around and walks out for UFO pickup
       if (processedCustomer.position <= GAME_CONFIG.CHEF_X_POSITION) {
-        // Alien waits at counter for UFO pickup — no star loss, no game over
+        events.push({ type: 'LIFE_LOST', lane: processedCustomer.lane, position: processedCustomer.position });
+        events.push({ type: 'STAR_LOST_NORMAL', lane: processedCustomer.lane, position: processedCustomer.position });
         processedCustomer.position = GAME_CONFIG.CHEF_X_POSITION;
+        processedCustomer.disappointed = true;
+        processedCustomer.movingRight = true;
         processedCustomer.alienPickedUp = true;
-        // Stop movement — the alien sits at counter until UFO arrives
+        customerStreakReset = true;
       }
 
       nextCustomers.push(processedCustomer);
@@ -641,6 +653,7 @@ export const processCustomerHit = (
         served: true,
         hasPlate: false,
         movingRight: true,
+        alienPickedUp: true,
         textMessage: "Zorp! *beep boop*",
         textMessageTime: now,
       },

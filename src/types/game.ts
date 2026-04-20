@@ -64,7 +64,8 @@ export interface Customer {
   alienLaneProgress?: number;     // 0-1 interpolation progress toward target lane
   alienLastLaneSwitchTime?: number; // Timestamp of last lane-change decision
   alienWaitingForDrop?: boolean;  // True while alien is still inside the UFO
-  alienPickedUp?: boolean;        // True when alien has been picked up by UFO at counter
+  alienPickedUp?: boolean;        // True when alien should be picked up by UFO after walking out
+  alienFrozenForPickup?: boolean; // True when alien has stopped to wait for UFO pickup animation
 }
 
 export interface PizzaSlice {
