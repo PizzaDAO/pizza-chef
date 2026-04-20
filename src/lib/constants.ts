@@ -111,10 +111,10 @@ export const WEDDING_PARTY = {
   BRIDEZILLA_SPEED_MULTIPLIER: 2, // 2x base speed
   PERFECT_RECEPTION_BONUS: 5000,
   PERFECT_RECEPTION_CASH: 25,     // bank reward
-  MIN_LEVEL: 4,                   // earliest level this can trigger
-  CHANCE_PER_LEVEL: 0.15,         // 15% chance per level (checked once at level start)
+  MIN_LEVEL: 1,                   // earliest level this can trigger
+  CHANCE_PER_LEVEL: 1.0,          // 100% chance per level (checked once at level start)
   ALERT_DURATION: 2500,           // ms for "Wedding Party!" banner
-  COOLDOWN_LEVELS: 3,             // minimum levels between events
+  COOLDOWN_LEVELS: 0,             // minimum levels between events
 };
 
 export const COSTS = {
