@@ -160,7 +160,7 @@ export const LEVEL_SYSTEM = {
     SCUMBAG_STEVE: 3,
     DOGE: 4,
     NYAN: 4,
-    MUKBANGER: 4,
+    MUKBANGER: 1,
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
@@ -179,7 +179,7 @@ export const LEVEL_SYSTEM = {
     CRITIC: [0.12, 0.15, 0.15, 0.15, 0.15], // Levels 1-5+
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
-    MUKBANGER: [0, 0, 0, 0.06, 0.08],
+    MUKBANGER: [1.0],
     INSPECTOR: [0, 0, 0, 0, 0.05],
   },
 
