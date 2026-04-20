@@ -487,43 +487,58 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       });
 
-      // 2b. UFO ANIMATION TICK
-      if (newState.ufoAnimation?.active) {
-        newState.ufoAnimation = updateUfoAnimation(newState.ufoAnimation, now);
+      // 2b. UFO ANIMATION TICK — tick ALL active UFOs in the array
+      if (newState.ufoAnimations && newState.ufoAnimations.length > 0) {
+        const updatedUfos: typeof newState.ufoAnimations = [];
+        for (const ufo of newState.ufoAnimations) {
+          if (!ufo.active) continue;
+          const updated = updateUfoAnimation(ufo, now);
 
-        if (newState.ufoAnimation.phase === 'drop' && newState.ufoAnimation.dropped) {
-          // Unfreeze the alien customer (clear alienWaitingForDrop)
-          newState.customers = newState.customers.map(c =>
-            c.alienWaitingForDrop ? { ...c, alienWaitingForDrop: false } : c
-          );
-        }
+          // Drop phase complete — unfreeze the specific alien this UFO belongs to
+          if (updated.phase === 'drop' && updated.dropped && ufo.alienId) {
+            newState.customers = newState.customers.map(c =>
+              c.id === ufo.alienId && c.alienWaitingForDrop ? { ...c, alienWaitingForDrop: false } : c
+            );
+          }
 
-        // Pickup-exit phase complete — remove the picked-up alien
-        if (newState.ufoAnimation.phase === 'pickup-exit' && newState.ufoAnimation.dropped) {
-          newState.customers = newState.customers.filter(c => !c.alienPickedUp);
-        }
+          // Pickup-exit phase complete — remove the specific alien this UFO picked up
+          if (updated.phase === 'pickup-exit' && updated.dropped && ufo.alienId) {
+            newState.customers = newState.customers.filter(c => c.id !== ufo.alienId);
+          }
 
-        if (!newState.ufoAnimation.active) {
-          newState.ufoAnimation = undefined;
+          // Keep the UFO in the array only if still active
+          if (updated.active) {
+            updatedUfos.push(updated);
+          }
         }
+        newState.ufoAnimations = updatedUfos.length > 0 ? updatedUfos : undefined;
       }
 
-      // 2c. ALIEN PICKUP CHECK — when an alien with alienPickedUp walks far enough right, send pickup UFO
-      if (!newState.ufoAnimation?.active) {
-        const pickedUpAlien = newState.customers.find(
+      // 2c. ALIEN PICKUP CHECK — for each alien with alienPickedUp that has walked far enough right,
+      //     check if there's already a pickup UFO targeting it; if not, create one
+      {
+        const aliensNeedingPickup = newState.customers.filter(
           c => c.alien && c.alienPickedUp && !c.alienFrozenForPickup && c.movingRight && c.position >= 80
         );
-        if (pickedUpAlien) {
-          // Freeze the alien in place so UFO can swoop in
-          newState.customers = newState.customers.map(c =>
-            c.id === pickedUpAlien.id ? { ...c, alienFrozenForPickup: true } : c
+        for (const alien of aliensNeedingPickup) {
+          // Check if a pickup UFO already targets this alien
+          const hasPickupUfo = newState.ufoAnimations?.some(
+            u => u.alienId === alien.id && (u.phase === 'pickup' || u.phase === 'pickup-exit')
           );
-          soundManager.ufoFlyby();
-          newState.ufoAnimation = initializePickupUfo(
-            Math.round(pickedUpAlien.lane),
-            pickedUpAlien.position,
-            now
-          );
+          if (!hasPickupUfo) {
+            // Freeze the alien in place so UFO can swoop in
+            newState.customers = newState.customers.map(c =>
+              c.id === alien.id ? { ...c, alienFrozenForPickup: true } : c
+            );
+            soundManager.ufoFlyby();
+            const pickupUfo = initializePickupUfo(
+              Math.round(alien.lane),
+              alien.position,
+              now
+            );
+            pickupUfo.alienId = alien.id;
+            newState.ufoAnimations = [...(newState.ufoAnimations || []), pickupUfo];
+          }
         }
       }
 
@@ -1539,12 +1554,14 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         customersSpawnedThisLevelRef.current += 1;
         next = { ...next, customers: [...next.customers, spawnResult.newCustomer] };
 
-        // If this is an alien customer, start the UFO fly-by animation
+        // If this is an alien customer, start a UFO fly-by animation (push to array)
         if (spawnResult.triggerUfo && spawnResult.newCustomer.alien) {
           soundManager.ufoFlyby();
+          const dropUfo = initializeUfo(spawnResult.newCustomer.lane, ALIEN.UFO_DROP_X, now);
+          dropUfo.alienId = spawnResult.newCustomer.id;
           next = {
             ...next,
-            ufoAnimation: initializeUfo(spawnResult.newCustomer.lane, ALIEN.UFO_DROP_X, now),
+            ufoAnimations: [...(next.ufoAnimations || []), dropUfo],
           };
         }
       }
@@ -1595,7 +1612,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
-      ufoAnimation: gameState.ufoAnimation,
+      ufoAnimations: gameState.ufoAnimations,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;

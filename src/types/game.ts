@@ -101,6 +101,7 @@ export interface UfoAnimationState {
   phase: 'drop' | 'pickup' | 'pickup-exit';      // animation phase
   pickupLane?: number;         // lane to fly to for pickup
   pickupX?: number;            // x position for pickup
+  alienId?: string;            // which alien customer this UFO belongs to
 }
 
 export interface NyanSweep {
@@ -292,7 +293,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades' | 'ufoAnimation'
+  | 'ovenSpeedUpgrades' | 'ufoAnimations'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -345,5 +346,5 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
-  ufoAnimation?: UfoAnimationState;
+  ufoAnimations?: UfoAnimationState[];
 }

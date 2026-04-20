@@ -331,19 +331,20 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
         />
       ))}
 
-      {/* UFO Animation */}
-      {gameState.ufoAnimation?.active && (
+      {/* UFO Animations — render ALL active UFOs */}
+      {gameState.ufoAnimations?.map((ufo, idx) => ufo.active && (
         <div
+          key={ufo.alienId || `ufo-${idx}`}
           className="absolute w-[10%] aspect-square z-30"
           style={{
-            left: `${gameState.ufoAnimation.xPosition}%`,
-            top: `${gameState.ufoAnimation.yPosition}%`,
+            left: `${ufo.xPosition}%`,
+            top: `${ufo.yPosition}%`,
             transition: 'left 50ms linear, top 50ms linear',
           }}
         >
           <div style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>🛸</div>
         </div>
-      )}
+      ))}
 
       {/* Falling pizza when game over */}
       {gameState.fallingPizza && (

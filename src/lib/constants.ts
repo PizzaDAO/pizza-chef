@@ -358,5 +358,5 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
-  ufoAnimation: undefined,
+  ufoAnimations: undefined,
 };

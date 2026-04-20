@@ -344,6 +344,7 @@ export const updateCustomerPositions = (
         events.push({ type: 'LIFE_LOST', lane: processedCustomer.lane, position: processedCustomer.position });
         events.push({ type: 'STAR_LOST_NORMAL', lane: processedCustomer.lane, position: processedCustomer.position });
         processedCustomer.position = GAME_CONFIG.CHEF_X_POSITION;
+        processedCustomer.lane = Math.round(processedCustomer.lane); // Snap to nearest integer lane before departing
         processedCustomer.disappointed = true;
         processedCustomer.movingRight = true;
         processedCustomer.alienPickedUp = true;
@@ -650,6 +651,7 @@ export const processCustomerHit = (
     return {
       updatedCustomer: {
         ...customer,
+        lane: Math.round(customer.lane), // Snap to nearest integer lane before departing
         served: true,
         hasPlate: false,
         movingRight: true,
