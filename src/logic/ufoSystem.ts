@@ -78,19 +78,23 @@ export const updateUfoAnimation = (ufo: UfoAnimationState, now: number): UfoAnim
  */
 const updateDropPhase = (ufo: UfoAnimationState, progress: number): UfoAnimationState => {
   const targetY = laneToYPercent(ufo.dropLane);
+  const dropX = ufo.dropPosition;
 
   let xPosition: number;
   let yPosition: number;
 
-  if (ufo.direction === 'left-to-right') {
-    // Fly from -10 through dropPosition and off to 110
-    xPosition = -10 + progress * 120; // -10 -> 110
+  // X: fly to dropPosition at progress 0.5 (bottom of arc), then continue off-screen
+  if (progress <= 0.5) {
+    const xProgress = progress / 0.5;
+    const startX = ufo.direction === 'left-to-right' ? -10 : 110;
+    xPosition = startX + xProgress * (dropX - startX);
   } else {
-    // Fly from 110 through dropPosition and off to -10
-    xPosition = 110 - progress * 120; // 110 -> -10
+    const xProgress = (progress - 0.5) / 0.5;
+    const endX = ufo.direction === 'left-to-right' ? 110 : -10;
+    xPosition = dropX + xProgress * (endX - dropX);
   }
 
-  // Y: descend from -10 to targetY in the first ~50% of flight, then ascend back up
+  // Y: descend from -10 to targetY at progress 0.5 (bottom), then ascend back up
   if (progress <= 0.5) {
     const yProgress = progress / 0.5;
     yPosition = -10 + yProgress * (targetY + 10);
@@ -99,15 +103,9 @@ const updateDropPhase = (ufo: UfoAnimationState, progress: number): UfoAnimation
     yPosition = targetY - yProgress * (targetY + 10);
   }
 
-  // Check if we've passed the drop position
-  const passedDrop = ufo.direction === 'left-to-right'
-    ? xPosition >= ufo.dropPosition
-    : xPosition <= ufo.dropPosition;
-
-  const dropped = ufo.dropped || passedDrop;
-  const active = ufo.direction === 'left-to-right'
-    ? xPosition < 110
-    : xPosition > -10;
+  // Drop the alien at the bottom of the arc (progress >= 0.5)
+  const dropped = ufo.dropped || progress >= 0.5;
+  const active = progress < 1;
 
   return {
     ...ufo,
