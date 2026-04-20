@@ -90,9 +90,14 @@ const updateDropPhase = (ufo: UfoAnimationState, progress: number): UfoAnimation
     xPosition = 110 - progress * 120; // 110 -> -10
   }
 
-  // Y: descend from -10 to targetY in the first ~60% of flight, then stay level
-  const yProgress = Math.min(1, progress / 0.6);
-  yPosition = -10 + yProgress * (targetY + 10);
+  // Y: descend from -10 to targetY in the first ~50% of flight, then ascend back up
+  if (progress <= 0.5) {
+    const yProgress = progress / 0.5;
+    yPosition = -10 + yProgress * (targetY + 10);
+  } else {
+    const yProgress = (progress - 0.5) / 0.5;
+    yPosition = targetY - yProgress * (targetY + 10);
+  }
 
   // Check if we've passed the drop position
   const passedDrop = ufo.direction === 'left-to-right'
