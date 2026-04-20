@@ -9,6 +9,7 @@ import {
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
+  WEDDING_PARTY,
 } from '../lib/constants';
 
 export interface SpawnResult<T> {
@@ -249,6 +250,51 @@ export const trySpawnPowerUp = (
   };
 
   return { shouldSpawn: true, entity: powerUp };
+};
+
+/**
+ * Spawn a batch of wedding party guests across all 4 lanes.
+ * One guest is randomly chosen as the Bridezilla (2x speed).
+ */
+export const spawnWeddingParty = (
+  now: number,
+  level: number,
+): { guests: Customer[]; bridezillaIndex: number } => {
+  const guestCount = WEDDING_PARTY.MIN_GUESTS +
+    Math.floor(Math.random() * (WEDDING_PARTY.MAX_GUESTS - WEDDING_PARTY.MIN_GUESTS + 1));
+
+  const speedMultiplier = getLevelSpeedMultiplier(level);
+  const baseSpeed = ENTITY_SPEEDS.CUSTOMER_BASE * speedMultiplier;
+  const bridezillaIndex = Math.floor(Math.random() * guestCount);
+
+  const guests: Customer[] = [];
+  for (let i = 0; i < guestCount; i++) {
+    const lane = i % GAME_CONFIG.LANE_COUNT; // distribute across all 4 lanes
+    const isBridezilla = i === bridezillaIndex;
+    const speed = isBridezilla
+      ? baseSpeed * WEDDING_PARTY.BRIDEZILLA_SPEED_MULTIPLIER
+      : baseSpeed;
+
+    // Stagger spawn positions so they don't stack exactly on top of each other
+    const spawnOffset = Math.floor(i / GAME_CONFIG.LANE_COUNT) * 8; // ~8% gap per row
+
+    guests.push({
+      id: `wedding-${now}-${i}`,
+      lane,
+      position: POSITIONS.SPAWN_X + spawnOffset, // slightly off-screen, staggered
+      speed,
+      served: false,
+      hasPlate: false,
+      leaving: false,
+      disappointed: false,
+      disappointedEmoji: ['😢', '😭', '😠', '🤬'][Math.floor(Math.random() * 4)],
+      movingRight: false,
+      weddingParty: true,
+      isBridezilla,
+    });
+  }
+
+  return { guests, bridezillaIndex };
 };
 
 /**

@@ -104,6 +104,19 @@ export const SCORING = {
   BEST_OF_ALERT_DURATION: 4000,
 };
 
+export const WEDDING_PARTY = {
+  MIN_GUESTS: 8,
+  MAX_GUESTS: 12,
+  TIP_MULTIPLIER: 3,             // 3x score for all wedding guests
+  BRIDEZILLA_SPEED_MULTIPLIER: 2, // 2x base speed
+  PERFECT_RECEPTION_BONUS: 5000,
+  PERFECT_RECEPTION_CASH: 25,     // bank reward
+  MIN_LEVEL: 1,                   // earliest level this can trigger
+  CHANCE_PER_LEVEL: 1.0,          // 100% chance per level (checked once at level start)
+  ALERT_DURATION: 2500,           // ms for "Wedding Party!" banner
+  COOLDOWN_LEVELS: 0,             // minimum levels between events
+};
+
 export const COSTS = {
   OVEN_UPGRADE: 10,
   OVEN_SPEED_UPGRADE: 10,
@@ -346,4 +359,15 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Wedding Party Event
+  weddingPartyEvent: undefined as {
+    active: boolean;
+    guestIds: string[];
+    totalGuests: number;
+    guestsServed: number;
+    guestsDisappointed: number;
+    perfectReceptionAwarded: boolean;
+  } | undefined,
+  weddingPartyAlert: undefined as { endTime: number } | undefined,
+  lastWeddingEventLevel: undefined as number | undefined,
 };

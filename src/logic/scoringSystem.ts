@@ -3,7 +3,7 @@ import {
   GameStats,
   GameState
 } from '../types/game';
-import { SCORING, GAME_CONFIG } from '../lib/constants';
+import { SCORING, GAME_CONFIG, WEDDING_PARTY } from '../lib/constants';
 import { getCustomerVariant } from '../types/game';
 
 /**
@@ -111,8 +111,11 @@ export const calculateCustomerScore = (
     baseScore = customer.critic ? SCORING.CUSTOMER_CRITIC : SCORING.CUSTOMER_NORMAL;
   }
 
-  const points = Math.floor(baseScore * dogeMultiplier * streakMultiplier);
-  const bank = SCORING.BASE_BANK_REWARD * dogeMultiplier;
+  // Wedding party 3x tip
+  const weddingMultiplier = customer.weddingParty ? WEDDING_PARTY.TIP_MULTIPLIER : 1;
+
+  const points = Math.floor(baseScore * dogeMultiplier * streakMultiplier * weddingMultiplier);
+  const bank = SCORING.BASE_BANK_REWARD * dogeMultiplier * weddingMultiplier;
 
   return { points, bank };
 };
