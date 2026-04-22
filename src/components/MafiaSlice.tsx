@@ -19,7 +19,7 @@ const MafiaSlice: React.FC<MafiaSliceProps> = ({ slice }) => {
 
   return (
     <div
-      className="absolute pointer-events-none w-[6%] aspect-square flex items-center justify-center"
+      className="absolute pointer-events-none w-[10%] aspect-square flex items-center justify-center"
       style={{
         left: `${xPct}%`,
         top: `${yPct}%`,

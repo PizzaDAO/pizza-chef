@@ -283,7 +283,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades'
+  | 'ovenSpeedUpgrades' | 'mafiaSlices'
 > & { snapshotTime: number };
 
 export interface GameState {

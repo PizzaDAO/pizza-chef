@@ -72,7 +72,7 @@ export const HEALTH_INSPECTOR = {
 
 export const MAFIA_SLICE_CONFIG = {
   SLICE_COUNT: 8,
-  SPEED: 2.5,
+  SPEED: 3,
   LIFETIME: 2000, // ms
   LANE_SPEED: 0.02, // Vertical movement speed
 };

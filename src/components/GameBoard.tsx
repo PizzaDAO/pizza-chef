@@ -284,7 +284,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
         <PizzaSlice key={slice.id} slice={slice} />
       ))}
 
-      {gameState.mafiaSlices.map((slice) => (
+      {gameState.mafiaSlices?.map((slice) => (
         <MafiaSlice key={slice.id} slice={slice} />
       ))}
 

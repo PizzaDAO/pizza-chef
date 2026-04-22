@@ -1614,6 +1614,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      mafiaSlices: gameState.mafiaSlices,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;
