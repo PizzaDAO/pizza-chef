@@ -662,8 +662,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                   if (result.starGain) starGainsToAdd.push(result.starGain);
                 }
 
-                // Spawn 8 mafia slices radiating outward
-                const mafiaSlices = spawnMafiaSlices(customer.lane, customer.position, now);
+                // Spawn mafia slices aimed at nearby customers
+                const mafiaSlices = spawnMafiaSlices(customer.lane, customer.position, now, newState.customers);
                 newState.mafiaSlices = [...newState.mafiaSlices, ...mafiaSlices];
 
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {

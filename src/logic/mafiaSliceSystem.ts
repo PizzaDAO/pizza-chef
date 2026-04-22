@@ -1,33 +1,43 @@
 // src/logic/mafiaSliceSystem.ts
 import { MafiaSlice, Customer, isCustomerLeaving } from '../types/game';
-import { MAFIA_SLICE_CONFIG, GAME_CONFIG } from '../lib/constants';
+import { MAFIA_SLICE_CONFIG, GAME_CONFIG, ENTITY_SPEEDS } from '../lib/constants';
 
 /**
- * Spawn 8 mafia slices radiating outward from the served customer's position
+ * Spawn mafia slices aimed at nearby approaching customers.
+ * One slice per target customer. No slices toward the chef (left).
  */
 export const spawnMafiaSlices = (
   lane: number,
   position: number,
-  now: number
+  now: number,
+  customers: Customer[]
 ): MafiaSlice[] => {
-  const slices: MafiaSlice[] = [];
-  const { SLICE_COUNT, SPEED } = MAFIA_SLICE_CONFIG;
+  // Find nearby approaching customers (not leaving, not the mafia customer itself)
+  const targets = customers.filter(c =>
+    !isCustomerLeaving(c) &&
+    !c.pizzaMafia &&
+    Math.abs(c.position - position) < 40 // within range
+  );
 
-  for (let i = 0; i < SLICE_COUNT; i++) {
-    // Distribute slices evenly in a circle (360 / 8 = 45 degrees apart)
-    const angle = (i / SLICE_COUNT) * 2 * Math.PI;
+  if (targets.length === 0) return [];
 
-    slices.push({
+  const speed = ENTITY_SPEEDS.PIZZA; // Same speed as chef's pizza
+
+  return targets.map((target, i) => {
+    // Calculate direction vector toward the target
+    const dx = target.position - position;
+    const dy = target.lane - lane;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+
+    return {
       id: `mafia-slice-${now}-${i}`,
       lane,
       position,
-      speedX: Math.cos(angle) * SPEED,
-      speedY: Math.sin(angle) * MAFIA_SLICE_CONFIG.LANE_SPEED * 100, // Scale for lane units
+      speedX: (dx / dist) * speed,
+      speedY: (dy / dist) * MAFIA_SLICE_CONFIG.LANE_SPEED * 100,
       startTime: now,
-    });
-  }
-
-  return slices;
+    };
+  });
 };
 
 /**
