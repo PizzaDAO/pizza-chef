@@ -768,6 +768,18 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
             if (checkMafiaSliceCollision(slice, customer)) {
               mafiaSlicesToRemove.add(slice.id);
+
+              // Mafia bribes health inspectors — they leave without inspecting
+              if (customer.healthInspector && !customer.served) {
+                return {
+                  ...customer,
+                  leaving: true,
+                  movingRight: true,
+                  textMessage: "Just this once",
+                  textMessageTime: now
+                };
+              }
+
               soundManager.customerServed();
 
               const result = applyCustomerScoring(customer, newState, dogeMultiplier,
