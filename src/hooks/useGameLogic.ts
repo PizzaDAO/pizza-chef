@@ -1527,19 +1527,41 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           next.levelProgress.levelStartTime, now
         );
         if (raidResult.shouldTrigger && raidResult.inspectors) {
+          // Spawn first inspector now, queue the rest with time-based stagger
+          const [first, ...rest] = raidResult.inspectors;
           next = {
             ...next,
-            customers: [...next.customers, ...raidResult.inspectors],
+            customers: [...next.customers, first],
             healthDeptRaid: {
               active: true,
               inspectorIds: raidResult.inspectors.map(i => i.id),
               starsAtRaidStart: next.lives,
               alertEndTime: now + HEALTH_DEPT_RAID.ALERT_DURATION,
               raidTriggeredThisLevel: true,
+              pendingInspectors: rest,
+              nextSpawnTime: now + HEALTH_DEPT_RAID.SPAWN_DELAY,
             },
           };
           soundManager.lifeLost(); // dramatic sound for raid start
         }
+      }
+
+      // --- HEALTH DEPT RAID: DRIP-SPAWN PENDING INSPECTORS ---
+      if (next.healthDeptRaid?.active &&
+          next.healthDeptRaid.pendingInspectors &&
+          next.healthDeptRaid.pendingInspectors.length > 0 &&
+          next.healthDeptRaid.nextSpawnTime &&
+          now >= next.healthDeptRaid.nextSpawnTime) {
+        const [nextInspector, ...remaining] = next.healthDeptRaid.pendingInspectors;
+        next = {
+          ...next,
+          customers: [...next.customers, nextInspector],
+          healthDeptRaid: {
+            ...next.healthDeptRaid,
+            pendingInspectors: remaining.length > 0 ? remaining : undefined,
+            nextSpawnTime: remaining.length > 0 ? now + HEALTH_DEPT_RAID.SPAWN_DELAY : undefined,
+          },
+        };
       }
 
       return next;

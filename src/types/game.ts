@@ -330,6 +330,8 @@ export interface GameState {
     starsAtRaidStart: number;
     alertEndTime: number;
     raidTriggeredThisLevel: boolean;
+    pendingInspectors?: Customer[];
+    nextSpawnTime?: number;
   };
   healthDeptRaidResult?: {
     success: boolean;

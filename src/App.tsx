@@ -467,7 +467,7 @@ function App() {
                           HEALTH DEPT RAID!
                         </h2>
                         <p className="text-sm sm:text-lg mt-1 text-gray-300">
-                          3 inspectors incoming!
+                          4 inspectors incoming!
                         </p>
                       </div>
                     </div>
@@ -633,7 +633,7 @@ function App() {
                         HEALTH DEPT RAID!
                       </h2>
                       <p className="text-sm sm:text-lg mt-1 text-gray-300">
-                        3 inspectors incoming!
+                        4 inspectors incoming!
                       </p>
                     </div>
                   </div>

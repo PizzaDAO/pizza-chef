@@ -78,7 +78,8 @@ export const HEALTH_DEPT_RAID = {
   BONUS_POINTS: 3000,
   BONUS_CASH: 20,
   MIN_LEVEL_TIME: 0,            // No delay - trigger immediately (demo)
-  SPAWN_STAGGER: 15,            // position offset between inspector spawns (~2-3s apart at normal speed)
+  SPAWN_STAGGER: 0,             // position offset (all start at same X)
+  SPAWN_DELAY: 3000,            // ms between each inspector spawn (~3s apart, ~10s total for 4)
 };
 
 export const SCORING = {
