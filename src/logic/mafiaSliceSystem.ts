@@ -4,8 +4,8 @@ import { MAFIA_SLICE_CONFIG, GAME_CONFIG, ENTITY_SPEEDS } from '../lib/constants
 
 /**
  * Spawn mafia slices aimed at nearby customers (including other mafia).
- * Leads the target based on their movement speed so slices don't miss.
- * One slice per target customer. No slices toward the chef (left).
+ * Uses interception math to lead targets so slices don't miss.
+ * One slice per target customer.
  */
 export const spawnMafiaSlices = (
   lane: number,
@@ -23,32 +23,51 @@ export const spawnMafiaSlices = (
 
   if (targets.length === 0) return [];
 
-  const sliceSpeed = ENTITY_SPEEDS.PIZZA; // Same speed as chef's pizza
+  const sliceSpeed = ENTITY_SPEEDS.PIZZA; // position % per tick
 
   return targets.map((target, i) => {
-    // Lead the target: predict where they'll be when the slice arrives
-    // Customers walk left at their speed, so predict future position
     const dx = target.position - position;
-    const dy = target.lane - lane;
-    const straightDist = Math.sqrt(dx * dx + (dy * 25) * (dy * 25)) || 1; // dy scaled to % units
-    const timeToReach = straightDist / sliceSpeed; // frames to reach target
+    const laneDiff = target.lane - lane;
 
-    // Target's predicted position (customers move left at their speed)
-    const targetSpeed = target.movingRight ? target.speed * 2 : -target.speed;
-    const predictedX = target.position + targetSpeed * timeToReach;
-    const predictedLane = target.lane; // lane changes are unpredictable, just aim at current lane
+    // Target's X velocity (position % per tick)
+    // Approaching customers move left; departing move right at 2x
+    const targetVelX = target.movingRight ? target.speed * 2 : -target.speed;
 
-    // Aim at predicted position
-    const leadDx = predictedX - position;
-    const leadDy = predictedLane - lane;
-    const leadDist = Math.sqrt(leadDx * leadDx + leadDy * leadDy) || 1;
+    // Solve for interception time on X axis:
+    // position + speedX * t = target.position + targetVelX * t
+    // For a slice moving toward the target at sliceSpeed:
+    // speedX = sliceSpeed (toward target) or -sliceSpeed
+    const sliceVelX = dx >= 0 ? sliceSpeed : -sliceSpeed;
+    const closingSpeed = sliceVelX - targetVelX;
+
+    let t: number;
+    if (Math.abs(closingSpeed) < 0.01) {
+      // Target moving same speed/direction — just aim straight
+      t = Math.abs(dx) / sliceSpeed;
+    } else {
+      t = dx / closingSpeed;
+    }
+
+    // Clamp to reasonable range (don't aim too far ahead)
+    t = Math.max(0, Math.min(t, 30));
+
+    // Predicted intercept position
+    const interceptX = target.position + targetVelX * t;
+    const interceptLane = target.lane; // lane changes are unpredictable
+
+    // Calculate velocity components
+    const aimDx = interceptX - position;
+    // speedX: travel at full slice speed toward the intercept
+    const speedX = aimDx >= 0 ? sliceSpeed : -sliceSpeed;
+    // speedY: arrive at the correct lane over the interception time
+    const speedY = t > 0 ? laneDiff / t : 0;
 
     return {
       id: `mafia-slice-${now}-${i}`,
       lane,
       position,
-      speedX: (leadDx / leadDist) * sliceSpeed,
-      speedY: (leadDy / leadDist) * MAFIA_SLICE_CONFIG.LANE_SPEED * 100,
+      speedX,
+      speedY,
       startTime: now,
     };
   });
