@@ -18,7 +18,7 @@ export const spawnMafiaSlices = (
   const targets = customers.filter(c =>
     !isCustomerLeaving(c) &&
     c.id !== mafiaCustomerId &&
-    Math.abs(c.position - position) < 40 // within range
+    Math.abs(c.position - position) < 50 // within range
   );
 
   if (targets.length === 0) return [];
