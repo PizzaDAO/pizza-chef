@@ -159,7 +159,7 @@ export const LEVEL_SYSTEM = {
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
-    PIZZA_MAFIA: 1,
+    PIZZA_MAFIA: 7,
     PEPE: 5,
     MOLTOBENNY: 5,
   },
