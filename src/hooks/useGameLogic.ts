@@ -796,7 +796,12 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 createdAt: now
               }];
 
-              return { ...customer, served: true, hasPlate: false };
+              return {
+                ...customer,
+                served: true,
+                hasPlate: false,
+                ...(customer.pizzaMafia ? { textMessage: "Bada Boom", textMessageTime: now } : {})
+              };
             }
             return customer;
           });
