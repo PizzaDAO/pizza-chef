@@ -28,7 +28,13 @@
       "Bash(grep:*)",
       "Bash(npx vitest run src/logic/customerSystem.test.ts)",
       "Bash(npx vitest:*)",
-      "Bash(timeout 5 npm run dev:*)"
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(npx vercel:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm init:*)",
+      "Bash(node scripts/generateMasks.js:*)",
+      "Bash(npm show:*)",
+      "WebFetch(domain:pizza-chef-assets.pages.dev)"
     ]
   }
 }
