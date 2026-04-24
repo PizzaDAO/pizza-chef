@@ -15,6 +15,8 @@ const badLuckBrianPukeImg = sprite("bad-luck-brian-puke.png");
 const rainbowBrian = sprite("rainbow-brian.png");
 const scumbagSteveImg = sprite("scumbag-steve.png");
 const healthInspectorImg = sprite("health-inspector.png");
+const deliveryDriverEmptyImg = sprite("delivery-driver-empty.png");
+const deliveryDriverFullImg = sprite("delivery-driver-full.png");
 
 interface CustomerProps {
   customer: CustomerType;
@@ -61,8 +63,8 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
       if (variant === 'scumbagSteve') return { type: 'image', value: scumbagSteveImg, alt: 'scumbagsteve' };
       if (variant === 'healthInspector') return { type: 'image', value: healthInspectorImg, alt: 'health-inspector' };
       if (variant === 'deliveryDriver') {
-        if (customer.served) return { type: 'image', value: yumfaceImg, alt: 'delivery-happy' };
-        return { type: 'emoji', value: '\uD83D\uDEF5' };
+        if (customer.served) return { type: 'image', value: deliveryDriverFullImg, alt: 'delivery-full' };
+        return { type: 'image', value: deliveryDriverEmptyImg, alt: 'delivery-empty' };
       }
     }
 
@@ -105,7 +107,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
             style={{
               transform: customer.brianNyaned
                 ? 'scale(2)'
-                : customer.flipped
+                : (customer.deliveryDriver ? !customer.flipped : customer.flipped)
                   ? 'scaleX(-1)'
                   : 'none',
               animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
