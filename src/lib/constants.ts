@@ -280,7 +280,7 @@ export const CHUCK_E_CHEESE_CONFIG = {
   WAVES: 3,
   MINIONS_PER_WAVE: 8,
   KID_SPRITE_COUNT: 6,
-  KID_WAVE_SPEEDS: [0.45, 0.5, 0.55] as readonly number[],
+  KID_WAVE_SPEEDS: [0.3825, 0.425, 0.4675] as readonly number[],
   KID_ICE_CREAM_SPEED_BONUS: 0.15,
 };
 
