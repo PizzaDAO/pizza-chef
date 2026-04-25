@@ -162,11 +162,11 @@ export const COSTS = {
 
 export const WORKER_CONFIG = {
   ACTION_INTERVAL: 150,
-  STARTING_SLICES: 2,
+  STARTING_SLICES: 1,
 
   // Training system
   BASE_ACTION_INTERVAL: 200,
-  ACTION_INTERVALS: [200, 180, 160, 140, 120, 100],
+  ACTION_INTERVALS: [200, 185, 170, 155, 140, 125, 110, 100],
 
   // Ability unlock thresholds (total training level = sum of all stats)
   UNLOCK_PLATES: 3,
@@ -175,14 +175,14 @@ export const WORKER_CONFIG = {
   UNLOCK_CLEAN_OVEN: 8,
   UNLOCK_MOVE_ACT: 10,
 
-  MAX_STAT_LEVEL: 5,
+  MAX_STAT_LEVEL: 7,
 
   // Max slices the intern can hold per capacity level
-  MAX_SLICES_BY_LEVEL: [2, 3, 4, 5, 6, 8],
+  MAX_SLICES_BY_LEVEL: [1, 2, 3, 4, 5, 6, 7, 8],
 
   TRAINING_COSTS: {
-    hustle:   [15, 25, 40, 60, 85],
-    capacity: [10, 20, 35, 50, 75],
+    hustle:   [10, 20, 30, 40, 50, 60, 70],
+    capacity: [10, 20, 30, 40, 50, 60, 70],
   } as Record<string, number[]>,
 };
 
@@ -197,8 +197,8 @@ export const BOSS_CONFIG = {
 // --- Level System ---
 export const LEVEL_SYSTEM = {
   CUSTOMERS_PER_LEVEL: [
-    10, // Level 1
-    15, // Level 2
+    5, // Level 1
+    10, // Level 2
     20, // Level 3
     25, // Level 4
     30, // Level 5
