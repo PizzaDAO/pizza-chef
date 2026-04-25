@@ -92,18 +92,20 @@ export const getLevelSpawnInterval = (level: number): number => {
 /**
  * Get special customer spawn chances for a given level
  */
-const getSpecialChances = (level: number) => {
-  const idx = Math.min(level, LEVEL_SYSTEM.SPECIAL_CHANCES.CRITIC.length) - 1;
-  return {
-    critic: LEVEL_SYSTEM.SPECIAL_CHANCES.CRITIC[idx],
-    brian: LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN[idx],
-    steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
-    deliveryDriver: LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER[idx],
-    inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
-    alien: LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN[idx] || 0,
-    mafia: LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA ? (LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA[idx] || 0) : 0,
-  };
+const chanceAt = (arr: readonly number[], level: number): number => {
+  const idx = Math.min(level, arr.length) - 1;
+  return arr[idx] ?? 0;
 };
+
+const getSpecialChances = (level: number) => ({
+  critic: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.CRITIC, level),
+  brian: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN, level),
+  steve: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE, level),
+  deliveryDriver: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER, level),
+  inspector: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR, level),
+  alien: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN, level),
+  mafia: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA, level),
+});
 
 /**
  * Calculate the spawn delay based on level (legacy compat)
