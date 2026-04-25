@@ -163,6 +163,27 @@ export const COSTS = {
 export const WORKER_CONFIG = {
   ACTION_INTERVAL: 150,
   STARTING_SLICES: 2,
+
+  // Training system
+  BASE_ACTION_INTERVAL: 200,
+  ACTION_INTERVALS: [200, 180, 160, 140, 120, 100],
+
+  // Ability unlock thresholds (total training level = sum of all stats)
+  UNLOCK_PLATES: 3,
+  UNLOCK_PULL_PIZZA: 6,
+  UNLOCK_START_OVEN: 10,
+  UNLOCK_MOVE_ACT: 15,
+
+  MAX_STAT_LEVEL: 5,
+
+  // Max slices the intern can hold per capacity level
+  MAX_SLICES_BY_LEVEL: [2, 3, 4, 5, 6, 8],
+
+  TRAINING_COSTS: {
+    speed:    [15, 25, 40, 60, 85],
+    capacity: [10, 20, 35, 50, 75],
+    hustle:   [20, 35, 50, 70, 100],
+  } as Record<string, number[]>,
 };
 
 export const BOSS_CONFIG = {
@@ -358,6 +379,7 @@ export const INITIAL_GAME_STATE = {
   nyanSweep: undefined,
   lastStarLostReason: undefined,
   hiredWorker: undefined,
+  workerTrainingSaved: undefined,
   stats: {
     slicesBaked: 0,
     customersServed: 0,

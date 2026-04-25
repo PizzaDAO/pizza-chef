@@ -11,6 +11,7 @@ import {
   StarLostReason,
   EmptyPlate,
   LevelPhase,
+  WorkerTraining,
   isCustomerLeaving,
   getCustomerVariant
 } from '../types/game';
@@ -127,6 +128,7 @@ import {
   hireWorker as hireWorkerStore,
   processWorkerRetention,
   calculateLevelRewards,
+  trainWorker as trainWorkerStore,
 } from '../logic/storeSystem';
 
 const DEFAULT_OVEN_SOUND_STATES: { [key: number]: OvenSoundState } = {
@@ -1605,6 +1607,10 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     setGameState(prev => hireWorkerStore(prev, prev.chefLane));
   }, []);
 
+  const trainWorker = useCallback((stat: keyof WorkerTraining) => {
+    setGameState(prev => trainWorkerStore(prev, stat));
+  }, []);
+
   const debugActivatePowerUp = useCallback((type: PowerUpType) => {
     setGameState(prev => {
       if (prev.gameOver) return prev;
@@ -1976,6 +1982,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     bribeReviewer,
     buyPowerUp,
     hireWorker,
+    trainWorker,
     debugActivatePowerUp,
     getReplayFrames,
   };

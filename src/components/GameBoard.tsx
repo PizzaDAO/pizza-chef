@@ -14,6 +14,7 @@ import { GameState, GameStateSnapshot } from '../types/game';
 import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
 import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
+import { getTotalTrainingLevel } from '../logic/workerSystem';
 
 const chefImg = sprite("chef.png");
 const cheesedChefImg = sprite("cheesed-chef.png");
@@ -202,41 +203,47 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
       <PepeHelpers helpers={gameState.pepeHelpers} />
 
       {/* Hired Worker */}
-      {gameState.hiredWorker?.active && (
-        <div
-          className="absolute flex items-center justify-center"
-          style={{
-            left: '5%',
-            top: `${gameState.hiredWorker.lane * 25 + 13}%`,
-            width: '10%',
-            aspectRatio: '1 / 1',
-            transform: 'translate3d(0, -50%, 0)',
-            zIndex: 10,
-            transition: 'top 150ms ease-out',
-          }}
-        >
-          <img
-            src={sprite("intern.png")}
-            alt="Hired intern"
-            className="w-full h-full object-contain"
-          />
-          {gameState.hiredWorker.availableSlices > 0 && (
-            <div
-              className="absolute"
-              style={{
-                left: '55%',
-                top: '90%',
-                width: '91%',
-                height: '91%',
-                transform: 'translateY(-50%)',
-                pointerEvents: 'none',
-              }}
-            >
-              <PizzaSliceStack sliceCount={gameState.hiredWorker.availableSlices} />
-            </div>
-          )}
-        </div>
-      )}
+      {gameState.hiredWorker?.active && (() => {
+        const totalLevel = getTotalTrainingLevel(gameState.hiredWorker.training);
+        const internSprite = totalLevel >= 13 ? 'intern-pro.png'
+          : totalLevel >= 6 ? 'intern-mid.png'
+          : 'intern.png';
+        return (
+          <div
+            className="absolute flex items-center justify-center"
+            style={{
+              left: '5%',
+              top: `${gameState.hiredWorker.lane * 25 + 13}%`,
+              width: '10%',
+              aspectRatio: '1 / 1',
+              transform: 'translate3d(0, -50%, 0)',
+              zIndex: 10,
+              transition: 'top 150ms ease-out',
+            }}
+          >
+            <img
+              src={sprite(internSprite)}
+              alt="Hired intern"
+              className="w-full h-full object-contain"
+            />
+            {gameState.hiredWorker.availableSlices > 0 && (
+              <div
+                className="absolute"
+                style={{
+                  left: '55%',
+                  top: '90%',
+                  width: '91%',
+                  height: '91%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <PizzaSliceStack sliceCount={gameState.hiredWorker.availableSlices} />
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Nyan Cat Chef - positioned directly on game board during sweep */}
       {gameState.nyanSweep?.active && (
