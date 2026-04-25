@@ -30,6 +30,7 @@ export const getWorkerAbilities = (t: WorkerTraining): HelperAbilities => {
     canCatchPlates: totalLevel >= WORKER_CONFIG.UNLOCK_PLATES,
     canPullPizza: totalLevel >= WORKER_CONFIG.UNLOCK_PULL_PIZZA,
     canStartOven: totalLevel >= WORKER_CONFIG.UNLOCK_START_OVEN,
+    canCleanOven: totalLevel >= WORKER_CONFIG.UNLOCK_CLEAN_OVEN,
     canMoveAndAct: totalLevel >= WORKER_CONFIG.UNLOCK_MOVE_ACT,
   };
 };
@@ -61,6 +62,7 @@ export const getNextUnlock = (t: WorkerTraining): { name: string; levelsNeeded: 
   const unlocks = [
     { threshold: WORKER_CONFIG.UNLOCK_PLATES, name: 'Catch plates' },
     { threshold: WORKER_CONFIG.UNLOCK_START_OVEN, name: 'Start cooking in ovens' },
+    { threshold: WORKER_CONFIG.UNLOCK_CLEAN_OVEN, name: 'Clean burnt ovens' },
     { threshold: WORKER_CONFIG.UNLOCK_MOVE_ACT, name: 'Move & act in same tick' },
   ];
   for (const u of unlocks) {

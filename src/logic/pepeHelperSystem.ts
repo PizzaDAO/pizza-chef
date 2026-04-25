@@ -8,6 +8,7 @@ export interface HelperAbilities {
   canPullPizza: boolean;
   canStartOven: boolean;
   canMoveAndAct: boolean;
+  canCleanOven: boolean;
 }
 
 const ALL_ABILITIES: HelperAbilities = {
@@ -15,6 +16,7 @@ const ALL_ABILITIES: HelperAbilities = {
   canPullPizza: true,
   canStartOven: true,
   canMoveAndAct: true,
+  canCleanOven: true,
 };
 
 /**
@@ -87,6 +89,11 @@ export const evaluateLanePriority = (
   // Medium priority: Idle oven that can be started
   if (abilities.canStartOven && status === 'idle') {
     priority += 50;
+  }
+
+  // Medium priority: Burnt oven that can be cleaned
+  if (abilities.canCleanOven && oven.burned && oven.cleaningStartTime === 0) {
+    priority += 60;
   }
 
   // High priority: Approaching customers in this lane (if we have slices)
@@ -318,6 +325,16 @@ export const processHelperAction = (
     };
     updatedHelper.lastActionTime = now;
     events.push({ type: 'OVEN_STARTED', lane: currentLane, helper: helper.id });
+    return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
+  }
+
+  // Priority 6: Clean burnt oven
+  if (abilities.canCleanOven && oven.burned && oven.cleaningStartTime === 0) {
+    updatedOvens[currentLane] = {
+      ...oven,
+      cleaningStartTime: now,
+    };
+    updatedHelper.lastActionTime = now;
     return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
   }
 
