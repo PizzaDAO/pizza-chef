@@ -211,7 +211,8 @@ export const LEVEL_SYSTEM = {
 
   // Min spawn interval per level (ms)
   SPAWN_INTERVALS: [2400, 2200, 2000, 1800, 1500, 1200, 1000],
-  SPAWN_INTERVAL_FLOOR: 800, // After level 7
+  SPAWN_INTERVAL_DECAY: 50,  // ms decrease per level after level 7
+  SPAWN_INTERVAL_FLOOR: 400, // Hard minimum
 
   // Special customer spawn chances per level
   SPECIAL_CHANCES: {

@@ -84,7 +84,9 @@ export const getLevelSpawnInterval = (level: number): number => {
   if (level <= LEVEL_SYSTEM.SPAWN_INTERVALS.length) {
     return LEVEL_SYSTEM.SPAWN_INTERVALS[level - 1];
   }
-  return LEVEL_SYSTEM.SPAWN_INTERVAL_FLOOR;
+  const levelsAfter = level - LEVEL_SYSTEM.SPAWN_INTERVALS.length;
+  const lastDefined = LEVEL_SYSTEM.SPAWN_INTERVALS[LEVEL_SYSTEM.SPAWN_INTERVALS.length - 1];
+  return Math.max(lastDefined - levelsAfter * LEVEL_SYSTEM.SPAWN_INTERVAL_DECAY, LEVEL_SYSTEM.SPAWN_INTERVAL_FLOOR);
 };
 
 /**
