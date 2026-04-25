@@ -41,7 +41,7 @@ export const upgradeOven = (prev: GameState, lane: number): GameState => {
       ...prev,
       bank: prev.bank - upgradeCost,
       ovenUpgrades: { ...prev.ovenUpgrades, [lane]: currentUpgrade + 1 },
-      stats: { ...prev.stats, ovenUpgradesMade: prev.stats.ovenUpgradesMade + 1 },
+      stats: { ...prev.stats, ovenUpgradesMade: prev.stats.ovenUpgradesMade + 1, totalSpent: prev.stats.totalSpent + upgradeCost },
     };
   }
   return prev;
@@ -56,7 +56,7 @@ export const upgradeOvenSpeed = (prev: GameState, lane: number): GameState => {
       ...prev,
       bank: prev.bank - speedUpgradeCost,
       ovenSpeedUpgrades: { ...prev.ovenSpeedUpgrades, [lane]: currentSpeedUpgrade + 1 },
-      stats: { ...prev.stats, ovenUpgradesMade: prev.stats.ovenUpgradesMade + 1 },
+      stats: { ...prev.stats, ovenUpgradesMade: prev.stats.ovenUpgradesMade + 1, totalSpent: prev.stats.totalSpent + speedUpgradeCost },
     };
   }
   return prev;
@@ -71,7 +71,7 @@ export const bribeReviewer = (prev: GameState): StoreResult => {
 
   if (prev.bank >= bribeCost && prev.lives < GAME_CONFIG.MAX_LIVES) {
     return {
-      nextState: { ...prev, bank: prev.bank - bribeCost, lives: prev.lives + 1 },
+      nextState: { ...prev, bank: prev.bank - bribeCost, lives: prev.lives + 1, stats: { ...prev.stats, totalSpent: prev.stats.totalSpent + bribeCost } },
       events: [{ type: 'LIFE_GAINED' }],
     };
   }
@@ -101,6 +101,7 @@ export const buyPowerUp = (
     ...prev,
     bank: prev.bank - powerUpCost,
     powerUps: [...prev.powerUps, newPowerUp],
+    stats: { ...prev.stats, totalSpent: prev.stats.totalSpent + powerUpCost },
   };
 };
 

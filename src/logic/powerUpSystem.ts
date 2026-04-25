@@ -144,6 +144,7 @@ export const processPowerUpCollection = (
         const moltoMoney = SCORING.MOLTOBENNY_CASH * dogeMultiplier;
         newState.score += moltoScore;
         newState.bank += moltoMoney;
+        newState.stats = { ...newState.stats, totalEarned: newState.stats.totalEarned + moltoMoney };
         scoresToAdd.push({ points: moltoScore, lane: newState.chefLane, position: GAME_CONFIG.CHEF_X_POSITION });
     } else if (powerUp.type === 'pepe') {
         // Initialize Pepe helpers - Franco-Pepe and Frank-Pepe assist the chef
@@ -160,6 +161,7 @@ export const processPowerUpCollection = (
                 if (c.served || c.disappointed || c.vomit || c.leaving) return c;
                 if (c.critic) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, textMessage: "Just plain, thanks.", textMessageTime: now };
                 if (c.badLuckBrian) return { ...c, shouldBeHotHoneyAffected: false, hotHoneyAffected: false, frozen: false, woozy: false, woozyState: undefined, textMessage: "I can't do spicy.", textMessageTime: now };
+                if (c.pizzaMafia) return { ...c, textMessage: "Fuggedaboutit", textMessageTime: now };
                 return { ...c, shouldBeHotHoneyAffected: true, hotHoneyAffected: true, frozen: false, woozy: false, woozyState: undefined };
             });
         }
@@ -170,6 +172,10 @@ export const processPowerUpCollection = (
                 if (c.healthInspector) return c; // Health Inspector immune
                 if (!c.served && !c.disappointed && !c.vomit) {
                     if (c.badLuckBrian) return { ...c, textMessage: "I'm lactose intolerant", textMessageTime: now };
+                    if (c.pizzaMafia) {
+                        const msgs = ["I'm on a diet cuz.", "What am I, five?"];
+                        return { ...c, textMessage: msgs[Math.floor(Math.random() * msgs.length)], textMessageTime: now };
+                    }
                     return { ...c, shouldBeFrozenByIceCream: true, frozen: true, hotHoneyAffected: false, woozy: false, woozyState: undefined };
                 }
                 return c;
