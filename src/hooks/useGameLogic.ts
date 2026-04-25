@@ -956,7 +956,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 ...customer,
                 served: true,
                 hasPlate: false,
-                ...(customer.pizzaMafia ? { textMessage: "Bada Boom", textMessageTime: now } : {})
+                ...(customer.pizzaMafia ? { textMessage: "Bada boom!", textMessageTime: now } : {})
               };
             }
             return customer;
