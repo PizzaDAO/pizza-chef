@@ -1398,13 +1398,15 @@ export const useGameLogic = (gameStarted: boolean = true) => {
               if (needsCompletePause) {
                 newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
               }
-              newState.levelPhase = 'complete';
               newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
               const rewards = calculateLevelRewards(
                 newState.levelProgress.starsLostThisLevel,
                 false,
               );
               newState.bank += rewards;
+              // Skip level complete screen, go straight to store
+              newState.levelPhase = 'store';
+              newState.showStore = true;
               newState.levelCompleteInfo = {
                 level: newState.level,
                 customersServed: newState.levelProgress.customersServed,
@@ -1440,13 +1442,15 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           if (needsPause) {
             newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
           }
-          newState.levelPhase = 'complete';
           newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
           const rewards = calculateLevelRewards(
             newState.levelProgress.starsLostThisLevel,
             true,
           );
           newState.bank += rewards;
+          // Skip level complete screen, go straight to store
+          newState.levelPhase = 'store';
+          newState.showStore = true;
           newState.levelCompleteInfo = {
             level: newState.level,
             customersServed: newState.levelProgress.customersServed,
@@ -1460,12 +1464,6 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           }
         }
       }
-      // 'complete' phase: after 2 seconds, auto-transition to store
-      if (newState.levelPhase === 'complete' && newState.levelCompleteInfo) {
-        // The store will be triggered from the UI when the player clicks "Continue"
-        // For now we keep the complete phase showing the level complete overlay
-      }
-
       // --- CLEAN KITCHEN BONUS CHECK ---
       if (newState.cleanKitchenStartTime !== undefined) {
         const cleanDuration = now - newState.cleanKitchenStartTime;
@@ -1588,16 +1586,6 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     });
   }, []);
 
-  const openLevelStore = useCallback(() => {
-    setGameState(prev => {
-      if (prev.levelPhase !== 'complete') return prev;
-      return {
-        ...prev,
-        levelPhase: 'store' as LevelPhase,
-        showStore: true,
-      };
-    });
-  }, []);
 
   const bribeReviewer = useCallback(() => {
     setGameState(prev => {
@@ -1989,7 +1977,6 @@ export const useGameLogic = (gameStarted: boolean = true) => {
     buyPowerUp,
     hireWorker,
     debugActivatePowerUp,
-    openLevelStore,
     getReplayFrames,
   };
 };

@@ -66,7 +66,6 @@ function App() {
     buyPowerUp,
     hireWorker,
     debugActivatePowerUp,
-    openLevelStore,
     getReplayFrames,
   } = useGameLogic(gameStarted);
 
@@ -437,7 +436,7 @@ function App() {
                 </>
               ) : (
                 <>
-                  <GameBoard gameState={gameState} onLevelCompleteClick={openLevelStore} />
+                  <GameBoard gameState={gameState} />
 
                   {gameState.powerUpAlert && !gameState.paused && (
                     <PowerUpAlert powerUpType={gameState.powerUpAlert.type} chefLane={gameState.powerUpAlert.chefLane} />
@@ -604,7 +603,7 @@ function App() {
               </>
             ) : (
               <>
-                <GameBoard gameState={gameState} onLevelCompleteClick={openLevelStore} />
+                <GameBoard gameState={gameState} />
 
                 {gameState.powerUpAlert && !gameState.paused && (
                   <PowerUpAlert powerUpType={gameState.powerUpAlert.type} chefLane={gameState.powerUpAlert.chefLane} />
