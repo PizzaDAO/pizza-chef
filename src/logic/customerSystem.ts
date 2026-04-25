@@ -548,15 +548,8 @@ export const processCustomerHit = (
     const slicesNeeded = customer.deliverySlicesNeeded || DELIVERY_DRIVER.SLICES_NEEDED;
 
     if (slicesReceived < slicesNeeded) {
-      // Intermediate slice -- keep accepting
+      // Intermediate slice -- keep accepting (no plate thrown back)
       events.push('DELIVERY_DRIVER_PARTIAL');
-      newEntities.emptyPlate = {
-        id: `plate-${now}-${customer.id}-${slicesReceived}`,
-        lane: customer.lane,
-        position: customer.position,
-        speed: ENTITY_SPEEDS.PLATE,
-        createdAt: now
-      };
       return {
         updatedCustomer: {
           ...customer,
@@ -568,15 +561,8 @@ export const processCustomerHit = (
         newEntities
       };
     } else {
-      // Final slice -- delivery complete!
+      // Final slice -- delivery complete! (no plate thrown back)
       events.push('DELIVERY_DRIVER_COMPLETE');
-      newEntities.emptyPlate = {
-        id: `plate-${now}-${customer.id}-final`,
-        lane: customer.lane,
-        position: customer.position,
-        speed: ENTITY_SPEEDS.PLATE,
-        createdAt: now
-      };
       return {
         updatedCustomer: {
           ...customer,

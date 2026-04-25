@@ -89,7 +89,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
   return (
     <>
       <div
-        className="absolute w-[8%] aspect-square flex items-center justify-center"
+        className={`absolute ${customer.deliveryDriver ? 'w-[8.8%]' : 'w-[8%]'} aspect-square flex items-center justify-center`}
         style={{
           left: 0,
           top: 0,
