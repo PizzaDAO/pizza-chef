@@ -167,25 +167,29 @@ export const trySpawnCustomer = (
   const lane = Math.floor(Math.random() * GAME_CONFIG.LANE_COUNT);
   const disappointedEmojis = ['😢', '😭', '😠', '🤬'];
 
-  // Determine customer variant based on level unlock schedule
+  // Determine customer variant using independent weighted selection
+  // Each type gets its exact stated probability; normal fills the remainder
   const unlockedTypes = getUnlockedCustomerTypes(level);
   const chances = getSpecialChances(level);
 
+  const candidates: { variant: CustomerVariant; weight: number }[] = [];
+  if (unlockedTypes.includes('critic')) candidates.push({ variant: 'critic', weight: chances.critic });
+  if (unlockedTypes.includes('badLuckBrian')) candidates.push({ variant: 'badLuckBrian', weight: chances.brian });
+  if (unlockedTypes.includes('scumbagSteve')) candidates.push({ variant: 'scumbagSteve', weight: chances.steve });
+  if (unlockedTypes.includes('deliveryDriver')) candidates.push({ variant: 'deliveryDriver', weight: chances.deliveryDriver });
+  if (unlockedTypes.includes('healthInspector')) candidates.push({ variant: 'healthInspector', weight: chances.inspector });
+  if (unlockedTypes.includes('pizzaMafia')) candidates.push({ variant: 'pizzaMafia', weight: chances.mafia });
+  if (unlockedTypes.includes('alien')) candidates.push({ variant: 'alien', weight: chances.alien });
+
   let variant: CustomerVariant = 'normal';
-  if (unlockedTypes.includes('critic') && Math.random() < chances.critic) {
-    variant = 'critic';
-  } else if (unlockedTypes.includes('badLuckBrian') && Math.random() < chances.brian) {
-    variant = 'badLuckBrian';
-  } else if (unlockedTypes.includes('scumbagSteve') && Math.random() < chances.steve) {
-    variant = 'scumbagSteve';
-  } else if (unlockedTypes.includes('deliveryDriver') && Math.random() < chances.deliveryDriver) {
-    variant = 'deliveryDriver';
-  } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
-    variant = 'healthInspector';
-  } else if (unlockedTypes.includes('pizzaMafia') && Math.random() < chances.mafia) {
-    variant = 'pizzaMafia';
-  } else if (unlockedTypes.includes('alien') && Math.random() < chances.alien) {
-    variant = 'alien';
+  const roll = Math.random();
+  let cumulative = 0;
+  for (const c of candidates) {
+    cumulative += c.weight;
+    if (roll < cumulative) {
+      variant = c.variant;
+      break;
+    }
   }
 
   // Calculate speed with level speed multiplier
