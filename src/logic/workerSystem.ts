@@ -60,10 +60,8 @@ export const getNextUnlock = (t: WorkerTraining): { name: string; levelsNeeded: 
   const totalLevel = getTotalTrainingLevel(t);
   const unlocks = [
     { threshold: WORKER_CONFIG.UNLOCK_PLATES, name: 'Catch plates' },
-    { threshold: WORKER_CONFIG.UNLOCK_PULL_PIZZA, name: 'Pull pizza from ovens' },
     { threshold: WORKER_CONFIG.UNLOCK_START_OVEN, name: 'Start cooking in ovens' },
     { threshold: WORKER_CONFIG.UNLOCK_MOVE_ACT, name: 'Move & act in same tick' },
-    { threshold: 13, name: 'Full Pizzaiolo AI' },
   ];
   for (const u of unlocks) {
     if (totalLevel < u.threshold) {

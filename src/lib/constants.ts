@@ -170,9 +170,9 @@ export const WORKER_CONFIG = {
 
   // Ability unlock thresholds (total training level = sum of all stats)
   UNLOCK_PLATES: 3,
-  UNLOCK_PULL_PIZZA: 6,
-  UNLOCK_START_OVEN: 10,
-  UNLOCK_MOVE_ACT: 15,
+  UNLOCK_PULL_PIZZA: 0,
+  UNLOCK_START_OVEN: 6,
+  UNLOCK_MOVE_ACT: 10,
 
   MAX_STAT_LEVEL: 5,
 
