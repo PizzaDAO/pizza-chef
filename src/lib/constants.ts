@@ -104,7 +104,7 @@ export const HEALTH_DEPT_RAID = {
 };
 
 export const MAFIA_SLICE_CONFIG = {
-  SLICE_COUNT: 8,
+  SLICE_COUNT: 2,
   SPEED: 3,
   LIFETIME: 2000, // ms
   LANE_SPEED: 0.02, // Vertical movement speed
