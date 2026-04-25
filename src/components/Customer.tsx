@@ -15,6 +15,9 @@ const badLuckBrianPukeImg = sprite("bad-luck-brian-puke.png");
 const rainbowBrian = sprite("rainbow-brian.png");
 const scumbagSteveImg = sprite("scumbag-steve.png");
 const healthInspectorImg = sprite("health-inspector.png");
+const deliveryDriverEmptyImg = sprite("delivery-driver-empty.png");
+const deliveryDriverFullImg = sprite("delivery-driver-full.png");
+const pizzaMafiaImg = sprite("pizza-mafia.png");
 
 interface CustomerProps {
   customer: CustomerType;
@@ -48,7 +51,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
 
   const getDisplay = () => {
     const variant = getCustomerVariant(customer);
-    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'alien';
+    const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'deliveryDriver' || variant === 'pizzaMafia' || variant === 'alien';
 
     // Alien customer display — stays 👽 always, tongue out when fed
     if (variant === 'alien') {
@@ -70,6 +73,11 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
       if (variant === 'badLuckBrian') return { type: 'image', value: badLuckBrianImg, alt: 'badluckbrian' };
       if (variant === 'scumbagSteve') return { type: 'image', value: scumbagSteveImg, alt: 'scumbagsteve' };
       if (variant === 'healthInspector') return { type: 'image', value: healthInspectorImg, alt: 'health-inspector' };
+      if (variant === 'deliveryDriver') {
+        if (customer.served) return { type: 'image', value: deliveryDriverFullImg, alt: 'delivery-full' };
+        return { type: 'image', value: deliveryDriverEmptyImg, alt: 'delivery-empty' };
+      }
+      if (variant === 'pizzaMafia') return { type: 'image', value: pizzaMafiaImg, alt: 'pizzamafia' };
     }
 
     // Status effects for normal customers and critics
@@ -93,7 +101,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
   return (
     <>
       <div
-        className="absolute w-[8%] aspect-square flex items-center justify-center"
+        className={`absolute ${customer.deliveryDriver ? 'w-[8.8%]' : 'w-[8%]'} aspect-square flex items-center justify-center`}
         style={{
           left: 0,
           top: 0,
@@ -111,7 +119,7 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
             style={{
               transform: customer.brianNyaned
                 ? 'scale(2)'
-                : customer.flipped
+                : (customer.deliveryDriver ? !customer.flipped : customer.flipped)
                   ? 'scaleX(-1)'
                   : 'none',
               animation: customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
@@ -174,6 +182,10 @@ function areCustomerPropsEqual(prev: CustomerProps, next: CustomerProps): boolea
     a.scumbagSteve === b.scumbagSteve &&
     a.healthInspector === b.healthInspector &&
     a.inspectorTipsy === b.inspectorTipsy &&
+    a.deliveryDriver === b.deliveryDriver &&
+    a.deliverySlicesNeeded === b.deliverySlicesNeeded &&
+    a.slicesReceived === b.slicesReceived &&
+    a.pizzaMafia === b.pizzaMafia &&
     a.critic === b.critic &&
     a.alien === b.alien &&
     a.alienWaitingForDrop === b.alienWaitingForDrop &&
