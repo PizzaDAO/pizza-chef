@@ -70,6 +70,16 @@ export const HEALTH_INSPECTOR = {
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
+export const ALIEN = {
+  SPAWN_CHANCE: 0.02,             // 2% per spawn cycle
+  MIN_LEVEL: 9,                   // Unlocks at level 9
+  SPEED_MULTIPLIER: 0.8,          // Slightly slower base advance (compensated by harder-to-hit movement)
+  LANE_SWITCH_INTERVAL: 1000,     // Change target lane every ~1 second
+  LANE_LERP_SPEED: 0.003,         // Fractional lane interpolation per ms (~0.15/frame at 50ms tick)
+  UFO_FLY_DURATION: 3000,         // UFO crosses screen in 3 seconds
+  UFO_DROP_X: 75,                 // X-position where alien is deposited (percentage)
+};
+
 export const DELIVERY_DRIVER = {
   SLICES_NEEDED: 8,
   WAIT_POSITION: GAME_CONFIG.CHEF_X_POSITION + 3, // Parks just in front of the counter
@@ -192,6 +202,7 @@ export const LEVEL_SYSTEM = {
     PIZZA_MAFIA: 7,
     PEPE: 5,
     MOLTOBENNY: 5,
+    ALIEN: 9,
   },
 
   // Customer speed multiplier per level
@@ -209,6 +220,7 @@ export const LEVEL_SYSTEM = {
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05],
     INSPECTOR: [0, 0, 0, 0, 0.05],
+    ALIEN: [0, 0, 0, 0, 0, 0, 0, 0, 0.02],  // 2% at level 9+
     MAFIA: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
   },
 
@@ -390,6 +402,7 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  ufoAnimations: undefined,
   // Health Department Raid
   healthDeptRaid: undefined as { active: boolean; inspectorIds: string[]; starsAtRaidStart: number; alertEndTime: number; raidTriggeredThisLevel: boolean } | undefined,
   healthDeptRaidResult: undefined as { success: boolean; endTime: number } | undefined,

@@ -200,6 +200,25 @@ ovenReady() {
     ]);
   }
 
+  alienServed() {
+    // Quirky alien sound: descending warble
+    this.playMultiTone([
+      { frequency: 1200, delay: 0, duration: 0.1, type: 'square', volume: 0.2 },
+      { frequency: 900, delay: 60, duration: 0.1, type: 'square', volume: 0.2 },
+      { frequency: 1100, delay: 120, duration: 0.1, type: 'square', volume: 0.2 },
+      { frequency: 700, delay: 180, duration: 0.15, type: 'square', volume: 0.2 },
+    ]);
+  }
+
+  ufoFlyby() {
+    // Low hum for UFO entrance
+    this.playMultiTone([
+      { frequency: 150, delay: 0, duration: 0.3, type: 'sine', volume: 0.15 },
+      { frequency: 180, delay: 200, duration: 0.3, type: 'sine', volume: 0.15 },
+      { frequency: 160, delay: 400, duration: 0.4, type: 'sine', volume: 0.1 },
+    ]);
+  }
+
   bestOfAward() {
     // Ascending major chord fanfare - celebratory and distinct
     this.playMultiTone([

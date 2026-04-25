@@ -6,7 +6,7 @@ export type CustomerState =
   | 'leaving'      // Generic leaving (Brian complaining, etc.)
   | 'vomit';       // Beer+woozy = sick
 
-export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'deliveryDriver' | 'pizzaMafia';
+export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'deliveryDriver' | 'pizzaMafia' | 'alien';
 
 export type WoozyState = 'normal' | 'drooling' | 'satisfied';
 
@@ -18,6 +18,7 @@ export const isCustomerApproaching = (c: Customer): boolean =>
   !isCustomerLeaving(c);
 
 export const getCustomerVariant = (c: Customer): CustomerVariant => {
+  if (c.alien) return 'alien';
   if (c.deliveryDriver) return 'deliveryDriver';
   if (c.healthInspector) return 'healthInspector';
   if (c.pizzaMafia) return 'pizzaMafia';
@@ -28,7 +29,7 @@ export const getCustomerVariant = (c: Customer): CustomerVariant => {
 };
 
 export const isCustomerAffectedByPowerUps = (c: Customer): boolean =>
-  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.deliveryDriver && !c.pizzaMafia && !c.served && !c.leaving && !c.disappointed;
+  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.deliveryDriver && !c.pizzaMafia && !c.alien && !c.served && !c.leaving && !c.disappointed;
 
 export interface Customer {
   id: string;
@@ -63,6 +64,13 @@ export interface Customer {
   flipped?: boolean;
   textMessage?: string;
   textMessageTime?: number;
+  alien?: boolean;
+  alienTargetLane?: number;       // The integer lane the alien is zigzagging toward
+  alienLaneProgress?: number;     // 0-1 interpolation progress toward target lane
+  alienLastLaneSwitchTime?: number; // Timestamp of last lane-change decision
+  alienWaitingForDrop?: boolean;  // True while alien is still inside the UFO
+  alienPickedUp?: boolean;        // True when alien should be picked up by UFO after walking out
+  alienFrozenForPickup?: boolean; // True when alien has stopped to wait for UFO pickup animation
 }
 
 export interface PizzaSlice {
@@ -93,6 +101,21 @@ export interface EmptyPlate {
   startLane?: number;
   startPosition?: number;
   targetLane?: number;
+}
+
+export interface UfoAnimationState {
+  active: boolean;
+  xPosition: number;
+  yPosition: number;           // vertical position (percentage from top)
+  dropLane: number;
+  dropPosition: number;
+  startTime: number;
+  dropped: boolean;
+  direction: 'left-to-right' | 'right-to-left';  // entry direction
+  phase: 'drop' | 'pickup' | 'pickup-exit';      // animation phase
+  pickupLane?: number;         // lane to fly to for pickup
+  pickupX?: number;            // x position for pickup
+  alienId?: string;            // which alien customer this UFO belongs to
 }
 
 export interface NyanSweep {
@@ -287,7 +310,7 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades' | 'healthDeptRaid' | 'healthDeptRaidResult' | 'mafiaSlices'
+  | 'ovenSpeedUpgrades' | 'ufoAnimations' | 'healthDeptRaid' | 'healthDeptRaidResult' | 'mafiaSlices'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -341,6 +364,7 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  ufoAnimations?: UfoAnimationState[];
   // Health Department Raid
   healthDeptRaid?: {
     active: boolean;

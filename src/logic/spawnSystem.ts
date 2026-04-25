@@ -6,6 +6,7 @@ import {
   POWERUPS,
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
+  ALIEN,
   DELIVERY_DRIVER,
   HEALTH_DEPT_RAID,
   LEVEL_SYSTEM,
@@ -16,6 +17,7 @@ import {
 export interface SpawnResult<T> {
   shouldSpawn: boolean;
   entity?: T;
+  triggerUfo?: boolean;
 }
 
 // --- Level-aware helper functions ---
@@ -43,6 +45,7 @@ export const getUnlockedCustomerTypes = (level: number): CustomerVariant[] => {
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.DELIVERY_DRIVER) types.push('deliveryDriver');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.HEALTH_INSPECTOR) types.push('healthInspector');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.PIZZA_MAFIA) types.push('pizzaMafia');
+  if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.ALIEN) types.push('alien');
   return types;
 };
 
@@ -95,6 +98,7 @@ const getSpecialChances = (level: number) => {
     steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
     deliveryDriver: LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER[idx],
     inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
+    alien: LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN[idx] || 0,
     mafia: LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA ? (LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA[idx] || 0) : 0,
   };
 };
@@ -176,6 +180,8 @@ export const trySpawnCustomer = (
     variant = 'healthInspector';
   } else if (unlockedTypes.includes('pizzaMafia') && Math.random() < chances.mafia) {
     variant = 'pizzaMafia';
+  } else if (unlockedTypes.includes('alien') && Math.random() < chances.alien) {
+    variant = 'alien';
   }
 
   // Calculate speed with level speed multiplier
@@ -186,6 +192,8 @@ export const trySpawnCustomer = (
     ? ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER
     : variant === 'deliveryDriver'
     ? ENTITY_SPEEDS.CUSTOMER_BASE * DELIVERY_DRIVER.SPEED_MULTIPLIER
+    : variant === 'alien'
+    ? ENTITY_SPEEDS.CUSTOMER_BASE * ALIEN.SPEED_MULTIPLIER
     : ENTITY_SPEEDS.CUSTOMER_BASE;
   const speed = baseSpeed * speedMultiplier;
 
@@ -193,7 +201,7 @@ export const trySpawnCustomer = (
   const customer: Customer = {
     id: `customer-${now}-${lane}`,
     lane,
-    position: POSITIONS.SPAWN_X,
+    position: variant === 'alien' ? ALIEN.UFO_DROP_X : POSITIONS.SPAWN_X,
     speed,
     // Initial state: approaching (not served, leaving, or disappointed)
     served: false,
@@ -207,15 +215,19 @@ export const trySpawnCustomer = (
     badLuckBrian: variant === 'badLuckBrian',
     scumbagSteve: variant === 'scumbagSteve',
     healthInspector: variant === 'healthInspector',
+    alien: variant === 'alien',
     deliveryDriver: variant === 'deliveryDriver',
     deliverySlicesNeeded: variant === 'deliveryDriver' ? DELIVERY_DRIVER.SLICES_NEEDED : undefined,
     pizzaMafia: variant === 'pizzaMafia',
     slicesReceived: (variant === 'scumbagSteve' || variant === 'deliveryDriver') ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
+    alienTargetLane: variant === 'alien' ? lane : undefined,
+    alienLastLaneSwitchTime: variant === 'alien' ? now : undefined,
+    alienWaitingForDrop: variant === 'alien' ? true : undefined,
   };
 
-  return { shouldSpawn: true, entity: customer };
+  return { shouldSpawn: true, entity: customer, triggerUfo: variant === 'alien' };
 };
 
 /**
@@ -285,6 +297,7 @@ export const processSpawning = (
   newPowerUp?: PowerUp;
   updateCustomerSpawnTime: boolean;
   updatePowerUpSpawnTime: boolean;
+  triggerUfo?: boolean;
 } => {
   const customerResult = trySpawnCustomer(
     lastCustomerSpawn, now, level, bossActive,
@@ -297,6 +310,7 @@ export const processSpawning = (
     newPowerUp: powerUpResult.entity,
     updateCustomerSpawnTime: customerResult.shouldSpawn,
     updatePowerUpSpawnTime: powerUpResult.shouldSpawn,
+    triggerUfo: customerResult.triggerUfo,
   };
 };
 

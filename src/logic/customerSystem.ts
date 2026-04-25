@@ -7,7 +7,7 @@ import {
   isCustomerAffectedByPowerUps,
   getCustomerVariant
 } from '../types/game';
-import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE, DELIVERY_DRIVER } from '../lib/constants';
+import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE, ALIEN, DELIVERY_DRIVER } from '../lib/constants';
 
 // --- Types for the Update Result ---
 export type CustomerUpdateEvent =
@@ -43,7 +43,8 @@ export type CustomerHitEvent =
   | 'HEALTH_INSPECTOR_TIPSY_SERVED'
   | 'DELIVERY_DRIVER_PARTIAL'
   | 'DELIVERY_DRIVER_COMPLETE'
-  | 'MAFIA_SERVED';
+  | 'MAFIA_SERVED'
+  | 'SERVED_ALIEN';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -163,6 +164,11 @@ export const updateCustomerPositions = (
 
     // 3. Served/Leaving (Move Right Fast)
     if (processedCustomer.served && !processedCustomer.woozy) {
+       // Alien frozen for UFO pickup — stay in place
+       if (processedCustomer.alien && processedCustomer.alienFrozenForPickup) {
+         nextCustomers.push(processedCustomer);
+         return;
+       }
        processedCustomer.position += (processedCustomer.speed * 2);
        processedCustomer.hotHoneyAffected = false;
        nextCustomers.push(processedCustomer);
@@ -206,6 +212,11 @@ export const updateCustomerPositions = (
 
     // 5. Departed (Leaving screen)
     if (isDeparting) {
+      // Alien frozen for UFO pickup — stay in place
+      if (processedCustomer.alien && processedCustomer.alienFrozenForPickup) {
+        nextCustomers.push(processedCustomer);
+        return;
+      }
       processedCustomer.position += (processedCustomer.speed * 2);
       nextCustomers.push(processedCustomer);
       return;
@@ -286,7 +297,70 @@ export const updateCustomerPositions = (
       return;
     }
 
-    // 6.6. Delivery Driver Movement (parks at counter, drivers stack behind each other)
+    // 6.6. Alien Zigzag Movement
+    if (processedCustomer.alien && !isDeparting) {
+      // Skip movement if waiting for UFO drop
+      if (processedCustomer.alienWaitingForDrop) {
+        nextCustomers.push(processedCustomer);
+        return;
+      }
+
+      // Alien walking out (served or disappointed) — walk right until UFO picks it up
+      if (processedCustomer.movingRight) {
+        // If alien is being picked up by UFO (frozen in place for pickup animation)
+        if (processedCustomer.alienPickedUp && processedCustomer.alienFrozenForPickup) {
+          nextCustomers.push(processedCustomer);
+          return;
+        }
+        processedCustomer.position += processedCustomer.speed * 2;
+        nextCustomers.push(processedCustomer);
+        return;
+      }
+
+      // Lane zigzag: pick new target lane every LANE_SWITCH_INTERVAL
+      const lastSwitch = processedCustomer.alienLastLaneSwitchTime || 0;
+      if (now - lastSwitch >= ALIEN.LANE_SWITCH_INTERVAL) {
+        // Pick adjacent lane (or same-ish random)
+        const currentLane = Math.round(processedCustomer.lane);
+        let newTarget: number;
+        if (currentLane === 0) newTarget = 1;
+        else if (currentLane === GAME_CONFIG.LANE_COUNT - 1) newTarget = GAME_CONFIG.LANE_COUNT - 2;
+        else newTarget = Math.random() < 0.5 ? currentLane - 1 : currentLane + 1;
+        processedCustomer.alienTargetLane = newTarget;
+        processedCustomer.alienLastLaneSwitchTime = now;
+      }
+
+      // Smooth lane interpolation (fractional lane movement)
+      const target = processedCustomer.alienTargetLane ?? processedCustomer.lane;
+      const diff = target - processedCustomer.lane;
+      if (Math.abs(diff) > 0.05) {
+        // Move toward target at LANE_LERP_SPEED per ms (frame-rate independent)
+        const step = ALIEN.LANE_LERP_SPEED * GAME_CONFIG.GAME_LOOP_INTERVAL;
+        processedCustomer.lane += Math.sign(diff) * Math.min(step, Math.abs(diff));
+      }
+
+      // Advance toward chef (x-axis) — aliens are immune to honey
+      processedCustomer.position -= processedCustomer.speed;
+
+      // Reached chef -> lose a star, alien turns around and walks out for UFO pickup
+      if (processedCustomer.position <= GAME_CONFIG.CHEF_X_POSITION) {
+        events.push({ type: 'LIFE_LOST', lane: processedCustomer.lane, position: processedCustomer.position });
+        events.push({ type: 'STAR_LOST_NORMAL', lane: processedCustomer.lane, position: processedCustomer.position });
+        processedCustomer.position = GAME_CONFIG.CHEF_X_POSITION;
+        processedCustomer.lane = Math.round(processedCustomer.lane); // Snap to nearest integer lane before departing
+        processedCustomer.disappointed = true;
+        processedCustomer.movingRight = true;
+        processedCustomer.alienPickedUp = true;
+        processedCustomer.textMessage = ["Earth is overrated.", "Should've stayed on Mars."][Math.floor(Math.random() * 2)];
+        processedCustomer.textMessageTime = now;
+        customerStreakReset = true;
+      }
+
+      nextCustomers.push(processedCustomer);
+      return;
+    }
+
+    // 6.65. Delivery Driver Movement (parks at counter, drivers stack behind each other)
     if (processedCustomer.deliveryDriver && !isDeparting) {
       if (processedCustomer.movingRight) {
         // Leaving after completion
@@ -317,6 +391,7 @@ export const updateCustomerPositions = (
         const newPos = processedCustomer.position - processedCustomer.speed;
         processedCustomer.position = Math.max(newPos, waitPos);
       }
+
       nextCustomers.push(processedCustomer);
       return;
     }
@@ -673,6 +748,32 @@ export const processCustomerHit = (
         newEntities
       };
     }
+  }
+
+  // 4.5. Alien Customer (drops power-up instead of scoring)
+  if (customer.alien) {
+    events.push('SERVED_ALIEN');
+    newEntities.emptyPlate = {
+      id: `plate-${now}-${customer.id}`,
+      lane: Math.round(customer.lane),
+      position: customer.position,
+      speed: ENTITY_SPEEDS.PLATE,
+      createdAt: now
+    };
+    return {
+      updatedCustomer: {
+        ...customer,
+        lane: Math.round(customer.lane),
+        served: true,
+        hasPlate: false,
+        movingRight: true,
+        alienPickedUp: true,
+        textMessage: ["Zorp! *beep boop*", "We'll spare your planet."][Math.floor(Math.random() * 2)],
+        textMessageTime: now,
+      },
+      events,
+      newEntities
+    };
   }
 
   // 5. Normal / Hot Honey Customers (Standard Serve)

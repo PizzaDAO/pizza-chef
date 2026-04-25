@@ -4,6 +4,7 @@ import {
   GameState,
   GameStateSnapshot,
   PizzaSlice,
+  PowerUp,
   MafiaSlice,
   GameStats,
   PowerUpType,
@@ -28,6 +29,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  ALIEN,
   HEALTH_DEPT_RAID,
 } from '../lib/constants';
 
@@ -86,8 +88,15 @@ import { initializeBossMasks } from '../logic/bossCollisionMasks';
 import {
   processSpawning,
   getCustomersForLevel,
+  getUnlockedPowerUpTypes,
   tryTriggerHealthDeptRaid,
 } from '../logic/spawnSystem';
+
+import {
+  initializeUfo,
+  initializePickupUfo,
+  updateUfoAnimation,
+} from '../logic/ufoSystem';
 
 import {
   processPlates
@@ -278,6 +287,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       ovens: pausedOvens,
       fallingPizza: shouldDropPizza ? { lane: state.chefLane, y: 0 } : state.fallingPizza,
       availableSlices: 0,
+      ufoAnimations: undefined, // Clear UFOs so they don't get stuck on screen
     };
   }, []);
 
@@ -487,6 +497,68 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
       });
 
+      // 2b. UFO ANIMATION TICK — tick ALL active UFOs in the array
+      if (newState.ufoAnimations && newState.ufoAnimations.length > 0) {
+        const updatedUfos: typeof newState.ufoAnimations = [];
+        const maxLifetime = ALIEN.UFO_FLY_DURATION * 3; // Safety: max 2 full phases (drop + pickup-exit)
+        for (const ufo of newState.ufoAnimations) {
+          if (!ufo.active) continue;
+          // Safety timeout: force-remove UFOs that have been alive too long
+          if (now - ufo.startTime > maxLifetime) continue;
+          const updated = updateUfoAnimation(ufo, now);
+
+          // Drop phase complete — unfreeze the specific alien this UFO belongs to
+          if (updated.phase === 'drop' && updated.dropped && ufo.alienId) {
+            newState.customers = newState.customers.map(c =>
+              c.id === ufo.alienId && c.alienWaitingForDrop ? {
+                ...c,
+                alienWaitingForDrop: false,
+                ...(Math.random() < 0.3 ? { textMessage: "Take me to your pizza.", textMessageTime: now } : {})
+              } : c
+            );
+          }
+
+          // Pickup-exit phase complete — remove the specific alien this UFO picked up
+          if (updated.phase === 'pickup-exit' && updated.dropped && ufo.alienId) {
+            newState.customers = newState.customers.filter(c => c.id !== ufo.alienId);
+          }
+
+          // Keep the UFO in the array only if still active
+          if (updated.active) {
+            updatedUfos.push(updated);
+          }
+        }
+        newState.ufoAnimations = updatedUfos.length > 0 ? updatedUfos : undefined;
+      }
+
+      // 2c. ALIEN PICKUP CHECK — for each alien with alienPickedUp that has walked far enough right,
+      //     check if there's already a pickup UFO targeting it; if not, create one
+      {
+        const aliensNeedingPickup = newState.customers.filter(
+          c => c.alien && c.alienPickedUp && !c.alienFrozenForPickup && c.movingRight && c.position >= 80
+        );
+        for (const alien of aliensNeedingPickup) {
+          // Check if a pickup UFO already targets this alien
+          const hasPickupUfo = newState.ufoAnimations?.some(
+            u => u.alienId === alien.id && (u.phase === 'pickup' || u.phase === 'pickup-exit')
+          );
+          if (!hasPickupUfo) {
+            // Freeze the alien in place so UFO can swoop in
+            newState.customers = newState.customers.map(c =>
+              c.id === alien.id ? { ...c, alienFrozenForPickup: true } : c
+            );
+            soundManager.ufoFlyby();
+            const pickupUfo = initializePickupUfo(
+              Math.round(alien.lane),
+              alien.position,
+              now
+            );
+            pickupUfo.alienId = alien.id;
+            newState.ufoAnimations = [...(newState.ufoAnimations || []), pickupUfo];
+          }
+        }
+      }
+
       // 3. COLLISION LOOP (Slices vs Customers) — lane-bucketed for perf
       newState.pizzaSlices = newState.pizzaSlices.map(slice => ({ ...slice, position: slice.position + slice.speed }));
 
@@ -516,7 +588,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         for (const customer of newState.customers) {
           if (consumed) break;
           // Fast lane check — skip customers not in this slice's lane
-          if (customer.lane !== slice.lane) continue;
+          // Aliens use fractional lanes so allow tolerance of 0.6
+          if (customer.alien ? Math.abs(customer.lane - slice.lane) >= 0.6 : customer.lane !== slice.lane) continue;
 
           // Get the latest version of this customer (may have been updated by a prior slice)
           const currentCustomer = customerMap.get(customer.id)!;
@@ -731,6 +804,30 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 if (result.wouldHaveGained > 0) {
                   newState = processBestOfStreak(newState, result.wouldHaveGained, dogeMultiplier, now);
                 }
+              } else if (event === 'SERVED_ALIEN') {
+                soundManager.alienServed();
+
+                // Drop a random power-up at the alien's position
+                const unlockedTypes = getUnlockedPowerUpTypes(newState.level);
+                if (unlockedTypes.length > 0) {
+                  const randomType = unlockedTypes[Math.floor(Math.random() * unlockedTypes.length)];
+                  const droppedPowerUp: PowerUp = {
+                    id: `powerup-alien-${now}-${Math.round(currentCustomer.lane)}`,
+                    lane: Math.round(currentCustomer.lane), // Snap to integer lane for power-up
+                    position: currentCustomer.position,
+                    speed: ENTITY_SPEEDS.POWERUP,
+                    type: randomType,
+                  };
+                  newState.powerUps = [...newState.powerUps, droppedPowerUp];
+                }
+
+                // Counts as served for level progress but NO score/bank
+                newState.happyCustomers += 1;
+                newState.stats = {
+                  ...newState.stats,
+                  customersServed: newState.stats.customersServed + 1,
+                };
+                newState.stats = updateStatsForStreak(newState.stats, 'customer');
               }
             });
 
@@ -1302,6 +1399,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
               }
               newState.levelPhase = 'complete';
+              newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
               const rewards = calculateLevelRewards(
                 newState.levelProgress.starsLostThisLevel,
                 false,
@@ -1343,6 +1441,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             newState.ovens = calculateOvenPauseState(newState.ovens, true, now);
           }
           newState.levelPhase = 'complete';
+          newState.ufoAnimations = undefined; // Clear UFOs so they don't get stuck
           const rewards = calculateLevelRewards(
             newState.levelProgress.starsLostThisLevel,
             true,
@@ -1676,6 +1775,17 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         lastCustomerSpawnRef.current = now;
         customersSpawnedThisLevelRef.current += 1;
         next = { ...next, customers: [...next.customers, spawnResult.newCustomer] };
+
+        // If this is an alien customer, start a UFO fly-by animation (push to array)
+        if (spawnResult.triggerUfo && spawnResult.newCustomer.alien) {
+          soundManager.ufoFlyby();
+          const dropUfo = initializeUfo(spawnResult.newCustomer.lane, ALIEN.UFO_DROP_X, now);
+          dropUfo.alienId = spawnResult.newCustomer.id;
+          next = {
+            ...next,
+            ufoAnimations: [...(next.ufoAnimations || []), dropUfo],
+          };
+        }
       }
 
       if (spawnResult.newPowerUp) {
@@ -1783,6 +1893,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      ufoAnimations: gameState.ufoAnimations,
       healthDeptRaid: gameState.healthDeptRaid,
       healthDeptRaidResult: gameState.healthDeptRaidResult,
       mafiaSlices: gameState.mafiaSlices,

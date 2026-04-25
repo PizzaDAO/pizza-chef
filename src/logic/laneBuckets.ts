@@ -20,7 +20,7 @@ export const buildLaneBuckets = <T extends { lane: number }>(
   const buckets: LaneBuckets<T> = { 0: [], 1: [], 2: [], 3: [] };
   for (let i = 0; i < entities.length; i++) {
     const entity = entities[i];
-    const lane = entity.lane;
+    const lane = Math.round(entity.lane); // Handles fractional alien lanes
     if (buckets[lane]) {
       buckets[lane].push(entity);
     } else {
