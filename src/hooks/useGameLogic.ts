@@ -643,6 +643,46 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                   newState = processBestOfStreak(newState, result.wouldHaveGained, dogeMultiplier, now);
                 }
 
+              } else if (event === 'DELIVERY_DRIVER_PARTIAL') {
+                // Intermediate slice -- small points, no bank, no serve count
+                soundManager.woozyServed();
+                const partialPoints = SCORING.DELIVERY_DRIVER_PARTIAL * dogeMultiplier;
+                newState.score += partialPoints;
+                customerScores.push({
+                  points: partialPoints,
+                  lane: currentCustomer.lane,
+                  position: currentCustomer.position
+                });
+
+              } else if (event === 'DELIVERY_DRIVER_COMPLETE') {
+                // Full delivery -- big bonus
+                soundManager.customerServed();
+                const bonusPoints = SCORING.DELIVERY_DRIVER_COMPLETE * dogeMultiplier;
+                newState.score += bonusPoints;
+                newState.bank += SCORING.DELIVERY_DRIVER_BANK;
+                // Count as a served customer for level progress
+                newState.happyCustomers += 1;
+                newState.stats = {
+                  ...newState.stats,
+                  customersServed: newState.stats.customersServed + 1,
+                };
+                newState.stats = updateStatsForStreak(newState.stats, 'customer');
+                customerScores.push({
+                  points: bonusPoints,
+                  lane: currentCustomer.lane,
+                  position: currentCustomer.position,
+                });
+                // Life gain check
+                const lifeResult = checkLifeGain(newState.lives, newState.happyCustomers, dogeMultiplier, false, currentCustomer.position);
+                if (lifeResult.livesToAdd > 0) {
+                  newState.lives += lifeResult.livesToAdd;
+                  if (lifeResult.shouldPlaySound) soundManager.lifeGained();
+                  starGainsToAdd.push({ lane: currentCustomer.lane, position: currentCustomer.position });
+                }
+                if (lifeResult.wouldHaveGained > 0) {
+                  newState = processBestOfStreak(newState, lifeResult.wouldHaveGained, dogeMultiplier, now);
+                }
+
               } else if (event === 'MAFIA_SERVED') {
                 // Pizza Mafia served - spawn 8 slices flying in all directions
                 soundManager.customerServed();
@@ -667,6 +707,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 // Spawn mafia slices aimed at nearby customers (including other mafia)
                 const mafiaSlices = spawnMafiaSlices(customer.lane, customer.position, now, newState.customers, customer.id);
                 newState.mafiaSlices = [...newState.mafiaSlices, ...mafiaSlices];
+
 
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {
                 soundManager.customerServed();
@@ -698,7 +739,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             customerMap.set(currentCustomer.id, hitResult.updatedCustomer);
             // Health inspector is NOT consumed (stays on screen) — only the pizza disappears
             // UNLESS tipsy-served, in which case the inspector leaves happy (consumed)
-            if (!currentCustomer.healthInspector || hitResult.events.includes('HEALTH_INSPECTOR_TIPSY_SERVED')) {
+            // Delivery driver is NOT consumed on partial hits — only on complete delivery
+            if (
+              (!currentCustomer.healthInspector || hitResult.events.includes('HEALTH_INSPECTOR_TIPSY_SERVED'))
+              && (!currentCustomer.deliveryDriver || hitResult.events.includes('DELIVERY_DRIVER_COMPLETE'))
+            ) {
               consumedCustomerIds.add(currentCustomer.id);
             }
           }

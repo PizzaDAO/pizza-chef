@@ -70,6 +70,16 @@ export const HEALTH_INSPECTOR = {
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
+export const DELIVERY_DRIVER = {
+  SLICES_NEEDED: 8,
+  WAIT_POSITION: GAME_CONFIG.CHEF_X_POSITION + 3, // Parks just in front of the counter
+  SPEED_MULTIPLIER: 0.6,     // Slower approach than normal
+  SCORE_BONUS: 2000,         // Points on completion
+  BANK_BONUS: 30,            // Cash on completion
+  PARTIAL_SCORE: 25,         // Points per intermediate slice
+  DRIVER_GAP: 4,             // Gap between stacked delivery drivers (%)
+};
+
 export const HEALTH_DEPT_RAID = {
   MIN_LEVEL: 8,
   TRIGGER_CHANCE: 0.25,         // 25% flat chance per level (rolled once at MIN_LEVEL_TIME)
@@ -111,6 +121,11 @@ export const SCORING = {
   // Special
   MOLTOBENNY_POINTS: 10000,
   MOLTOBENNY_CASH: 69,
+
+  // Delivery Driver
+  DELIVERY_DRIVER_COMPLETE: 2000,
+  DELIVERY_DRIVER_PARTIAL: 25,
+  DELIVERY_DRIVER_BANK: 30,
 
   // Bank
   BASE_BANK_REWARD: 1,
@@ -170,6 +185,7 @@ export const LEVEL_SYSTEM = {
     BEER: 3,
     STAR: 3,
     SCUMBAG_STEVE: 3,
+    DELIVERY_DRIVER: 6,
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
@@ -191,6 +207,7 @@ export const LEVEL_SYSTEM = {
     CRITIC: [0.12, 0.15, 0.15, 0.15, 0.15], // Levels 1-5+
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
+    DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05],
     INSPECTOR: [0, 0, 0, 0, 0.05],
     MAFIA: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
   },

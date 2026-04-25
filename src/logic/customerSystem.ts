@@ -7,7 +7,7 @@ import {
   isCustomerAffectedByPowerUps,
   getCustomerVariant
 } from '../types/game';
-import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE } from '../lib/constants';
+import { ENTITY_SPEEDS, GAME_CONFIG, POSITIONS, SCUMBAG_STEVE, DELIVERY_DRIVER } from '../lib/constants';
 
 // --- Types for the Update Result ---
 export type CustomerUpdateEvent =
@@ -41,6 +41,8 @@ export type CustomerHitEvent =
   | 'STEVE_SERVED'
   | 'HEALTH_INSPECTOR_BRIBED'
   | 'HEALTH_INSPECTOR_TIPSY_SERVED'
+  | 'DELIVERY_DRIVER_PARTIAL'
+  | 'DELIVERY_DRIVER_COMPLETE'
   | 'MAFIA_SERVED';
 
 export interface CustomerHitResult {
@@ -284,6 +286,41 @@ export const updateCustomerPositions = (
       return;
     }
 
+    // 6.6. Delivery Driver Movement (parks at counter, drivers stack behind each other)
+    if (processedCustomer.deliveryDriver && !isDeparting) {
+      if (processedCustomer.movingRight) {
+        // Leaving after completion
+        processedCustomer.position += processedCustomer.speed * 2;
+        nextCustomers.push(processedCustomer);
+        return;
+      }
+
+      let waitPos = DELIVERY_DRIVER.WAIT_POSITION;
+
+      // Check if another delivery driver is already parked ahead in the same lane
+      const aheadDriver = customers.find(
+        c => c.deliveryDriver && !isCustomerLeaving(c) && c.lane === processedCustomer.lane
+          && c.id !== processedCustomer.id
+          && c.position <= waitPos + 1 // already parked (at or near wait position)
+          && c.position < processedCustomer.position
+      );
+      if (aheadDriver) {
+        // Stop behind the parked driver with a gap
+        waitPos = aheadDriver.position + DELIVERY_DRIVER.DRIVER_GAP;
+      }
+
+      if (processedCustomer.position <= waitPos) {
+        // Parked -- don't move
+        processedCustomer.position = waitPos;
+      } else {
+        // Still approaching wait position
+        const newPos = processedCustomer.position - processedCustomer.speed;
+        processedCustomer.position = Math.max(newPos, waitPos);
+      }
+      nextCustomers.push(processedCustomer);
+      return;
+    }
+
     // 6.75. Health Inspector Movement
     if (processedCustomer.healthInspector && !isDeparting) {
       if (processedCustomer.movingRight) {
@@ -316,8 +353,10 @@ export const updateCustomerPositions = (
     }
 
     // 7. Standard Customer Movement (Approaching)
+    // Customers walk through delivery drivers -- no blocking.
+
     const speedMod = processedCustomer.hotHoneyAffected ? 0.5 : 1;
-    const newPos = processedCustomer.position - (processedCustomer.speed * speedMod);
+    let newPos = processedCustomer.position - (processedCustomer.speed * speedMod);
 
     if (newPos <= GAME_CONFIG.CHEF_X_POSITION) {
       // Reached Chef -> Angry -> Life Lost
@@ -523,6 +562,44 @@ export const processCustomerHit = (
       };
       return {
         updatedCustomer: { ...customer, woozy: false, woozyState: 'satisfied', served: true, hasPlate: false },
+        events,
+        newEntities
+      };
+    }
+  }
+
+  // 3.5. Delivery Driver (Multi-Slice Requirement)
+  if (customer.deliveryDriver) {
+    const slicesReceived = (customer.slicesReceived || 0) + 1;
+    const slicesNeeded = customer.deliverySlicesNeeded || DELIVERY_DRIVER.SLICES_NEEDED;
+
+    if (slicesReceived < slicesNeeded) {
+      // Intermediate slice -- keep accepting (no plate thrown back)
+      events.push('DELIVERY_DRIVER_PARTIAL');
+      return {
+        updatedCustomer: {
+          ...customer,
+          slicesReceived,
+          textMessage: `${slicesReceived}/${slicesNeeded}`,
+          textMessageTime: now,
+        },
+        events,
+        newEntities
+      };
+    } else {
+      // Final slice -- delivery complete! (no plate thrown back)
+      events.push('DELIVERY_DRIVER_COMPLETE');
+      return {
+        updatedCustomer: {
+          ...customer,
+          served: true,
+          hasPlate: false,
+          slicesReceived,
+          movingRight: true,
+          flipped: true,
+          textMessage: ["30 minutes or else...", "Brakes? What're those?", "I know a shortcut."][Math.floor(Math.random() * 3)],
+          textMessageTime: now,
+        },
         events,
         newEntities
       };
