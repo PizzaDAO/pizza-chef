@@ -6,6 +6,7 @@ import {
   POWERUPS,
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
+  HEALTH_DEPT_RAID,
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
@@ -288,4 +289,51 @@ export const processSpawning = (
     updateCustomerSpawnTime: customerResult.shouldSpawn,
     updatePowerUpSpawnTime: powerUpResult.shouldSpawn,
   };
+};
+
+/**
+ * Try to trigger a Health Department Raid event.
+ * 4 health inspectors spawn across all 4 lanes with staggered positions
+ * so they visually enter the board one after another.
+ */
+export const tryTriggerHealthDeptRaid = (
+  level: number,
+  levelPhase: LevelPhase,
+  raidActive: boolean,
+  raidTriggeredThisLevel: boolean,
+  levelStartTime: number,
+  now: number,
+): { shouldTrigger: boolean; rolled: boolean; inspectors?: Customer[] } => {
+  if (level < HEALTH_DEPT_RAID.MIN_LEVEL) return { shouldTrigger: false, rolled: false };
+  if (levelPhase !== 'playing') return { shouldTrigger: false, rolled: false };
+  if (raidActive || raidTriggeredThisLevel) return { shouldTrigger: false, rolled: false };
+  if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false, rolled: false };
+  // Single roll per level — caller marks raidTriggeredThisLevel regardless of outcome
+  if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false, rolled: true };
+
+  // One inspector per lane — all 4 lanes
+  const selectedLanes = [0, 1, 2, 3];
+
+  const speedMultiplier = getLevelSpeedMultiplier(level);
+  const baseSpeed = ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER;
+  const speed = baseSpeed * speedMultiplier;
+
+  const inspectors: Customer[] = selectedLanes.map((lane, index) => ({
+    id: `raid-inspector-${now}-${lane}`,
+    lane,
+    // Stagger spawn positions so inspectors enter the board one at a time
+    position: POSITIONS.SPAWN_X + index * HEALTH_DEPT_RAID.SPAWN_STAGGER,
+    speed,
+    served: false,
+    hasPlate: false,
+    leaving: false,
+    disappointed: false,
+    movingRight: false,
+    healthInspector: true,
+    critic: false,
+    badLuckBrian: false,
+    scumbagSteve: false,
+  }));
+
+  return { shouldTrigger: true, rolled: true, inspectors };
 };

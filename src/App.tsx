@@ -458,6 +458,35 @@ function App() {
                     </div>
                   )}
 
+                  {gameState.healthDeptRaid?.active &&
+                   Date.now() < gameState.healthDeptRaid.alertEndTime && (
+                    <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
+                      <div className="bg-red-900 bg-opacity-90 text-white rounded-xl px-8 py-5 text-center
+                                      animate-bounce border-4 border-red-500">
+                        <h2 className="text-2xl sm:text-4xl font-bold text-red-300">
+                          HEALTH DEPT RAID!
+                        </h2>
+                        <p className="text-sm sm:text-lg mt-1 text-gray-300">
+                          4 inspectors incoming!
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {gameState.healthDeptRaidResult?.success && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                      <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4
+                                      rounded-xl shadow-2xl border-4 border-green-300 animate-bounce">
+                        <div className="text-2xl sm:text-3xl font-bold text-center drop-shadow-lg">
+                          Clean Record!
+                        </div>
+                        <div className="text-sm sm:text-base text-center mt-1 font-semibold">
+                          +3,000 pts &bull; +$20
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {showControlsOverlay && <ControlsOverlay onClose={handleCloseControlsOverlay} />}
 
                   {!gameState.gameOver && !showControlsOverlay && (
@@ -591,6 +620,35 @@ function App() {
                       </div>
                       <div className="text-sm sm:text-base text-center mt-1 font-semibold">
                         +5,000 pts &bull; +$25
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {gameState.healthDeptRaid?.active &&
+                 Date.now() < gameState.healthDeptRaid.alertEndTime && (
+                  <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
+                    <div className="bg-red-900 bg-opacity-90 text-white rounded-xl px-8 py-5 text-center
+                                    animate-bounce border-4 border-red-500">
+                      <h2 className="text-2xl sm:text-4xl font-bold text-red-300">
+                        HEALTH DEPT RAID!
+                      </h2>
+                      <p className="text-sm sm:text-lg mt-1 text-gray-300">
+                        4 inspectors incoming!
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {gameState.healthDeptRaidResult?.success && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+                    <div className="bg-gradient-to-r from-green-500 to-emerald-600 text-white px-8 py-4
+                                    rounded-xl shadow-2xl border-4 border-green-300 animate-bounce">
+                      <div className="text-2xl sm:text-3xl font-bold text-center drop-shadow-lg">
+                        Clean Record!
+                      </div>
+                      <div className="text-sm sm:text-base text-center mt-1 font-semibold">
+                        +3,000 pts &bull; +$20
                       </div>
                     </div>
                   </div>
