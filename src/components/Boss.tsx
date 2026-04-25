@@ -94,7 +94,7 @@ const Boss: React.FC<BossProps> = ({ bossBattle }) => {
         return (
           <div
             key={minion.id}
-            className="absolute transition-all duration-100 flex items-center justify-center w-[8%] aspect-square"
+            className="absolute transition-none flex items-center justify-center w-[8%] aspect-square"
             style={{
               left: `${minion.position}%`,
               top: `${minion.lane * 25 + 6}%`,
