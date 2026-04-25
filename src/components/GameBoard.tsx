@@ -14,7 +14,7 @@ import { GameState, GameStateSnapshot } from '../types/game';
 import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
 import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
-import { getTotalTrainingLevel } from '../logic/workerSystem';
+
 
 const chefImg = sprite("chef.png");
 const cheesedChefImg = sprite("cheesed-chef.png");
@@ -203,12 +203,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
       <PepeHelpers helpers={gameState.pepeHelpers} />
 
       {/* Hired Worker */}
-      {gameState.hiredWorker?.active && (() => {
-        const totalLevel = getTotalTrainingLevel(gameState.hiredWorker.training);
-        const internSprite = totalLevel >= 13 ? 'intern-pro.png'
-          : totalLevel >= 6 ? 'intern-mid.png'
-          : 'intern.png';
-        return (
+      {gameState.hiredWorker?.active && (
           <div
             className="absolute flex items-center justify-center"
             style={{
@@ -222,7 +217,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
             }}
           >
             <img
-              src={sprite(internSprite)}
+              src={sprite("intern.png")}
               alt="Hired intern"
               className="w-full h-full object-contain"
             />
@@ -242,8 +237,7 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
               </div>
             )}
           </div>
-        );
-      })()}
+      )}
 
       {/* Nyan Cat Chef - positioned directly on game board during sweep */}
       {gameState.nyanSweep?.active && (
