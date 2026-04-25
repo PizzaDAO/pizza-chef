@@ -50,9 +50,9 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
     const variant = getCustomerVariant(customer);
     const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'alien';
 
-    // Alien customer display
+    // Alien customer display — stays 👽 when sad, yumface when fed
     if (variant === 'alien') {
-      if (customer.disappointed) return { type: 'emoji', value: '👾' };
+      if (customer.served) return { type: 'image', value: yumfaceImg, alt: 'alien-yum' };
       return { type: 'emoji', value: '👽' };
     }
 
