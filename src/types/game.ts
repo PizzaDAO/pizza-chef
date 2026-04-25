@@ -99,11 +99,8 @@ export interface PepeHelper {
 
 export interface WorkerTraining {
   speed: number;      // 0-5
-  capacity: number;   // 0-5
-  smarts: number;     // 0-5
+  capacity: number;   // 0-5, max slices the intern can hold
   hustle: number;     // 0-5
-  xp: number;
-  xpLevel: number;    // 0-5, derived from XP thresholds
 }
 
 export interface HiredWorker {

@@ -120,7 +120,6 @@ export const WORKER_CONFIG = {
   // Training system
   BASE_ACTION_INTERVAL: 200,
   ACTION_INTERVALS: [200, 180, 160, 140, 120, 100],
-  STARTING_SLICES_BY_LEVEL: [1, 2, 3, 4, 5, 6],
 
   // Ability unlock thresholds (total training level = sum of all stats)
   UNLOCK_PLATES: 3,
@@ -128,26 +127,16 @@ export const WORKER_CONFIG = {
   UNLOCK_START_OVEN: 10,
   UNLOCK_MOVE_ACT: 15,
 
-  // Smarts bonuses per level
-  SMARTS_CUSTOMER_BONUS: [0, 10, 20, 30, 40, 60],
-  SMARTS_CLUSTERING_REDUCTION: [0, 5, 10, 15, 20, 25],
-
   MAX_STAT_LEVEL: 5,
+
+  // Max slices the intern can hold per capacity level
+  MAX_SLICES_BY_LEVEL: [2, 3, 4, 5, 6, 8],
 
   TRAINING_COSTS: {
     speed:    [15, 25, 40, 60, 85],
     capacity: [10, 20, 35, 50, 75],
-    smarts:   [10, 20, 35, 55, 80],
     hustle:   [20, 35, 50, 70, 100],
   } as Record<string, number[]>,
-
-  XP_PER_SERVE: 2,
-  XP_PER_PLATE_CATCH: 3,
-  XP_PER_OVEN_START: 1,
-  XP_PER_PIZZA_PULL: 1,
-  XP_THRESHOLDS: [0, 50, 150, 350, 700, 1200],
-  XP_BONUS_ACTION_INTERVAL: -5,
-  XP_BONUS_PRIORITY: 5,
 };
 
 export const BOSS_CONFIG = {

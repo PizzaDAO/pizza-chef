@@ -141,9 +141,6 @@ export const processWorkerRetention = (prev: GameState): GameState => {
 export const trainWorker = (prev: GameState, stat: keyof WorkerTraining): GameState => {
   if (!prev.hiredWorker?.active) return prev;
 
-  // Only allow training speed, capacity, smarts, hustle
-  if (stat === 'xp' || stat === 'xpLevel') return prev;
-
   const training = prev.hiredWorker.training;
   const currentLevel = training[stat] as number;
   if (currentLevel >= WORKER_CONFIG.MAX_STAT_LEVEL) return prev;
@@ -151,7 +148,7 @@ export const trainWorker = (prev: GameState, stat: keyof WorkerTraining): GameSt
   const costs = WORKER_CONFIG.TRAINING_COSTS[stat];
   if (!costs) return prev;
 
-  const cost = costs[currentLevel]; // Cost to go from currentLevel to currentLevel+1
+  const cost = costs[currentLevel];
   if (prev.bank < cost) return prev;
 
   const newTraining: WorkerTraining = {
@@ -159,16 +156,12 @@ export const trainWorker = (prev: GameState, stat: keyof WorkerTraining): GameSt
     [stat]: currentLevel + 1,
   };
 
-  // If upgrading capacity, also add the extra starting slice immediately
-  const capacitySliceBonus = stat === 'capacity' ? 1 : 0;
-
   return {
     ...prev,
     bank: prev.bank - cost,
     hiredWorker: {
       ...prev.hiredWorker,
       training: newTraining,
-      availableSlices: prev.hiredWorker.availableSlices + capacitySliceBonus,
     },
   };
 };

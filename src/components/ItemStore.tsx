@@ -74,12 +74,12 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   // Right side:
   //   Bribe = 8
   //   Power-ups = 9, 10, 11
-  //   Hire Worker (if not hired) = 12, or Training stats (if hired) = 12, 13, 14, 15
-  // Bottom: Continue = 16 (or 13 if not hired)
+  //   Hire Worker (if not hired) = 12, or Training stats (if hired) = 12, 13, 14
+  // Bottom: Continue = 15 (or 13 if not hired)
 
   const workerAlreadyHired = !!gameState.hiredWorker?.active;
   const hasSavedTraining = !!gameState.workerTrainingSaved;
-  const CONTINUE_INDEX = workerAlreadyHired ? 16 : 13;
+  const CONTINUE_INDEX = workerAlreadyHired ? 15 : 13;
 
   const [selectedIndex, setSelectedIndex] = useState(CONTINUE_INDEX); // Start on Continue
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -91,8 +91,7 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   const trainingStats: { key: keyof WorkerTraining; label: string; index: number }[] = [
     { key: 'speed', label: 'Speed', index: 12 },
     { key: 'capacity', label: 'Capacity', index: 13 },
-    { key: 'smarts', label: 'Smarts', index: 14 },
-    { key: 'hustle', label: 'Hustle', index: 15 },
+    { key: 'hustle', label: 'Hustle', index: 14 },
   ];
 
   const getTrainingCost = (stat: string, level: number): number | null => {
@@ -118,12 +117,11 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     ];
 
     if (workerAlreadyHired) {
-      // 12-15: training stats
+      // 12-14: training stats
       actions.push(() => { madePurchaseRef.current = true; onTrainWorker('speed'); });
       actions.push(() => { madePurchaseRef.current = true; onTrainWorker('capacity'); });
-      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('smarts'); });
       actions.push(() => { madePurchaseRef.current = true; onTrainWorker('hustle'); });
-      // 16: continue
+      // 15: continue
       actions.push(handleClose);
     } else {
       // 12: hire worker
@@ -207,9 +205,9 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     const hired = !!gs.hiredWorker?.active;
 
     if (hired) {
-      // Training stats (12-15)
-      if (index >= 12 && index <= 15) {
-        const statKeys: (keyof WorkerTraining)[] = ['speed', 'capacity', 'smarts', 'hustle'];
+      // Training stats (12-14)
+      if (index >= 12 && index <= 14) {
+        const statKeys: (keyof WorkerTraining)[] = ['speed', 'capacity', 'hustle'];
         const stat = statKeys[index - 12];
         const training = gs.hiredWorker!.training;
         const currentLevel = training[stat] as number;
@@ -218,8 +216,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
         if (!costs) return true;
         return gs.bank < costs[currentLevel];
       }
-      // Continue (16)
-      if (index === 16) return false;
+      // Continue (15)
+      if (index === 15) return false;
     } else {
       // Hire Worker (12)
       if (index === 12) {
@@ -340,37 +338,25 @@ const ItemStore: React.FC<ItemStoreProps> = ({
             if (!disabled(8)) return 8;
             return current;
           }
-          if (key === 'ArrowDown') return firstEnabled([12, 13, 14, 15, contIdx], current);
+          if (key === 'ArrowDown') return firstEnabled([12, 13, 14, contIdx], current);
         }
 
         if (hired) {
-          // Training stats (12-15)
-          if (current >= 12 && current <= 15) {
+          // Training stats (12-14)
+          if (current >= 12 && current <= 14) {
             if (key === 'ArrowUp') {
-              if (current === 12 || current === 13) {
-                return firstEnabled([9, 10, 11, 8], current);
-              }
-              // 14, 15 go to 12, 13
-              const target = current - 2;
-              if (!disabled(target)) return target;
               return firstEnabled([9, 10, 11, 8], current);
             }
-            if (key === 'ArrowDown') {
-              if (current === 12 || current === 13) {
-                const target = current + 2;
-                if (!disabled(target)) return target;
-              }
-              return contIdx;
-            }
+            if (key === 'ArrowDown') return contIdx;
             if (key === 'ArrowLeft') {
-              if (current === 13 || current === 15) {
+              if (current > 12) {
                 const target = current - 1;
                 if (!disabled(target)) return target;
               }
               return firstEnabled([5, 4, 7, 6], current);
             }
             if (key === 'ArrowRight') {
-              if (current === 12 || current === 14) {
+              if (current < 14) {
                 const target = current + 1;
                 if (!disabled(target)) return target;
               }
@@ -378,10 +364,10 @@ const ItemStore: React.FC<ItemStoreProps> = ({
             }
           }
 
-          // Continue (16)
-          if (current === 16) {
+          // Continue (15)
+          if (current === 15) {
             if (key === 'ArrowUp') {
-              return firstEnabled([14, 15, 12, 13, 9, 10, 11, 8, 7, 6, 5, 4, 3, 2, 1, 0], current);
+              return firstEnabled([12, 13, 14, 9, 10, 11, 8, 7, 6, 5, 4, 3, 2, 1, 0], current);
             }
             return current;
           }
@@ -428,34 +414,6 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   }), [selectedIndex, registerRef, menuActions]);
 
   const selectedRing = "ring-2 ring-white ring-opacity-80";
-
-  // XP bar helper
-  const renderXpBar = (training: WorkerTraining) => {
-    const thresholds = WORKER_CONFIG.XP_THRESHOLDS;
-    const currentThreshold = thresholds[training.xpLevel] || 0;
-    const nextThreshold = thresholds[training.xpLevel + 1];
-    if (!nextThreshold) {
-      return (
-        <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
-          <div className="bg-yellow-500 h-full rounded-full" style={{ width: '100%' }} />
-        </div>
-      );
-    }
-    const progress = ((training.xp - currentThreshold) / (nextThreshold - currentThreshold)) * 100;
-    return (
-      <div className="flex items-center gap-1 sm:gap-2">
-        <div className="flex-1 bg-gray-200 rounded-full h-2 sm:h-3">
-          <div
-            className="bg-yellow-500 h-full rounded-full transition-all"
-            style={{ width: `${Math.min(100, progress)}%` }}
-          />
-        </div>
-        <span className="text-[8px] sm:text-[10px] text-gray-500 whitespace-nowrap">
-          {training.xp}/{nextThreshold}
-        </span>
-      </div>
-    );
-  };
 
   // Render stat dots
   const renderStatDots = (level: number) => {
@@ -659,11 +617,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
                           Intern Training - &quot;{rankTitle}&quot;
                         </h4>
                         <p className="text-[8px] sm:text-[10px] text-gray-500">
-                          Total Level: {totalLevel} | XP Level: {training.xpLevel}
+                          Total Level: {totalLevel}
                         </p>
-                        <div className="mt-0.5 sm:mt-1 px-2">
-                          {renderXpBar(training)}
-                        </div>
                       </div>
 
                       {/* Training stat rows - 2x2 grid */}
