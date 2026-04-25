@@ -571,7 +571,7 @@ export const processCustomerHit = (
           slicesReceived,
           movingRight: true,
           flipped: true,
-          textMessage: "Full delivery! Thanks!",
+          textMessage: ["30 minutes or else...", "Brakes? What're those?"][Math.floor(Math.random() * 2)],
           textMessageTime: now,
         },
         events,
