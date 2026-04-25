@@ -7,6 +7,7 @@ import {
   SCUMBAG_STEVE,
   HEALTH_INSPECTOR,
   DELIVERY_DRIVER,
+  HEALTH_DEPT_RAID,
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
@@ -41,6 +42,7 @@ export const getUnlockedCustomerTypes = (level: number): CustomerVariant[] => {
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.SCUMBAG_STEVE) types.push('scumbagSteve');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.DELIVERY_DRIVER) types.push('deliveryDriver');
   if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.HEALTH_INSPECTOR) types.push('healthInspector');
+  if (level >= LEVEL_SYSTEM.UNLOCK_SCHEDULE.PIZZA_MAFIA) types.push('pizzaMafia');
   return types;
 };
 
@@ -93,6 +95,7 @@ const getSpecialChances = (level: number) => {
     steve: LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE[idx],
     deliveryDriver: LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER[idx],
     inspector: LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR[idx],
+    mafia: LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA ? (LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA[idx] || 0) : 0,
   };
 };
 
@@ -171,6 +174,8 @@ export const trySpawnCustomer = (
     variant = 'deliveryDriver';
   } else if (unlockedTypes.includes('healthInspector') && Math.random() < chances.inspector) {
     variant = 'healthInspector';
+  } else if (unlockedTypes.includes('pizzaMafia') && Math.random() < chances.mafia) {
+    variant = 'pizzaMafia';
   }
 
   // Calculate speed with level speed multiplier
@@ -204,6 +209,7 @@ export const trySpawnCustomer = (
     healthInspector: variant === 'healthInspector',
     deliveryDriver: variant === 'deliveryDriver',
     deliverySlicesNeeded: variant === 'deliveryDriver' ? DELIVERY_DRIVER.SLICES_NEEDED : undefined,
+    pizzaMafia: variant === 'pizzaMafia',
     slicesReceived: (variant === 'scumbagSteve' || variant === 'deliveryDriver') ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
@@ -292,4 +298,51 @@ export const processSpawning = (
     updateCustomerSpawnTime: customerResult.shouldSpawn,
     updatePowerUpSpawnTime: powerUpResult.shouldSpawn,
   };
+};
+
+/**
+ * Try to trigger a Health Department Raid event.
+ * 4 health inspectors spawn across all 4 lanes with staggered positions
+ * so they visually enter the board one after another.
+ */
+export const tryTriggerHealthDeptRaid = (
+  level: number,
+  levelPhase: LevelPhase,
+  raidActive: boolean,
+  raidTriggeredThisLevel: boolean,
+  levelStartTime: number,
+  now: number,
+): { shouldTrigger: boolean; rolled: boolean; inspectors?: Customer[] } => {
+  if (level < HEALTH_DEPT_RAID.MIN_LEVEL) return { shouldTrigger: false, rolled: false };
+  if (levelPhase !== 'playing') return { shouldTrigger: false, rolled: false };
+  if (raidActive || raidTriggeredThisLevel) return { shouldTrigger: false, rolled: false };
+  if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false, rolled: false };
+  // Single roll per level — caller marks raidTriggeredThisLevel regardless of outcome
+  if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false, rolled: true };
+
+  // One inspector per lane — all 4 lanes
+  const selectedLanes = [0, 1, 2, 3];
+
+  const speedMultiplier = getLevelSpeedMultiplier(level);
+  const baseSpeed = ENTITY_SPEEDS.CUSTOMER_BASE * HEALTH_INSPECTOR.SPEED_MULTIPLIER;
+  const speed = baseSpeed * speedMultiplier;
+
+  const inspectors: Customer[] = selectedLanes.map((lane, index) => ({
+    id: `raid-inspector-${now}-${lane}`,
+    lane,
+    // Stagger spawn positions so inspectors enter the board one at a time
+    position: POSITIONS.SPAWN_X + index * HEALTH_DEPT_RAID.SPAWN_STAGGER,
+    speed,
+    served: false,
+    hasPlate: false,
+    leaving: false,
+    disappointed: false,
+    movingRight: false,
+    healthInspector: true,
+    critic: false,
+    badLuckBrian: false,
+    scumbagSteve: false,
+  }));
+
+  return { shouldTrigger: true, rolled: true, inspectors };
 };

@@ -53,6 +53,7 @@ export const PROBABILITIES = {
   CRITIC_CHANCE: 0.15,
   BAD_LUCK_BRIAN_CHANCE: 0.1, // If not critic
   SCUMBAG_STEVE_CHANCE: 0.08, // If not critic or brian
+  PIZZA_MAFIA_CHANCE: 0.05, // If not critic, brian, or steve
   POWERUP_STAR_CHANCE: 0.1,
 };
 
@@ -65,7 +66,7 @@ export const SCUMBAG_STEVE = {
 
 export const HEALTH_INSPECTOR = {
   CHANCE: 0.08, // 8% chance (if not other variant)
-  MIN_LEVEL: 5,
+  MIN_LEVEL: 1,
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
 };
 
@@ -79,6 +80,26 @@ export const DELIVERY_DRIVER = {
   DRIVER_GAP: 4,             // Gap between stacked delivery drivers (%)
 };
 
+export const HEALTH_DEPT_RAID = {
+  MIN_LEVEL: 8,
+  TRIGGER_CHANCE: 0.25,         // 25% flat chance per level (rolled once at MIN_LEVEL_TIME)
+  INSPECTOR_COUNT: 4,
+  ALERT_DURATION: 2000,         // 2s "HEALTH DEPT RAID!" overlay
+  RESULT_DURATION: 3000,        // 3s "Clean Record!" overlay
+  BONUS_POINTS: 3000,
+  BONUS_CASH: 20,
+  MIN_LEVEL_TIME: 5000,         // 5s into level before rolling
+  SPAWN_STAGGER: 0,             // position offset (all start at same X)
+  SPAWN_DELAY: 3000,            // ms between each inspector spawn (~3s apart, ~10s total for 4)
+};
+
+export const MAFIA_SLICE_CONFIG = {
+  SLICE_COUNT: 8,
+  SPEED: 3,
+  LIFETIME: 2000, // ms
+  LANE_SPEED: 0.02, // Vertical movement speed
+};
+
 export const SCORING = {
   // Customer Service
   CUSTOMER_NORMAL: 150,
@@ -88,6 +109,7 @@ export const SCORING = {
   // Actions
   PLATE_CAUGHT: 50,
   POWERUP_COLLECTED: 100,
+  STAR_COLLECTED: 777,
   DOGE_COLLECTED: 420,
   NYAN_COLLECTED: 777,
 
@@ -167,6 +189,7 @@ export const LEVEL_SYSTEM = {
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
+    PIZZA_MAFIA: 7,
     PEPE: 5,
     MOLTOBENNY: 5,
   },
@@ -186,6 +209,7 @@ export const LEVEL_SYSTEM = {
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05],
     INSPECTOR: [0, 0, 0, 0, 0.05],
+    MAFIA: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
   },
 
   // Boss schedule
@@ -288,6 +312,7 @@ export const LAYOUT = {
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],
+  mafiaSlices: [],
   emptyPlates: [],
   powerUps: [],
   activePowerUps: [],
@@ -342,6 +367,8 @@ export const INITIAL_GAME_STATE = {
     },
     ovenUpgradesMade: 0,
     bestOfAwardsEarned: 0,
+    totalEarned: 0,
+    totalSpent: 0,
   },
   bossBattle: undefined,
   defeatedBossLevels: [],
@@ -363,4 +390,7 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Health Department Raid
+  healthDeptRaid: undefined as { active: boolean; inspectorIds: string[]; starsAtRaidStart: number; alertEndTime: number; raidTriggeredThisLevel: boolean } | undefined,
+  healthDeptRaidResult: undefined as { success: boolean; endTime: number } | undefined,
 };

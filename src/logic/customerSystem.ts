@@ -42,7 +42,8 @@ export type CustomerHitEvent =
   | 'HEALTH_INSPECTOR_BRIBED'
   | 'HEALTH_INSPECTOR_TIPSY_SERVED'
   | 'DELIVERY_DRIVER_PARTIAL'
-  | 'DELIVERY_DRIVER_COMPLETE';
+  | 'DELIVERY_DRIVER_COMPLETE'
+  | 'MAFIA_SERVED';
 
 export interface CustomerHitResult {
   updatedCustomer: Customer;
@@ -481,6 +482,31 @@ export const processCustomerHit = (
       },
       events,
       newEntities: { droppedPlate }
+    };
+  }
+
+  // 1.5. Pizza Mafia - spawns 8 slices flying in all directions
+  if (customer.pizzaMafia) {
+    events.push('MAFIA_SERVED');
+    newEntities.emptyPlate = {
+      id: `plate-${now}-${customer.id}`,
+      lane: customer.lane,
+      position: customer.position,
+      speed: ENTITY_SPEEDS.PLATE,
+      createdAt: now
+    };
+    return {
+      updatedCustomer: {
+        ...customer,
+        served: true,
+        hasPlate: false,
+        textMessage: "Bada bing!",
+        textMessageTime: now,
+        frozen: false,
+        woozy: false
+      },
+      events,
+      newEntities
     };
   }
 

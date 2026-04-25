@@ -27,7 +27,7 @@ export default function StreakDisplay({ stats, cleanKitchenBonus, bestOfStreak }
 
   return (
     <div className="
-  absolute top-2 right-2 z-10
+  absolute top-2 right-2 z-[60]
   flex flex-col gap-2
   transform scale-[0.5] md:scale-100
   origin-top-right

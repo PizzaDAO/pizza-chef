@@ -4,6 +4,7 @@ import {
   GameState,
   GameStateSnapshot,
   PizzaSlice,
+  MafiaSlice,
   GameStats,
   PowerUpType,
   StarLostReason,
@@ -27,6 +28,7 @@ import {
   OVEN_CONFIG,
   LEVEL_SYSTEM,
   LEVEL_REWARDS,
+  HEALTH_DEPT_RAID,
 } from '../lib/constants';
 
 // --- Logic Imports ---
@@ -84,6 +86,7 @@ import { initializeBossMasks } from '../logic/bossCollisionMasks';
 import {
   processSpawning,
   getCustomersForLevel,
+  tryTriggerHealthDeptRaid,
 } from '../logic/spawnSystem';
 
 import {
@@ -98,6 +101,12 @@ import {
 import {
   processWorkerTick
 } from '../logic/workerSystem';
+
+import {
+  spawnMafiaSlices,
+  updateMafiaSlices,
+  checkMafiaSliceCollision
+} from '../logic/mafiaSliceSystem';
 
 // --- Store System (actions only) ---
 import {
@@ -534,6 +543,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
                 newState.stats = result.newStats;
                 customerScores.push(result.floatingScore);
@@ -564,6 +574,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 newState.cleanKitchenStartTime = now;
                 // Brian still pays $1 even when he drops the slice
                 newState.bank += SCORING.BASE_BANK_REWARD;
+                newState.stats.totalEarned += SCORING.BASE_BANK_REWARD;
               } else if (event === 'UNFROZEN_AND_SERVED') {
                 soundManager.customerUnfreeze();
 
@@ -573,6 +584,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
                 newState.stats = result.newStats;
                 customerScores.push(result.floatingScore);
@@ -595,6 +607,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 customerScores.push(result.floatingScore);
 
               } else if (event === 'STEVE_FIRST_SLICE') {
@@ -670,6 +683,32 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                   newState = processBestOfStreak(newState, lifeResult.wouldHaveGained, dogeMultiplier, now);
                 }
 
+              } else if (event === 'MAFIA_SERVED') {
+                // Pizza Mafia served - spawn 8 slices flying in all directions
+                soundManager.customerServed();
+
+                const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                  getStreakMultiplier(newState.stats.currentCustomerStreak),
+                  { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+                newState.score += result.scoreToAdd;
+                newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
+                newState.happyCustomers = result.newHappyCustomers;
+                newState.stats = result.newStats;
+                customerScores.push(result.floatingScore);
+
+                if (result.livesToAdd > 0) {
+                  newState.lives += result.livesToAdd;
+                  if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                  if (result.starGain) starGainsToAdd.push(result.starGain);
+                }
+
+                // Spawn mafia slices aimed at nearby customers (including other mafia)
+                const mafiaSlices = spawnMafiaSlices(customer.lane, customer.position, now, newState.customers, customer.id);
+                newState.mafiaSlices = [...newState.mafiaSlices, ...mafiaSlices];
+
+
               } else if (event === 'WOOZY_STEP_2' || event === 'SERVED_NORMAL' || event === 'SERVED_CRITIC' || event === 'SERVED_BRIAN_DOGE') {
                 soundManager.customerServed();
 
@@ -679,6 +718,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
                 newState.score += result.scoreToAdd;
                 newState.bank += result.bankToAdd;
+                newState.stats.totalEarned += result.bankToAdd;
                 newState.happyCustomers = result.newHappyCustomers;
                 newState.stats = result.newStats;
                 customerScores.push(result.floatingScore);
@@ -756,6 +796,87 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         }
         return customer;
       });
+
+      // --- 4a. MAFIA SLICES PROCESSING ---
+      if (newState.mafiaSlices.length > 0) {
+        // Update positions
+        newState.mafiaSlices = updateMafiaSlices(newState.mafiaSlices, now);
+
+        // Check collisions with customers
+        const mafiaSlicesToRemove = new Set<string>();
+        const mafiaScores: Array<{ points: number; lane: number; position: number }> = [];
+        const mafiaStarGains: Array<{ lane: number; position: number }> = [];
+
+        newState.mafiaSlices.forEach(slice => {
+          if (mafiaSlicesToRemove.has(slice.id)) return;
+
+          newState.customers = newState.customers.map(customer => {
+            if (mafiaSlicesToRemove.has(slice.id) || isCustomerLeaving(customer)) return customer;
+
+            if (checkMafiaSliceCollision(slice, customer)) {
+              mafiaSlicesToRemove.add(slice.id);
+
+              // Mafia bribes health inspectors — they leave without inspecting
+              if (customer.healthInspector && !customer.served) {
+                return {
+                  ...customer,
+                  leaving: true,
+                  movingRight: true,
+                  textMessage: "Just this once",
+                  textMessageTime: now
+                };
+              }
+
+              soundManager.customerServed();
+
+              const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+                getStreakMultiplier(newState.stats.currentCustomerStreak),
+                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+              newState.score += result.scoreToAdd;
+              newState.bank += result.bankToAdd;
+              newState.stats.totalEarned += result.bankToAdd;
+              newState.happyCustomers = result.newHappyCustomers;
+              newState.stats = result.newStats;
+              mafiaScores.push(result.floatingScore);
+
+              if (result.livesToAdd > 0) {
+                newState.lives += result.livesToAdd;
+                if (result.shouldPlayLifeSound) soundManager.lifeGained();
+                if (result.starGain) mafiaStarGains.push(result.starGain);
+              }
+
+              // Return empty plate and mark as served
+              newState.emptyPlates = [...newState.emptyPlates, {
+                id: `plate-${now}-${customer.id}-mafia`,
+                lane: customer.lane,
+                position: customer.position,
+                speed: ENTITY_SPEEDS.PLATE,
+                createdAt: now
+              }];
+
+              return {
+                ...customer,
+                served: true,
+                hasPlate: false,
+                ...(customer.pizzaMafia ? { textMessage: "Bada Boom", textMessageTime: now } : {})
+              };
+            }
+            return customer;
+          });
+        });
+
+        // Remove consumed slices
+        newState.mafiaSlices = newState.mafiaSlices.filter(s => !mafiaSlicesToRemove.has(s.id));
+
+        // Add floating scores and stars
+        mafiaScores.forEach(({ points, lane, position }) => {
+          newState = addFloatingScore(points, lane, position, newState);
+        });
+        mafiaStarGains.forEach(({ lane, position }) => {
+          newState = addFloatingStar(true, lane, position, newState);
+        });
+      }
 
       // --- 4. POWER-UP EXPIRATIONS ---
       const expResult = processPowerUpExpirations(newState.activePowerUps, now);
@@ -958,6 +1079,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
               newState.score += result.scoreToAdd;
               newState.bank += result.bankToAdd;
+              newState.stats.totalEarned += result.bankToAdd;
               newState.happyCustomers = result.newHappyCustomers;
               newState.stats = result.newStats;
               nyanScores.push(result.floatingScore);
@@ -1274,6 +1396,49 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.bestOfAwardAlert = undefined;
       }
 
+      // --- HEALTH DEPT RAID RESOLUTION ---
+      if (newState.healthDeptRaid?.active) {
+        const raid = newState.healthDeptRaid;
+        // Check if all raid inspectors have left the board
+        const raidInspectorsRemaining = newState.customers.filter(
+          c => raid.inspectorIds.includes(c.id) && !isCustomerLeaving(c)
+        );
+        const raidInspectorsOnScreen = newState.customers.filter(
+          c => raid.inspectorIds.includes(c.id)
+        );
+
+        if (raidInspectorsRemaining.length === 0 && raidInspectorsOnScreen.length === 0) {
+          // All raid inspectors gone - check result
+          const lostStars = raid.starsAtRaidStart - newState.lives;
+          const success = lostStars === 0;
+
+          if (success) {
+            // "Clean Record!" bonus
+            newState.score += HEALTH_DEPT_RAID.BONUS_POINTS * dogeMultiplier;
+            newState.bank += HEALTH_DEPT_RAID.BONUS_CASH;
+            newState = addFloatingScore(
+              HEALTH_DEPT_RAID.BONUS_POINTS * dogeMultiplier,
+              newState.chefLane, GAME_CONFIG.CHEF_X_POSITION, newState
+            );
+            soundManager.lifeGained(); // celebratory sound
+          }
+
+          newState.healthDeptRaid = {
+            ...raid,
+            active: false,
+          };
+          newState.healthDeptRaidResult = {
+            success,
+            endTime: now + HEALTH_DEPT_RAID.RESULT_DURATION,
+          };
+        }
+      }
+
+      // Clear expired raid result alert
+      if (newState.healthDeptRaidResult && now >= newState.healthDeptRaidResult.endTime) {
+        newState.healthDeptRaidResult = undefined;
+      }
+
       return newState;
     });
   }, [addFloatingScore, addFloatingStar, triggerGameOver, processBestOfStreak]); // ✅ removed gameState.* and ovenSoundStates deps
@@ -1317,6 +1482,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // Clear boss battle state if any
         bossBattle: undefined,
         pendingBossQueue: undefined,
+        // Reset raid state for new level
+        healthDeptRaid: undefined,
+        healthDeptRaidResult: undefined,
       };
     });
   }, []);
@@ -1515,6 +1683,65 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
       }
 
+      // --- HEALTH DEPT RAID TRIGGER (single roll per level) ---
+      if (!next.healthDeptRaid?.active && !next.healthDeptRaid?.raidTriggeredThisLevel) {
+        const raidResult = tryTriggerHealthDeptRaid(
+          next.level, next.levelPhase,
+          false, false,
+          next.levelProgress.levelStartTime, now
+        );
+        if (raidResult.rolled) {
+          if (raidResult.shouldTrigger && raidResult.inspectors) {
+            // Spawn first inspector now, queue the rest with time-based stagger
+            const [first, ...rest] = raidResult.inspectors;
+            next = {
+              ...next,
+              customers: [...next.customers, first],
+              healthDeptRaid: {
+                active: true,
+                inspectorIds: raidResult.inspectors.map(i => i.id),
+                starsAtRaidStart: next.lives,
+                alertEndTime: now + HEALTH_DEPT_RAID.ALERT_DURATION,
+                raidTriggeredThisLevel: true,
+                pendingInspectors: rest,
+                nextSpawnTime: now + HEALTH_DEPT_RAID.SPAWN_DELAY,
+              },
+            };
+            soundManager.lifeLost(); // dramatic sound for raid start
+          } else {
+            // Roll happened but no raid — mark as decided so we don't roll again
+            next = {
+              ...next,
+              healthDeptRaid: {
+                active: false,
+                inspectorIds: [],
+                starsAtRaidStart: next.lives,
+                alertEndTime: 0,
+                raidTriggeredThisLevel: true,
+              },
+            };
+          }
+        }
+      }
+
+      // --- HEALTH DEPT RAID: DRIP-SPAWN PENDING INSPECTORS ---
+      if (next.healthDeptRaid?.active &&
+          next.healthDeptRaid.pendingInspectors &&
+          next.healthDeptRaid.pendingInspectors.length > 0 &&
+          next.healthDeptRaid.nextSpawnTime &&
+          now >= next.healthDeptRaid.nextSpawnTime) {
+        const [nextInspector, ...remaining] = next.healthDeptRaid.pendingInspectors;
+        next = {
+          ...next,
+          customers: [...next.customers, nextInspector],
+          healthDeptRaid: {
+            ...next.healthDeptRaid,
+            pendingInspectors: remaining.length > 0 ? remaining : undefined,
+            nextSpawnTime: remaining.length > 0 ? now + HEALTH_DEPT_RAID.SPAWN_DELAY : undefined,
+          },
+        };
+      }
+
       return next;
     });
   }, [updateGame]);
@@ -1556,6 +1783,9 @@ export const useGameLogic = (gameStarted: boolean = true) => {
       powerUpAlert: gameState.powerUpAlert,
       bestOfAwardAlert: gameState.bestOfAwardAlert,
       ovenSpeedUpgrades: gameState.ovenSpeedUpgrades,
+      healthDeptRaid: gameState.healthDeptRaid,
+      healthDeptRaidResult: gameState.healthDeptRaidResult,
+      mafiaSlices: gameState.mafiaSlices,
     };
 
     const idx = replayBufferIndexRef.current % REPLAY_BUFFER_SIZE;
