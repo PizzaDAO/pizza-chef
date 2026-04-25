@@ -11,7 +11,6 @@ interface GameOverScreenProps {
   stats: GameStats;
   score: number;
   level: number;
-  bank: number;
   lastStarLostReason?: StarLostReason;
   onSubmitted: (session: GameSession, playerName: string) => void;
   onPlayAgain: () => void;
@@ -98,7 +97,7 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
   });
 }
 
-export default function GameOverScreen({ stats, score, level, bank, lastStarLostReason, onSubmitted, onPlayAgain }: GameOverScreenProps) {
+export default function GameOverScreen({ stats, score, level, lastStarLostReason, onSubmitted, onPlayAgain }: GameOverScreenProps) {
   const [playerName, setPlayerName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -480,44 +479,6 @@ export default function GameOverScreen({ stats, score, level, bank, lastStarLost
       ctx.fillText(powerUp.count.toString(), x + powerUpSize / 2, y + powerUpSize + 16 * scale);
     });
 
-    // --- WALLET ---
-    const walletBoxY = powerUpsBoxY + (98 * scale) + powerUpsBoxExtraBottomPadding + 10 * scale;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.beginPath();
-    ctx.roundRect(24 * scale, walletBoxY, size - 48 * scale, 70 * scale, 12 * scale);
-    ctx.fill();
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `bold ${15 * scale}px system-ui, -apple-system, sans-serif`;
-    ctx.textAlign = 'left';
-    ctx.fillText('WALLET', 40 * scale, walletBoxY + 23 * scale);
-
-    const walletData = [
-      { emoji: '\u{1F4B0}', label: 'Balance', value: `$${bank}` },
-      { emoji: '\u{1F4C8}', label: 'Earned', value: `$${stats.totalEarned}` },
-      { emoji: '\u{1F6D2}', label: 'Spent', value: `$${stats.totalSpent}` },
-    ];
-
-    const walletColWidth = (size - 48 * scale) / 3;
-    walletData.forEach((item, index) => {
-      const x = 40 * scale + index * walletColWidth;
-      const y = walletBoxY + 32 * scale;
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `${24 * scale}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.fillText(item.emoji, x + 2 * scale, y + 24 * scale);
-
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-      ctx.font = `${13 * scale}px system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = 'left';
-      ctx.fillText(item.label, x + iconSize + 8 * scale, y + 6 * scale);
-
-      ctx.fillStyle = '#22c55e';
-      ctx.font = `bold ${20 * scale}px system-ui, -apple-system, sans-serif`;
-      ctx.fillText(item.value, x + iconSize + 8 * scale, y + 28 * scale);
-    });
-
     const footerY = size - 12 * scale;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.font = `${13 * scale}px system-ui, -apple-system, sans-serif`;
@@ -531,7 +492,7 @@ export default function GameOverScreen({ stats, score, level, bank, lastStarLost
     ctx.font = `bold ${15 * scale}px system-ui, -apple-system, sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText('pizzachef.bolt.host', size / 2, footerY);
-  }, [stats, score, level, bank, displayName, skillRating, gameId, formattedDate, formattedTime, lastStarLostReason]);
+  }, [stats, score, level, displayName, skillRating, gameId, formattedDate, formattedTime, lastStarLostReason]);
 
   useEffect(() => {
     if (imagesLoaded) {

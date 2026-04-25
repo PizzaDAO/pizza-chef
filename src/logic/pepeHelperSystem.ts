@@ -229,7 +229,7 @@ export const processHelperAction = (
     const targetsInLane = (bossInLane ? 1 : 0) + minionsInLane.length;
     // Don't throw through a power-up — slices destroy them on contact
     const powerUpInBossLane = gameState.powerUps.some(
-      p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION
+      p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION - 10
     );
     if (targetsInLane > slicesInLane && !powerUpInBossLane) {
       const newSlice: PizzaSlice = {
@@ -258,7 +258,7 @@ export const processHelperAction = (
   );
   // Don't throw through a power-up — slices destroy them on contact
   const powerUpInLane = gameState.powerUps.some(
-    p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION
+    p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION - 10
   );
   // Only throw if there are more customers than slices already in flight
   if (approachingCustomers.length > slicesInLane && updatedHelper.availableSlices > 0 && !powerUpInLane && !soberInspectorInLane) {
