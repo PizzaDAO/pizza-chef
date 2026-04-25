@@ -120,15 +120,11 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
         ) : (
           <div style={{
             fontSize: 'clamp(2rem, 5vw, 3.5rem)',
-            position: 'relative',
             animation: customer.alien && !customer.served && !customer.disappointed
               ? 'alien-wobble 0.8s ease-in-out infinite'
               : customer.woozy ? 'woozy-wobble 0.6s ease-in-out infinite' : undefined,
           }}>
             {display.value}
-            {customer.alien && customer.served && (
-              <span style={{ position: 'absolute', bottom: '0%', left: '50%', transform: 'translateX(-50%)', fontSize: '50%', lineHeight: 1 }}>👅</span>
-            )}
           </div>
         )}
       </div>

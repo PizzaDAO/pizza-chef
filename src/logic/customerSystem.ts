@@ -348,6 +348,8 @@ export const updateCustomerPositions = (
         processedCustomer.disappointed = true;
         processedCustomer.movingRight = true;
         processedCustomer.alienPickedUp = true;
+        processedCustomer.textMessage = ["Earth is overrated.", "Should've stayed on Mars."][Math.floor(Math.random() * 2)];
+        processedCustomer.textMessageTime = now;
         customerStreakReset = true;
       }
 

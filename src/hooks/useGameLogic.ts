@@ -501,7 +501,11 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           // Drop phase complete — unfreeze the specific alien this UFO belongs to
           if (updated.phase === 'drop' && updated.dropped && ufo.alienId) {
             newState.customers = newState.customers.map(c =>
-              c.id === ufo.alienId && c.alienWaitingForDrop ? { ...c, alienWaitingForDrop: false } : c
+              c.id === ufo.alienId && c.alienWaitingForDrop ? {
+                ...c,
+                alienWaitingForDrop: false,
+                ...(Math.random() < 0.3 ? { textMessage: "Take me to your pizza.", textMessageTime: now } : {})
+              } : c
             );
           }
 
