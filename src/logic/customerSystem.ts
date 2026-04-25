@@ -570,6 +570,7 @@ export const processCustomerHit = (
           hasPlate: false,
           slicesReceived,
           movingRight: true,
+          flipped: true,
           textMessage: "Full delivery! Thanks!",
           textMessageTime: now,
         },
