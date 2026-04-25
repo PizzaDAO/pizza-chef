@@ -180,9 +180,8 @@ export const WORKER_CONFIG = {
   MAX_SLICES_BY_LEVEL: [2, 3, 4, 5, 6, 8],
 
   TRAINING_COSTS: {
-    speed:    [15, 25, 40, 60, 85],
+    hustle:   [15, 25, 40, 60, 85],
     capacity: [10, 20, 35, 50, 75],
-    hustle:   [20, 35, 50, 70, 100],
   } as Record<string, number[]>,
 };
 

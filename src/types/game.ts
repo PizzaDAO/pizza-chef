@@ -135,9 +135,8 @@ export interface PepeHelper {
 }
 
 export interface WorkerTraining {
-  speed: number;      // 0-5
+  hustle: number;     // 0-5, reduces action interval
   capacity: number;   // 0-5, max slices the intern can hold
-  hustle: number;     // 0-5
 }
 
 export interface HiredWorker {

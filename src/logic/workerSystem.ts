@@ -5,16 +5,15 @@ import { buildLaneBuckets } from './laneBuckets';
 
 /** Default training for a brand new intern */
 export const DEFAULT_TRAINING: WorkerTraining = {
-  speed: 0,
-  capacity: 0,
   hustle: 0,
+  capacity: 0,
 };
 
 /**
  * Compute the total training level (sum of all stat levels).
  */
 export const getTotalTrainingLevel = (t: WorkerTraining): number =>
-  t.speed + t.capacity + t.hustle;
+  t.hustle + t.capacity;
 
 /**
  * Get the max slices the intern can hold based on capacity training.
@@ -36,10 +35,10 @@ export const getWorkerAbilities = (t: WorkerTraining): HelperAbilities => {
 };
 
 /**
- * Get the effective action interval for the worker, factoring in speed training.
+ * Get the effective action interval for the worker, factoring in hustle training.
  */
 export const getWorkerActionInterval = (t: WorkerTraining): number => {
-  return WORKER_CONFIG.ACTION_INTERVALS[t.speed] ?? WORKER_CONFIG.BASE_ACTION_INTERVAL;
+  return WORKER_CONFIG.ACTION_INTERVALS[t.hustle] ?? WORKER_CONFIG.BASE_ACTION_INTERVAL;
 };
 
 /**

@@ -74,12 +74,12 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   // Right side:
   //   Bribe = 8
   //   Power-ups = 9, 10, 11
-  //   Hire Worker (if not hired) = 12, or Training stats (if hired) = 12, 13, 14
-  // Bottom: Continue = 15 (or 13 if not hired)
+  //   Hire Worker (if not hired) = 12, or Training stats (if hired) = 12, 13
+  // Bottom: Continue = 14 (or 13 if not hired)
 
   const workerAlreadyHired = !!gameState.hiredWorker?.active;
   const hasSavedTraining = !!gameState.workerTrainingSaved;
-  const CONTINUE_INDEX = workerAlreadyHired ? 15 : 13;
+  const CONTINUE_INDEX = workerAlreadyHired ? 14 : 13;
 
   const [selectedIndex, setSelectedIndex] = useState(CONTINUE_INDEX); // Start on Continue
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -89,9 +89,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
 
   // Training stat info
   const trainingStats: { key: keyof WorkerTraining; label: string; index: number }[] = [
-    { key: 'speed', label: 'Speed', index: 12 },
+    { key: 'hustle', label: 'Hustle', index: 12 },
     { key: 'capacity', label: 'Capacity', index: 13 },
-    { key: 'hustle', label: 'Hustle', index: 14 },
   ];
 
   const getTrainingCost = (stat: string, level: number): number | null => {
@@ -117,11 +116,10 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     ];
 
     if (workerAlreadyHired) {
-      // 12-14: training stats
-      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('speed'); });
-      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('capacity'); });
+      // 12-13: training stats
       actions.push(() => { madePurchaseRef.current = true; onTrainWorker('hustle'); });
-      // 15: continue
+      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('capacity'); });
+      // 14: continue
       actions.push(handleClose);
     } else {
       // 12: hire worker
@@ -205,9 +203,9 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     const hired = !!gs.hiredWorker?.active;
 
     if (hired) {
-      // Training stats (12-14)
-      if (index >= 12 && index <= 14) {
-        const statKeys: (keyof WorkerTraining)[] = ['speed', 'capacity', 'hustle'];
+      // Training stats (12-13)
+      if (index >= 12 && index <= 13) {
+        const statKeys: (keyof WorkerTraining)[] = ['hustle', 'capacity'];
         const stat = statKeys[index - 12];
         const training = gs.hiredWorker!.training;
         const currentLevel = training[stat] as number;
@@ -216,8 +214,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
         if (!costs) return true;
         return gs.bank < costs[currentLevel];
       }
-      // Continue (15)
-      if (index === 15) return false;
+      // Continue (14)
+      if (index === 14) return false;
     } else {
       // Hire Worker (12)
       if (index === 12) {
@@ -338,12 +336,12 @@ const ItemStore: React.FC<ItemStoreProps> = ({
             if (!disabled(8)) return 8;
             return current;
           }
-          if (key === 'ArrowDown') return firstEnabled([12, 13, 14, contIdx], current);
+          if (key === 'ArrowDown') return firstEnabled([12, 13, contIdx], current);
         }
 
         if (hired) {
-          // Training stats (12-14)
-          if (current >= 12 && current <= 14) {
+          // Training stats (12-13)
+          if (current >= 12 && current <= 13) {
             if (key === 'ArrowUp') {
               return firstEnabled([9, 10, 11, 8], current);
             }
@@ -356,7 +354,7 @@ const ItemStore: React.FC<ItemStoreProps> = ({
               return firstEnabled([5, 4, 7, 6], current);
             }
             if (key === 'ArrowRight') {
-              if (current < 14) {
+              if (current < 13) {
                 const target = current + 1;
                 if (!disabled(target)) return target;
               }
@@ -364,10 +362,10 @@ const ItemStore: React.FC<ItemStoreProps> = ({
             }
           }
 
-          // Continue (15)
-          if (current === 15) {
+          // Continue (14)
+          if (current === 14) {
             if (key === 'ArrowUp') {
-              return firstEnabled([12, 13, 14, 9, 10, 11, 8, 7, 6, 5, 4, 3, 2, 1, 0], current);
+              return firstEnabled([12, 13, 9, 10, 11, 8, 7, 6, 5, 4, 3, 2, 1, 0], current);
             }
             return current;
           }
