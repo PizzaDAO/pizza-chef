@@ -440,6 +440,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.stats.currentCustomerStreak = 0;
       }
 
+      const inspectorTextUpdates = new Map<number, string>();
       customerUpdate.events.forEach(event => {
         if (event.type === 'LIFE_LOST') {
           soundManager.customerDisappointed();
@@ -474,58 +475,55 @@ export const useGameLogic = (gameStarted: boolean = true) => {
           newState = triggerGameOver(newState, now);
         }
         if (event.type === 'HEALTH_INSPECTOR_PASSED') {
-          // Inspector found clean kitchen - show text on the inspector (already set as leaving)
-          newState.customers = newState.customers.map(c =>
-            c.healthInspector && c.leaving && c.lane === event.lane
-              ? { ...c, textMessage: "Seems okay.", textMessageTime: now }
-              : c
-          );
+          inspectorTextUpdates.set(event.lane, "Seems okay.");
         }
         if (event.type === 'HEALTH_INSPECTOR_FAILED') {
-          // Inspector found burnt oven - lose a star
           soundManager.lifeLost();
           newState.lives = Math.max(0, newState.lives - 1);
           newState.lastStarLostReason = 'health_inspector_failed';
           newState = addFloatingStar(false, event.lane, event.position, newState);
           newState.bestOfStreakCount = 0;
-          newState.customers = newState.customers.map(c =>
-            c.healthInspector && c.leaving && c.lane === event.lane
-              ? { ...c, textMessage: "Smells like smoke!", textMessageTime: now }
-              : c
-          );
+          inspectorTextUpdates.set(event.lane, "Smells like smoke!");
           if (newState.lives === 0) {
             newState = triggerGameOver(newState, now);
           }
         }
       });
 
+      // Apply batched inspector text updates in a single pass
+      if (inspectorTextUpdates.size > 0) {
+        newState.customers = newState.customers.map(c => {
+          if (c.healthInspector && c.leaving) {
+            const text = inspectorTextUpdates.get(c.lane);
+            if (text) return { ...c, textMessage: text, textMessageTime: now };
+          }
+          return c;
+        });
+      }
+
       // 2b. UFO ANIMATION TICK — tick ALL active UFOs in the array
+      // Collect customer updates to apply in a single pass
+      const alienDropIds = new Set<string>();
+      const alienDropTexts = new Map<string, string>();
+      const alienRemoveIds = new Set<string>();
+
       if (newState.ufoAnimations && newState.ufoAnimations.length > 0) {
         const updatedUfos: typeof newState.ufoAnimations = [];
-        const maxLifetime = ALIEN.UFO_FLY_DURATION * 3; // Safety: max 2 full phases (drop + pickup-exit)
+        const maxLifetime = ALIEN.UFO_FLY_DURATION * 3;
         for (const ufo of newState.ufoAnimations) {
           if (!ufo.active) continue;
-          // Safety timeout: force-remove UFOs that have been alive too long
           if (now - ufo.startTime > maxLifetime) continue;
           const updated = updateUfoAnimation(ufo, now);
 
-          // Drop phase complete — unfreeze the specific alien this UFO belongs to
           if (updated.phase === 'drop' && updated.dropped && ufo.alienId) {
-            newState.customers = newState.customers.map(c =>
-              c.id === ufo.alienId && c.alienWaitingForDrop ? {
-                ...c,
-                alienWaitingForDrop: false,
-                ...(Math.random() < 0.3 ? { textMessage: "Take me to your pizza.", textMessageTime: now } : {})
-              } : c
-            );
+            alienDropIds.add(ufo.alienId);
+            if (Math.random() < 0.3) alienDropTexts.set(ufo.alienId, "Take me to your pizza.");
           }
 
-          // Pickup-exit phase complete — remove the specific alien this UFO picked up
           if (updated.phase === 'pickup-exit' && updated.dropped && ufo.alienId) {
-            newState.customers = newState.customers.filter(c => c.id !== ufo.alienId);
+            alienRemoveIds.add(ufo.alienId);
           }
 
-          // Keep the UFO in the array only if still active
           if (updated.active) {
             updatedUfos.push(updated);
           }
@@ -533,22 +531,18 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         newState.ufoAnimations = updatedUfos.length > 0 ? updatedUfos : undefined;
       }
 
-      // 2c. ALIEN PICKUP CHECK — for each alien with alienPickedUp that has walked far enough right,
-      //     check if there's already a pickup UFO targeting it; if not, create one
+      // 2c. ALIEN PICKUP CHECK
+      const alienFreezeIds = new Set<string>();
       {
         const aliensNeedingPickup = newState.customers.filter(
           c => c.alien && c.alienPickedUp && !c.alienFrozenForPickup && c.movingRight && c.position >= 80
         );
         for (const alien of aliensNeedingPickup) {
-          // Check if a pickup UFO already targets this alien
           const hasPickupUfo = newState.ufoAnimations?.some(
             u => u.alienId === alien.id && (u.phase === 'pickup' || u.phase === 'pickup-exit')
           );
           if (!hasPickupUfo) {
-            // Freeze the alien in place so UFO can swoop in
-            newState.customers = newState.customers.map(c =>
-              c.id === alien.id ? { ...c, alienFrozenForPickup: true } : c
-            );
+            alienFreezeIds.add(alien.id);
             soundManager.ufoFlyby();
             const pickupUfo = initializePickupUfo(
               Math.round(alien.lane),
@@ -559,6 +553,22 @@ export const useGameLogic = (gameStarted: boolean = true) => {
             newState.ufoAnimations = [...(newState.ufoAnimations || []), pickupUfo];
           }
         }
+      }
+
+      // Apply all alien customer updates in a single pass
+      if (alienDropIds.size > 0 || alienRemoveIds.size > 0 || alienFreezeIds.size > 0) {
+        newState.customers = newState.customers
+          .filter(c => !alienRemoveIds.has(c.id))
+          .map(c => {
+            if (alienDropIds.has(c.id) && c.alienWaitingForDrop) {
+              const text = alienDropTexts.get(c.id);
+              return { ...c, alienWaitingForDrop: false, ...(text ? { textMessage: text, textMessageTime: now } : {}) };
+            }
+            if (alienFreezeIds.has(c.id)) {
+              return { ...c, alienFrozenForPickup: true };
+            }
+            return c;
+          });
       }
 
       // 3. COLLISION LOOP (Slices vs Customers) — lane-bucketed for perf
@@ -906,64 +916,75 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         const mafiaScores: Array<{ points: number; lane: number; position: number }> = [];
         const mafiaStarGains: Array<{ lane: number; position: number }> = [];
 
-        newState.mafiaSlices.forEach(slice => {
-          if (mafiaSlicesToRemove.has(slice.id)) return;
+        // Pre-compute which customers get hit by which mafia slice (single pass)
+        const mafiaHitMap = new Map<string, string>(); // customerId -> sliceId
+        const newMafiaPlates: typeof newState.emptyPlates = [];
 
-          newState.customers = newState.customers.map(customer => {
-            if (mafiaSlicesToRemove.has(slice.id) || isCustomerLeaving(customer)) return customer;
-
+        for (const slice of newState.mafiaSlices) {
+          if (mafiaSlicesToRemove.has(slice.id)) continue;
+          for (const customer of newState.customers) {
+            if (mafiaSlicesToRemove.has(slice.id)) break;
+            if (mafiaHitMap.has(customer.id) || isCustomerLeaving(customer)) continue;
             if (checkMafiaSliceCollision(slice, customer)) {
               mafiaSlicesToRemove.add(slice.id);
-
-              // Mafia bribes health inspectors — they leave without inspecting
-              if (customer.healthInspector && !customer.served) {
-                return {
-                  ...customer,
-                  leaving: true,
-                  movingRight: true,
-                  textMessage: "Just this once",
-                  textMessageTime: now
-                };
-              }
-
-              soundManager.customerServed();
-
-              const result = applyCustomerScoring(customer, newState, dogeMultiplier,
-                getStreakMultiplier(newState.stats.currentCustomerStreak),
-                { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
-
-              newState.score += result.scoreToAdd;
-              newState.bank += result.bankToAdd;
-              newState.stats.totalEarned += result.bankToAdd;
-              newState.happyCustomers = result.newHappyCustomers;
-              newState.stats = result.newStats;
-              mafiaScores.push(result.floatingScore);
-
-              if (result.livesToAdd > 0) {
-                newState.lives += result.livesToAdd;
-                if (result.shouldPlayLifeSound) soundManager.lifeGained();
-                if (result.starGain) mafiaStarGains.push(result.starGain);
-              }
-
-              // Return empty plate and mark as served
-              newState.emptyPlates = [...newState.emptyPlates, {
-                id: `plate-${now}-${customer.id}-mafia`,
-                lane: customer.lane,
-                position: customer.position,
-                speed: ENTITY_SPEEDS.PLATE,
-                createdAt: now
-              }];
-
-              return {
-                ...customer,
-                served: true,
-                hasPlate: false,
-                ...(customer.pizzaMafia ? { textMessage: "Bada boom!", textMessageTime: now } : {})
-              };
+              mafiaHitMap.set(customer.id, slice.id);
             }
-            return customer;
+          }
+        }
+
+        // Apply hits in a single customer map
+        newState.customers = newState.customers.map(customer => {
+          if (!mafiaHitMap.has(customer.id)) return customer;
+
+          // Mafia bribes health inspectors — they leave without inspecting
+          if (customer.healthInspector && !customer.served) {
+            return {
+              ...customer,
+              leaving: true,
+              movingRight: true,
+              textMessage: "Just this once",
+              textMessageTime: now
+            };
+          }
+
+          soundManager.customerServed();
+
+          const result = applyCustomerScoring(customer, newState, dogeMultiplier,
+            getStreakMultiplier(newState.stats.currentCustomerStreak),
+            { includeBank: true, countsAsServed: true, isFirstSlice: false, checkLifeGain: true });
+
+          newState.score += result.scoreToAdd;
+          newState.bank += result.bankToAdd;
+          newState.stats.totalEarned += result.bankToAdd;
+          newState.happyCustomers = result.newHappyCustomers;
+          newState.stats = result.newStats;
+          mafiaScores.push(result.floatingScore);
+
+          if (result.livesToAdd > 0) {
+            newState.lives += result.livesToAdd;
+            if (result.shouldPlayLifeSound) soundManager.lifeGained();
+            if (result.starGain) mafiaStarGains.push(result.starGain);
+          }
+
+          newMafiaPlates.push({
+            id: `plate-${now}-${customer.id}-mafia`,
+            lane: customer.lane,
+            position: customer.position,
+            speed: ENTITY_SPEEDS.PLATE,
+            createdAt: now
           });
+
+          return {
+            ...customer,
+            served: true,
+            hasPlate: false,
+            ...(customer.pizzaMafia ? { textMessage: "Bada boom!", textMessageTime: now } : {})
+          };
         });
+
+        if (newMafiaPlates.length > 0) {
+          newState.emptyPlates = [...newState.emptyPlates, ...newMafiaPlates];
+        }
 
         // Remove consumed slices
         newState.mafiaSlices = newState.mafiaSlices.filter(s => !mafiaSlicesToRemove.has(s.id));
