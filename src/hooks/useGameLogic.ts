@@ -1213,7 +1213,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
                 nyanBestOfGains.push(result.wouldHaveGained);
               }
 
-              return { ...customer, served: true, hasPlate: false, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
+              return { ...customer, served: true, hasPlate: false, flipped: customer.scumbagSteve || customer.pizzaMafia ? true : customer.flipped, woozy: false, frozen: false, unfrozenThisPeriod: undefined };
             }
             return customer;
           });
