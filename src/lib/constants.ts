@@ -199,11 +199,11 @@ export const LEVEL_SYSTEM = {
   CUSTOMERS_PER_LEVEL: [
     5, // Level 1
     10, // Level 2
-    20, // Level 3
-    25, // Level 4
-    30, // Level 5
-    35, // Level 6
-    40, // Level 7 (base for 7+, grows by 5/level, no cap)
+    15, // Level 3
+    20, // Level 4
+    25, // Level 5
+    30, // Level 6
+    35, // Level 7 (base for 7+, grows by 5/level)
   ],
   CUSTOMERS_GROWTH_PER_LEVEL: 5,
 
@@ -231,9 +231,9 @@ export const LEVEL_SYSTEM = {
   SPEED_GROWTH_PER_LEVEL: 0.05, // After level 7
 
   // Min spawn interval per level (ms)
-  SPAWN_INTERVALS: [2400, 2200, 2000, 1800, 1500, 1200, 1000],
+  SPAWN_INTERVALS: [2000, 1800, 1600, 1400, 1200, 1000, 800],
   SPAWN_INTERVAL_DECAY: 50,  // ms decrease per level after level 7
-  SPAWN_INTERVAL_FLOOR: 400, // Hard minimum
+  SPAWN_INTERVAL_FLOOR: 100, // Hard minimum
 
   // Special customer spawn chances per level
   SPECIAL_CHANCES: {
