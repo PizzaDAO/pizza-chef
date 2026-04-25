@@ -298,12 +298,13 @@ export const tryTriggerHealthDeptRaid = (
   raidTriggeredThisLevel: boolean,
   levelStartTime: number,
   now: number,
-): { shouldTrigger: boolean; inspectors?: Customer[] } => {
-  if (level < HEALTH_DEPT_RAID.MIN_LEVEL) return { shouldTrigger: false };
-  if (levelPhase !== 'playing') return { shouldTrigger: false };
-  if (raidActive || raidTriggeredThisLevel) return { shouldTrigger: false };
-  if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false };
-  if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false };
+): { shouldTrigger: boolean; rolled: boolean; inspectors?: Customer[] } => {
+  if (level < HEALTH_DEPT_RAID.MIN_LEVEL) return { shouldTrigger: false, rolled: false };
+  if (levelPhase !== 'playing') return { shouldTrigger: false, rolled: false };
+  if (raidActive || raidTriggeredThisLevel) return { shouldTrigger: false, rolled: false };
+  if (now - levelStartTime < HEALTH_DEPT_RAID.MIN_LEVEL_TIME) return { shouldTrigger: false, rolled: false };
+  // Single roll per level — caller marks raidTriggeredThisLevel regardless of outcome
+  if (Math.random() >= HEALTH_DEPT_RAID.TRIGGER_CHANCE) return { shouldTrigger: false, rolled: true };
 
   // One inspector per lane — all 4 lanes
   const selectedLanes = [0, 1, 2, 3];
@@ -329,5 +330,5 @@ export const tryTriggerHealthDeptRaid = (
     scumbagSteve: false,
   }));
 
-  return { shouldTrigger: true, inspectors };
+  return { shouldTrigger: true, rolled: true, inspectors };
 };

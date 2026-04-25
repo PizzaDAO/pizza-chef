@@ -1519,30 +1519,44 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         next = { ...next, powerUps: [...next.powerUps, spawnResult.newPowerUp] };
       }
 
-      // --- HEALTH DEPT RAID TRIGGER ---
+      // --- HEALTH DEPT RAID TRIGGER (single roll per level) ---
       if (!next.healthDeptRaid?.active && !next.healthDeptRaid?.raidTriggeredThisLevel) {
         const raidResult = tryTriggerHealthDeptRaid(
           next.level, next.levelPhase,
           false, false,
           next.levelProgress.levelStartTime, now
         );
-        if (raidResult.shouldTrigger && raidResult.inspectors) {
-          // Spawn first inspector now, queue the rest with time-based stagger
-          const [first, ...rest] = raidResult.inspectors;
-          next = {
-            ...next,
-            customers: [...next.customers, first],
-            healthDeptRaid: {
-              active: true,
-              inspectorIds: raidResult.inspectors.map(i => i.id),
-              starsAtRaidStart: next.lives,
-              alertEndTime: now + HEALTH_DEPT_RAID.ALERT_DURATION,
-              raidTriggeredThisLevel: true,
-              pendingInspectors: rest,
-              nextSpawnTime: now + HEALTH_DEPT_RAID.SPAWN_DELAY,
-            },
-          };
-          soundManager.lifeLost(); // dramatic sound for raid start
+        if (raidResult.rolled) {
+          if (raidResult.shouldTrigger && raidResult.inspectors) {
+            // Spawn first inspector now, queue the rest with time-based stagger
+            const [first, ...rest] = raidResult.inspectors;
+            next = {
+              ...next,
+              customers: [...next.customers, first],
+              healthDeptRaid: {
+                active: true,
+                inspectorIds: raidResult.inspectors.map(i => i.id),
+                starsAtRaidStart: next.lives,
+                alertEndTime: now + HEALTH_DEPT_RAID.ALERT_DURATION,
+                raidTriggeredThisLevel: true,
+                pendingInspectors: rest,
+                nextSpawnTime: now + HEALTH_DEPT_RAID.SPAWN_DELAY,
+              },
+            };
+            soundManager.lifeLost(); // dramatic sound for raid start
+          } else {
+            // Roll happened but no raid — mark as decided so we don't roll again
+            next = {
+              ...next,
+              healthDeptRaid: {
+                active: false,
+                inspectorIds: [],
+                starsAtRaidStart: next.lives,
+                alertEndTime: 0,
+                raidTriggeredThisLevel: true,
+              },
+            };
+          }
         }
       }
 
