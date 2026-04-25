@@ -164,7 +164,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
    * Since the game creates new arrays/objects each tick (immutable pattern),
    * storing references is safe.
    */
-  const REPLAY_BUFFER_SIZE = 60;
+  const REPLAY_BUFFER_SIZE = 42; // ~2s of replay (70% of original)
   const replayBufferRef = useRef<GameStateSnapshot[]>([]);
   const replayBufferIndexRef = useRef(0);
 
