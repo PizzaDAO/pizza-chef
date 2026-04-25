@@ -71,7 +71,7 @@ export const HEALTH_INSPECTOR = {
 
 export const ALIEN = {
   SPAWN_CHANCE: 0.02,             // 2% per spawn cycle
-  MIN_LEVEL: 6,                   // Only after level 5 (i.e., level 6+)
+  MIN_LEVEL: 9,                   // Unlocks at level 9
   SPEED_MULTIPLIER: 0.8,          // Slightly slower base advance (compensated by harder-to-hit movement)
   LANE_SWITCH_INTERVAL: 1000,     // Change target lane every ~1 second
   LANE_LERP_SPEED: 0.003,         // Fractional lane interpolation per ms (~0.15/frame at 50ms tick)
@@ -163,7 +163,7 @@ export const LEVEL_SYSTEM = {
     HEALTH_INSPECTOR: 5,
     PEPE: 5,
     MOLTOBENNY: 5,
-    ALIEN: 1,
+    ALIEN: 9,
   },
 
   // Customer speed multiplier per level
@@ -180,7 +180,7 @@ export const LEVEL_SYSTEM = {
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
     INSPECTOR: [0, 0, 0, 0, 0.05],
-    ALIEN: [1.0],  // 100% chance at level 1+ (demo mode)
+    ALIEN: [0, 0, 0, 0, 0, 0, 0, 0, 0.02],  // 2% at level 9+
   },
 
   // Boss schedule
