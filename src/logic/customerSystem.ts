@@ -664,7 +664,7 @@ export const processCustomerHit = (
         hasPlate: false,
         movingRight: true,
         alienPickedUp: true,
-        textMessage: "Zorp! *beep boop*",
+        textMessage: ["Zorp! *beep boop*", "We'll spare your planet."][Math.floor(Math.random() * 2)],
         textMessageTime: now,
       },
       events,
