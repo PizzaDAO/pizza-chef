@@ -169,7 +169,8 @@ export const updateCustomerPositions = (
          nextCustomers.push(processedCustomer);
          return;
        }
-       processedCustomer.position += (processedCustomer.speed * 2);
+       const leaveMultiplier = processedCustomer.deliveryDriver ? 4 : 2;
+       processedCustomer.position += (processedCustomer.speed * leaveMultiplier);
        processedCustomer.hotHoneyAffected = false;
        nextCustomers.push(processedCustomer);
        return;
@@ -575,6 +576,7 @@ export const processCustomerHit = (
         ...customer,
         served: true,
         hasPlate: false,
+        flipped: true,
         textMessage: "Bada bing!",
         textMessageTime: now,
         frozen: false,
