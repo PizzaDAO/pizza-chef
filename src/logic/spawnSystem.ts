@@ -202,9 +202,12 @@ export const trySpawnCustomer = (
 
   let variant: CustomerVariant = 'normal';
 
-  // Special level variant override — e.g., Spooky Night forces all normal/zombie
+  // Special level variant overrides
   if (special?.name === 'Spooky Night') {
     variant = 'normal';
+  } else if (special?.criticEveryN && totalCustomersSpawned !== undefined &&
+             (totalCustomersSpawned + 1) % special.criticEveryN === 0) {
+    variant = 'critic';
   } else {
     const roll = Math.random();
     let cumulative = 0;
