@@ -13,6 +13,7 @@ import {
   SPAWN_RATES,
   PROBABILITIES,
   RUSH_HOUR,
+  getSpecialLevel,
 } from '../lib/constants';
 
 export interface SpawnResult<T> {
@@ -27,6 +28,8 @@ export interface SpawnResult<T> {
  * Get the number of customers required for a given level
  */
 export const getCustomersForLevel = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.customersRequiredOverride) return special.customersRequiredOverride;
   if (level <= LEVEL_SYSTEM.CUSTOMERS_PER_LEVEL.length) {
     return LEVEL_SYSTEM.CUSTOMERS_PER_LEVEL[level - 1];
   }
@@ -70,6 +73,8 @@ export const getUnlockedPowerUpTypes = (level: number): PowerUpType[] => {
  * Get customer speed multiplier for a given level
  */
 export const getLevelSpeedMultiplier = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.speedMultiplierOverride) return special.speedMultiplierOverride;
   if (level <= LEVEL_SYSTEM.SPEED_MULTIPLIERS.length) {
     return LEVEL_SYSTEM.SPEED_MULTIPLIERS[level - 1];
   }
@@ -82,6 +87,8 @@ export const getLevelSpeedMultiplier = (level: number): number => {
  * Get spawn interval for a given level
  */
 export const getLevelSpawnInterval = (level: number): number => {
+  const special = getSpecialLevel(level);
+  if (special?.spawnIntervalOverride) return special.spawnIntervalOverride;
   if (level <= LEVEL_SYSTEM.SPAWN_INTERVALS.length) {
     return LEVEL_SYSTEM.SPAWN_INTERVALS[level - 1];
   }
@@ -152,6 +159,13 @@ export const trySpawnCustomer = (
     }
   }
 
+  // Special level: singleCustomer gate — only 1 on-screen at a time
+  const special = getSpecialLevel(level);
+  if (special?.singleCustomer && totalCustomersSpawned !== undefined && totalCustomersSpawned > 0) {
+    // Caller should check if there are still approaching customers on screen
+    // For now, we rely on the spawn interval being slow enough
+  }
+
   let spawnDelay = getLevelSpawnInterval(level);
   if (rushHourActive) {
     spawnDelay = Math.floor(spawnDelay / RUSH_HOUR.SPAWN_INTERVAL_DIVISOR);
@@ -187,13 +201,19 @@ export const trySpawnCustomer = (
   if (unlockedTypes.includes('alien')) candidates.push({ variant: 'alien', weight: chances.alien });
 
   let variant: CustomerVariant = 'normal';
-  const roll = Math.random();
-  let cumulative = 0;
-  for (const c of candidates) {
-    cumulative += c.weight;
-    if (roll < cumulative) {
-      variant = c.variant;
-      break;
+
+  // Special level variant override — e.g., Spooky Night forces all normal/zombie
+  if (special?.name === 'Spooky Night') {
+    variant = 'normal';
+  } else {
+    const roll = Math.random();
+    let cumulative = 0;
+    for (const c of candidates) {
+      cumulative += c.weight;
+      if (roll < cumulative) {
+        variant = c.variant;
+        break;
+      }
     }
   }
 
@@ -235,6 +255,7 @@ export const trySpawnCustomer = (
     slicesReceived: (variant === 'scumbagSteve' || variant === 'deliveryDriver') ? 0 : undefined,
     lastLaneChangeTime: variant === 'scumbagSteve' ? now : undefined,
     flipped: variant === 'badLuckBrian', // Brian spawns flipped, Steve spawns normal
+    zombie: special?.name === 'Spooky Night' ? true : undefined,
     alienTargetLane: variant === 'alien' ? lane : undefined,
     alienLastLaneSwitchTime: variant === 'alien' ? now : undefined,
     alienWaitingForDrop: variant === 'alien' ? true : undefined,

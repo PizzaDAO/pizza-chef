@@ -13,7 +13,7 @@ import PepeHelpers from './PepeHelpers';
 import { GameState, GameStateSnapshot } from '../types/game';
 import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
-import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
+import { OVEN_CONFIG, TIMINGS, getSpecialLevel } from '../lib/constants';
 
 
 const chefImg = sprite("chef.png");
@@ -31,6 +31,9 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
   const lanes = [0, 1, 2, 3];
   const [completedScores, setCompletedScores] = useState<Set<string>>(new Set());
   const [completedStars, setCompletedStars] = useState<Set<string>>(new Set());
+
+  const currentLevel = 'level' in gameState ? (gameState as GameState).level : undefined;
+  const specialLevel = currentLevel !== undefined ? getSpecialLevel(currentLevel) : undefined;
 
   // ✅ Measure board size (for px-based translate3d positioning)
   const boardRef = useRef<HTMLDivElement | null>(null);
@@ -100,12 +103,21 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
     <div
       ref={boardRef}
       className="relative w-full aspect-[5/3] border-4 border-amber-600 sm:rounded-lg overflow-hidden"
-      style={{
-        backgroundImage: `url(${pizzaShopBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
     >
+      {/* Background layer with optional filter for special levels */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${pizzaShopBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: specialLevel?.bgFilter || undefined,
+        }}
+      />
+      {/* Tint overlay for special levels */}
+      {specialLevel?.bgTint && (
+        <div className="absolute inset-0" style={{ backgroundColor: specialLevel.bgTint }} />
+      )}
       {/* Pizza Ovens - one per lane */}
       {lanes.map((lane) => {
         const ovenStatus = getOvenStatus(lane);
@@ -368,16 +380,22 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
       )}
 
       {/* Level Start Announcement */}
-      {gameState.levelAnnouncement && (
-        <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
-          <div className="bg-black bg-opacity-70 text-white rounded-xl px-6 py-4 sm:px-10 sm:py-6 text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold">Level {gameState.levelAnnouncement.level}</h2>
-            <p className="text-sm sm:text-lg mt-1 text-gray-300">
-              Serve {gameState.levelProgress.customersRequired} customers
-            </p>
+      {gameState.levelAnnouncement && (() => {
+        const announcementSpecial = getSpecialLevel(gameState.levelAnnouncement.level);
+        return (
+          <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
+            <div className="bg-black bg-opacity-70 text-white rounded-xl px-6 py-4 sm:px-10 sm:py-6 text-center">
+              <h2 className="text-2xl sm:text-4xl font-bold">
+                Level {gameState.levelAnnouncement.level}
+                {announcementSpecial ? ` - ${announcementSpecial.name}` : ''}
+              </h2>
+              <p className="text-sm sm:text-lg mt-1 text-gray-300">
+                {announcementSpecial?.announcementSubtitle || `Serve ${gameState.levelProgress.customersRequired} customers`}
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Boss Incoming Alert */}
       {gameState.bossIncomingAlert && (
