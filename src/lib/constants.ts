@@ -379,6 +379,15 @@ export const SPECIAL_LEVELS: Record<number, SpecialLevelConfig> = {
     customersRequiredOverride: 60,
     customerScoreOverride: 75,
   },
+  42: {
+    name: 'The Answer',
+    announcementSubtitle: 'One customer. 42,000 points. Do not miss.',
+    singleCustomer: true,
+    customersRequiredOverride: 1,
+    speedMultiplierOverride: 0.15,
+    customerScoreOverride: 42000,
+    missedPenaltyStars: 3,
+  },
 };
 
 export const getSpecialLevel = (level: number): SpecialLevelConfig | undefined =>
@@ -397,7 +406,7 @@ export const INITIAL_GAME_STATE = {
   chefLane: 0,
   score: 0,
   lives: GAME_CONFIG.STARTING_LIVES, // References the config defined at the top
-  level: 1,
+  level: 42,
   gameOver: false,
   paused: false,
   availableSlices: 0,
