@@ -352,6 +352,38 @@ export const LAYOUT = {
   LANE_Y_OFFSET: 6,         // Vertical offset within lane (%)
 };
 
+// --- Special Themed Levels ---
+export interface SpecialLevelConfig {
+  name: string;
+  announcementSubtitle: string;
+  bgTint?: string;
+  bgFilter?: string;
+  spawnIntervalOverride?: number;
+  speedMultiplierOverride?: number;
+  customersRequiredOverride?: number;
+  customerScoreOverride?: number;
+  criticEveryN?: number;
+  missedPenaltyStars?: number;
+  rewardMultiplier?: number;
+  singleCustomer?: boolean;
+}
+
+export const SPECIAL_LEVELS: Record<number, SpecialLevelConfig> = {
+  13: {
+    name: 'Spooky Night',
+    announcementSubtitle: 'Zombie horde incoming! Serve them all!',
+    bgTint: 'rgba(20, 0, 40, 0.45)',
+    bgFilter: 'hue-rotate(200deg) brightness(0.6)',
+    spawnIntervalOverride: 800,
+    speedMultiplierOverride: 0.6,
+    customersRequiredOverride: 60,
+    customerScoreOverride: 75,
+  },
+};
+
+export const getSpecialLevel = (level: number): SpecialLevelConfig | undefined =>
+  SPECIAL_LEVELS[level];
+
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],

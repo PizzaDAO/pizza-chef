@@ -62,6 +62,7 @@ export interface Customer {
   pizzaMafia?: boolean;
   brianNyaned?: boolean; // Brian got hit by Nyan + is flying away
   flipped?: boolean;
+  zombie?: boolean;
   textMessage?: string;
   textMessageTime?: number;
   alien?: boolean;
