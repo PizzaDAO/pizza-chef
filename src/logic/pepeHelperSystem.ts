@@ -3,6 +3,22 @@ import { POWERUPS, PEPE_CONFIG, GAME_CONFIG, ENTITY_SPEEDS, OVEN_CONFIG } from '
 import { getOvenDisplayStatus } from './ovenSystem';
 import { buildLaneBuckets, getEntitiesInLane, LaneBuckets } from './laneBuckets';
 
+export interface HelperAbilities {
+  canCatchPlates: boolean;
+  canPullPizza: boolean;
+  canStartOven: boolean;
+  canMoveAndAct: boolean;
+  canCleanOven: boolean;
+}
+
+const ALL_ABILITIES: HelperAbilities = {
+  canCatchPlates: true,
+  canPullPizza: true,
+  canStartOven: true,
+  canMoveAndAct: true,
+  canCleanOven: true,
+};
+
 /**
  * Initialize pepe helpers when power-up is collected
  * Famous chefs come prepared with pizza and spread out to cover all lanes
@@ -55,7 +71,10 @@ export const evaluateLanePriority = (
   otherHelperLane: number,
   chefLane: number,
   customerBuckets: LaneBuckets<Customer>,
-  plateBuckets: LaneBuckets<typeof gameState.emptyPlates[0]>
+  plateBuckets: LaneBuckets<typeof gameState.emptyPlates[0]>,
+  abilities: HelperAbilities = ALL_ABILITIES,
+  smartsBonus: number = 0,
+  clusteringReduction: number = 0,
 ): number => {
   let priority = 0;
   const oven = gameState.ovens[lane];
@@ -63,13 +82,18 @@ export const evaluateLanePriority = (
   const status = getOvenDisplayStatus(oven, speedUpgrade);
 
   // High priority: Ready oven that needs pulling (and helper can carry more)
-  if (status === 'ready' && helper.availableSlices < GAME_CONFIG.MAX_SLICES) {
+  if (abilities.canPullPizza && status === 'ready' && helper.availableSlices < GAME_CONFIG.MAX_SLICES) {
     priority += 100;
   }
 
   // Medium priority: Idle oven that can be started
-  if (status === 'idle') {
+  if (abilities.canStartOven && status === 'idle') {
     priority += 50;
+  }
+
+  // Medium priority: Burnt oven that can be cleaned
+  if (abilities.canCleanOven && oven.burned && oven.cleaningStartTime === 0) {
+    priority += 60;
   }
 
   // High priority: Approaching customers in this lane (if we have slices)
@@ -85,14 +109,16 @@ export const evaluateLanePriority = (
   if (approachingInLane.length > 0 && helper.availableSlices > 0 && !soberInspector) {
     // Closer customers = higher priority
     const closestCustomer = approachingInLane.reduce((a, b) => a.position < b.position ? a : b);
-    priority += 80 + (100 - closestCustomer.position);
+    priority += 80 + (100 - closestCustomer.position) + smartsBonus;
   }
 
   // Medium priority: Plates returning in this lane
-  const lanePlates = getEntitiesInLane(plateBuckets, lane);
-  const platesInLane = lanePlates.filter(p => p.position < 30);
-  if (platesInLane.length > 0) {
-    priority += 60;
+  if (abilities.canCatchPlates) {
+    const lanePlates = getEntitiesInLane(plateBuckets, lane);
+    const platesInLane = lanePlates.filter(p => p.position < 30);
+    if (platesInLane.length > 0) {
+      priority += 60;
+    }
   }
 
   // Boss battle: attack vulnerable boss or active minions in this lane
@@ -114,8 +140,8 @@ export const evaluateLanePriority = (
   }
 
   // Avoid clustering - reduce priority if chef or other helper is here
-  if (lane === chefLane) priority -= 20;
-  if (lane === otherHelperLane) priority -= 30;
+  if (lane === chefLane) priority -= Math.max(0, 20 - clusteringReduction);
+  if (lane === otherHelperLane) priority -= Math.max(0, 30 - clusteringReduction);
 
   return priority;
 };
@@ -132,7 +158,10 @@ export const processHelperAction = (
   now: number,
   customerBuckets: LaneBuckets<Customer>,
   plateBuckets: LaneBuckets<typeof gameState.emptyPlates[0]>,
-  sliceBuckets: LaneBuckets<PizzaSlice>
+  sliceBuckets: LaneBuckets<PizzaSlice>,
+  abilities: HelperAbilities = ALL_ABILITIES,
+  smartsBonus: number = 0,
+  clusteringReduction: number = 0,
 ): {
   updatedHelper: PepeHelper;
   updatedOvens: typeof gameState.ovens;
@@ -158,18 +187,24 @@ export const processHelperAction = (
   // Evaluate best lane using pre-built buckets
   const lanePriorities = [0, 1, 2, 3].map(lane => ({
     lane,
-    priority: evaluateLanePriority(lane, gameState, helper, otherHelperLane, chefLane, customerBuckets, plateBuckets),
+    priority: evaluateLanePriority(lane, gameState, helper, otherHelperLane, chefLane, customerBuckets, plateBuckets, abilities, smartsBonus, clusteringReduction),
   }));
   lanePriorities.sort((a, b) => b.priority - a.priority);
 
   const bestLane = lanePriorities[0].lane;
+  let moved = false;
 
   // Move one lane at a time toward the best lane
   if (helper.lane !== bestLane) {
     const direction = bestLane > helper.lane ? 1 : -1;
     updatedHelper.lane = helper.lane + direction;
     events.push({ type: 'HELPER_MOVED', lane: updatedHelper.lane, helper: helper.id });
-    // Famous chefs can move AND act in the same tick!
+    moved = true;
+    // If can't move and act, return after moving
+    if (!abilities.canMoveAndAct && moved) {
+      updatedHelper.lastActionTime = now;
+      return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
+    }
   }
 
   // We're in the best lane - take action (use updatedHelper.lane since we might have moved)
@@ -179,27 +214,29 @@ export const processHelperAction = (
   const status = getOvenDisplayStatus(oven, speedUpgrade);
 
   // Priority 1: Catch plates (using lane buckets)
-  const lanePlates = getEntitiesInLane(plateBuckets, currentLane);
-  const platesInLane = lanePlates.filter(p => p.position < 20);
-  if (platesInLane.length > 0) {
-    const plate = platesInLane[0];
-    caughtPlateIds.push(plate.id);
-    scoreGained += 50;
-    statsUpdates = {
-      platesCaught: (gameState.stats.platesCaught || 0) + 1,
-      currentPlateStreak: (gameState.stats.currentPlateStreak || 0) + 1,
-      largestPlateStreak: Math.max(
-        gameState.stats.largestPlateStreak || 0,
-        (gameState.stats.currentPlateStreak || 0) + 1
-      ),
-    };
-    updatedHelper.lastActionTime = now;
-    events.push({ type: 'PLATE_CAUGHT', lane: currentLane, helper: helper.id });
-    return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
+  if (abilities.canCatchPlates) {
+    const lanePlates = getEntitiesInLane(plateBuckets, currentLane);
+    const platesInLane = lanePlates.filter(p => p.position < 20);
+    if (platesInLane.length > 0) {
+      const plate = platesInLane[0];
+      caughtPlateIds.push(plate.id);
+      scoreGained += 50;
+      statsUpdates = {
+        platesCaught: (gameState.stats.platesCaught || 0) + 1,
+        currentPlateStreak: (gameState.stats.currentPlateStreak || 0) + 1,
+        largestPlateStreak: Math.max(
+          gameState.stats.largestPlateStreak || 0,
+          (gameState.stats.currentPlateStreak || 0) + 1
+        ),
+      };
+      updatedHelper.lastActionTime = now;
+      events.push({ type: 'PLATE_CAUGHT', lane: currentLane, helper: helper.id });
+      return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
+    }
   }
 
   // Priority 2: Pull ready pizza
-  if (status === 'ready' && updatedHelper.availableSlices < GAME_CONFIG.MAX_SLICES) {
+  if (abilities.canPullPizza && status === 'ready' && updatedHelper.availableSlices < GAME_CONFIG.MAX_SLICES) {
     const slicesToAdd = Math.min(oven.sliceCount, GAME_CONFIG.MAX_SLICES - updatedHelper.availableSlices);
     updatedHelper.availableSlices += slicesToAdd;
     updatedOvens[currentLane] = {
@@ -229,7 +266,7 @@ export const processHelperAction = (
     const targetsInLane = (bossInLane ? 1 : 0) + minionsInLane.length;
     // Don't throw through a power-up — slices destroy them on contact
     const powerUpInBossLane = gameState.powerUps.some(
-      p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION
+      p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION - 10
     );
     if (targetsInLane > slicesInLane && !powerUpInBossLane) {
       const newSlice: PizzaSlice = {
@@ -258,7 +295,7 @@ export const processHelperAction = (
   );
   // Don't throw through a power-up — slices destroy them on contact
   const powerUpInLane = gameState.powerUps.some(
-    p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION
+    p => p.lane === currentLane && p.position > GAME_CONFIG.CHEF_X_POSITION - 10
   );
   // Only throw if there are more customers than slices already in flight
   if (approachingCustomers.length > slicesInLane && updatedHelper.availableSlices > 0 && !powerUpInLane && !soberInspectorInLane) {
@@ -276,7 +313,7 @@ export const processHelperAction = (
   }
 
   // Priority 5: Start cooking
-  if (status === 'idle') {
+  if (abilities.canStartOven && status === 'idle') {
     const upgradeLevel = gameState.ovenUpgrades[currentLane] || 0;
     const sliceCount = upgradeLevel + 1;
     updatedOvens[currentLane] = {
@@ -288,6 +325,16 @@ export const processHelperAction = (
     };
     updatedHelper.lastActionTime = now;
     events.push({ type: 'OVEN_STARTED', lane: currentLane, helper: helper.id });
+    return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
+  }
+
+  // Priority 6: Clean burnt oven
+  if (abilities.canCleanOven && oven.burned && oven.cleaningStartTime === 0) {
+    updatedOvens[currentLane] = {
+      ...oven,
+      cleaningStartTime: now,
+    };
+    updatedHelper.lastActionTime = now;
     return { updatedHelper, updatedOvens, newSlices, caughtPlateIds, events, statsUpdates, scoreGained };
   }
 

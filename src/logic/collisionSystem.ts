@@ -23,7 +23,14 @@ export const checkSliceCustomerCollision = (
     if (customer.served || customer.disappointed || customer.vomit || customer.leaving) {
         return false;
     }
-    return customer.lane === slice.lane && Math.abs(customer.position - slice.position) < threshold;
+    if (customer.alienWaitingForDrop) return false; // Can't hit alien still in UFO
+
+    // Alien uses fractional lanes - check if slice lane is close enough
+    const laneMatch = customer.alien
+        ? Math.abs(customer.lane - slice.lane) < 0.6  // Tighter than nyan (0.8) for difficulty
+        : customer.lane === slice.lane;
+
+    return laneMatch && Math.abs(customer.position - slice.position) < threshold;
 };
 
 /**

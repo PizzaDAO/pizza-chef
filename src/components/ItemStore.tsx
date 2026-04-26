@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
-import { GameState } from '../types/game';
+import { GameState, WorkerTraining } from '../types/game';
 import { Store, DollarSign, X } from 'lucide-react';
 import PizzaSliceStack from './PizzaSliceStack';
 import { sprite } from '../lib/assets';
 import { getUpgradeCost, getSpeedUpgradeCost } from '../logic/storeSystem';
-import { COSTS } from '../lib/constants';
+import { COSTS, WORKER_CONFIG } from '../lib/constants';
+import { getWorkerRankTitle, getNextUnlock, getTotalTrainingLevel } from '../logic/workerSystem';
 
 // Power-up images (served from Cloudflare)
 const beerImg = sprite("beer.png");
@@ -18,6 +19,7 @@ interface ItemStoreProps {
   onBribeReviewer: () => void;
   onBuyPowerUp: (type: 'beer' | 'ice-cream' | 'honey') => void;
   onHireWorker: () => void;
+  onTrainWorker: (stat: keyof WorkerTraining) => void;
   onClose: () => void;
 }
 
@@ -28,6 +30,7 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   onBribeReviewer,
   onBuyPowerUp,
   onHireWorker,
+  onTrainWorker,
   onClose,
 }) => {
   const maxUpgradeLevel = 7;
@@ -66,41 +69,67 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     return '1.5s';
   };
 
-  // Custom keyboard navigation for complex grid layout:
+  // Navigation indices:
   // Left side (ovens): 4 rows x 2 cols = indices 0-7
-  //   Row 0: [Speed0=0] [Level0=1]
-  //   Row 1: [Speed1=2] [Level1=3]
-  //   Row 2: [Speed2=4] [Level2=5]
-  //   Row 3: [Speed3=6] [Level3=7]
   // Right side:
-  //   Bribe = 8 (accessible from oven rows 0-1)
-  //   Power-ups = 9, 10, 11 (accessible from oven rows 2-3)
-  //   Hire Worker = 12
-  // Bottom: Continue = 13
+  //   Bribe = 8
+  //   Power-ups = 9, 10, 11
+  //   Hire Worker (if not hired) = 12, or Training stats (if hired) = 12, 13
+  // Bottom: Continue = 14 (or 13 if not hired)
 
-  const [selectedIndex, setSelectedIndex] = useState(13); // Start on Continue
+  const workerAlreadyHired = !!gameState.hiredWorker?.active;
+  const hasSavedTraining = !!gameState.workerTrainingSaved;
+  const CONTINUE_INDEX = workerAlreadyHired ? 14 : 13;
+
+  const [selectedIndex, setSelectedIndex] = useState(CONTINUE_INDEX); // Start on Continue
   const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const hireCost = COSTS.HIRE_WORKER;
-  const workerAlreadyHired = !!gameState.hiredWorker?.active;
   const canAffordWorker = gameState.bank >= hireCost;
 
-  const menuActions = useMemo(() => [
-    () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(0); },
-    () => { madePurchaseRef.current = true; onUpgradeOven(0); },
-    () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(1); },
-    () => { madePurchaseRef.current = true; onUpgradeOven(1); },
-    () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(2); },
-    () => { madePurchaseRef.current = true; onUpgradeOven(2); },
-    () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(3); },
-    () => { madePurchaseRef.current = true; onUpgradeOven(3); },
-    () => { madePurchaseRef.current = true; onBribeReviewer(); },
-    () => { madePurchaseRef.current = true; onBuyPowerUp('beer'); },
-    () => { madePurchaseRef.current = true; onBuyPowerUp('ice-cream'); },
-    () => { madePurchaseRef.current = true; onBuyPowerUp('honey'); },
-    () => { madePurchaseRef.current = true; onHireWorker(); },
-    handleClose,
-  ], [onUpgradeOvenSpeed, onUpgradeOven, onBribeReviewer, onBuyPowerUp, onHireWorker, handleClose]);
+  // Training stat info
+  const trainingStats: { key: keyof WorkerTraining; label: string; index: number }[] = [
+    { key: 'hustle', label: 'Hustle', index: 12 },
+    { key: 'capacity', label: 'Capacity', index: 13 },
+  ];
+
+  const getTrainingCost = (stat: string, level: number): number | null => {
+    if (level >= WORKER_CONFIG.MAX_STAT_LEVEL) return null;
+    const costs = WORKER_CONFIG.TRAINING_COSTS[stat];
+    return costs ? costs[level] : null;
+  };
+
+  const menuActions = useMemo(() => {
+    const actions: (() => void)[] = [
+      () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(0); },
+      () => { madePurchaseRef.current = true; onUpgradeOven(0); },
+      () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(1); },
+      () => { madePurchaseRef.current = true; onUpgradeOven(1); },
+      () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(2); },
+      () => { madePurchaseRef.current = true; onUpgradeOven(2); },
+      () => { madePurchaseRef.current = true; onUpgradeOvenSpeed(3); },
+      () => { madePurchaseRef.current = true; onUpgradeOven(3); },
+      () => { madePurchaseRef.current = true; onBribeReviewer(); },
+      () => { madePurchaseRef.current = true; onBuyPowerUp('beer'); },
+      () => { madePurchaseRef.current = true; onBuyPowerUp('ice-cream'); },
+      () => { madePurchaseRef.current = true; onBuyPowerUp('honey'); },
+    ];
+
+    if (workerAlreadyHired) {
+      // 12-13: training stats
+      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('hustle'); });
+      actions.push(() => { madePurchaseRef.current = true; onTrainWorker('capacity'); });
+      // 14: continue
+      actions.push(handleClose);
+    } else {
+      // 12: hire worker
+      actions.push(() => { madePurchaseRef.current = true; onHireWorker(); });
+      // 13: continue
+      actions.push(handleClose);
+    }
+
+    return actions;
+  }, [onUpgradeOvenSpeed, onUpgradeOven, onBribeReviewer, onBuyPowerUp, onHireWorker, onTrainWorker, handleClose, workerAlreadyHired]);
 
   // Focus selected element
   useEffect(() => {
@@ -113,6 +142,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
   const onCloseRef = useRef(onClose);
   const handleCloseRef = useRef(handleClose);
   const gameStateRef = useRef(gameState);
+  const continueIndexRef = useRef(CONTINUE_INDEX);
+  const workerHiredRef = useRef(workerAlreadyHired);
 
   useEffect(() => {
     selectedIndexRef.current = selectedIndex;
@@ -134,7 +165,15 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     gameStateRef.current = gameState;
   }, [gameState]);
 
-  // Helper to check if a button at given index is disabled (defined before ref)
+  useEffect(() => {
+    continueIndexRef.current = CONTINUE_INDEX;
+  }, [CONTINUE_INDEX]);
+
+  useEffect(() => {
+    workerHiredRef.current = workerAlreadyHired;
+  }, [workerAlreadyHired]);
+
+  // Helper to check if a button at given index is disabled
   const isDisabledAt = (index: number, gs: GameState): boolean => {
     // Oven speed buttons (0, 2, 4, 6)
     if (index % 2 === 0 && index <= 6) {
@@ -160,11 +199,31 @@ const ItemStore: React.FC<ItemStoreProps> = ({
     if (index >= 9 && index <= 11) {
       return gs.bank < powerUpCost;
     }
-    // Hire Worker (12)
-    if (index === 12) {
-      return !!gs.hiredWorker?.active || gs.bank < COSTS.HIRE_WORKER;
+
+    const hired = !!gs.hiredWorker?.active;
+
+    if (hired) {
+      // Training stats (12-13)
+      if (index >= 12 && index <= 13) {
+        const statKeys: (keyof WorkerTraining)[] = ['hustle', 'capacity'];
+        const stat = statKeys[index - 12];
+        const training = gs.hiredWorker!.training;
+        const currentLevel = training[stat] as number;
+        if (currentLevel >= WORKER_CONFIG.MAX_STAT_LEVEL) return true;
+        const costs = WORKER_CONFIG.TRAINING_COSTS[stat];
+        if (!costs) return true;
+        return gs.bank < costs[currentLevel];
+      }
+      // Continue (14)
+      if (index === 14) return false;
+    } else {
+      // Hire Worker (12)
+      if (index === 12) {
+        return !!gs.hiredWorker?.active || gs.bank < COSTS.HIRE_WORKER;
+      }
+      // Continue (13)
+      if (index === 13) return false;
     }
-    // Continue (13) - never disabled
     return false;
   };
 
@@ -189,6 +248,8 @@ const ItemStore: React.FC<ItemStoreProps> = ({
 
       setSelectedIndex(current => {
         const gs = gameStateRef.current;
+        const contIdx = continueIndexRef.current;
+        const hired = workerHiredRef.current;
         const disabled = (idx: number) => isDisabledAt(idx, gs);
 
         // Helper to find first non-disabled in a list, or return fallback
@@ -205,71 +266,54 @@ const ItemStore: React.FC<ItemStoreProps> = ({
           const col = current % 2;
 
           if (key === 'ArrowUp') {
-            // Try rows above, find first enabled in same column first
             for (let r = row - 1; r >= 0; r--) {
               const target = r * 2 + col;
               if (!disabled(target)) return target;
             }
-            // If none in same column, try the other column in rows above
             const otherCol = col === 0 ? 1 : 0;
             for (let r = row - 1; r >= 0; r--) {
               const target = r * 2 + otherCol;
               if (!disabled(target)) return target;
             }
-            return current; // Stay if none found
+            return current;
           }
           if (key === 'ArrowDown') {
-            // Try rows below, find first enabled in same column first
             for (let r = row + 1; r <= 3; r++) {
               const target = r * 2 + col;
               if (!disabled(target)) return target;
             }
-            // If none in same column, try the other column in rows below
             const otherCol = col === 0 ? 1 : 0;
             for (let r = row + 1; r <= 3; r++) {
               const target = r * 2 + otherCol;
               if (!disabled(target)) return target;
             }
-            return 13; // Go to Continue
+            return contIdx;
           }
           if (key === 'ArrowLeft') {
             if (col > 0) {
               const target = current - 1;
               if (!disabled(target)) return target;
             }
-            return current; // Stay at left edge or if disabled
+            return current;
           }
           if (key === 'ArrowRight') {
             if (col === 0) {
               const target = current + 1;
               if (!disabled(target)) return target;
-              // If level button disabled, try going to right side
             }
-            // From level column (or if level disabled), go to right side
             if (row <= 1) {
-              // Try Bribe first, then power-ups, then hire worker
               if (!disabled(8)) return 8;
               return firstEnabled([9, 10, 11, 12], current);
             }
-            // From bottom rows, go to power-ups or hire worker
             return firstEnabled([9, 10, 11, 12], current);
           }
         }
 
         // At Bribe (8)
         if (current === 8) {
-          if (key === 'ArrowLeft') {
-            // Go to first enabled in oven rows 0-1
-            return firstEnabled([1, 0, 3, 2], current);
-          }
-          if (key === 'ArrowDown') {
-            // Go to first enabled power-up, then hire worker
-            return firstEnabled([9, 10, 11, 12, 13], current);
-          }
-          if (key === 'ArrowUp') {
-            // Go to first enabled in oven row 0-1
-            return firstEnabled([1, 0, 3, 2], current);
-          }
+          if (key === 'ArrowLeft') return firstEnabled([1, 0, 3, 2], current);
+          if (key === 'ArrowDown') return firstEnabled([9, 10, 11, 12, contIdx], current);
+          if (key === 'ArrowUp') return firstEnabled([1, 0, 3, 2], current);
           if (key === 'ArrowRight') return current;
         }
 
@@ -277,61 +321,81 @@ const ItemStore: React.FC<ItemStoreProps> = ({
         if (current >= 9 && current <= 11) {
           const powerUpCol = current - 9;
           if (key === 'ArrowLeft') {
-            // Try power-ups to the left first
             for (let i = powerUpCol - 1; i >= 0; i--) {
               if (!disabled(9 + i)) return 9 + i;
             }
-            // Then try oven section
             return firstEnabled([5, 4, 7, 6], current);
           }
           if (key === 'ArrowRight') {
-            // Try power-ups to the right
             for (let i = powerUpCol + 1; i <= 2; i++) {
               if (!disabled(9 + i)) return 9 + i;
             }
-            return current; // Stay at right edge
+            return current;
           }
           if (key === 'ArrowUp') {
-            // Try Bribe if enabled
             if (!disabled(8)) return 8;
             return current;
           }
-          if (key === 'ArrowDown') return firstEnabled([12, 13], current); // Try Hire Worker, then Continue
+          if (key === 'ArrowDown') return firstEnabled([12, 13, contIdx], current);
         }
 
-        // At Hire Worker (12)
-        if (current === 12) {
-          if (key === 'ArrowUp') {
-            return firstEnabled([9, 10, 11, 8], current);
+        if (hired) {
+          // Training stats (12-13)
+          if (current >= 12 && current <= 13) {
+            if (key === 'ArrowUp') {
+              return firstEnabled([9, 10, 11, 8], current);
+            }
+            if (key === 'ArrowDown') return contIdx;
+            if (key === 'ArrowLeft') {
+              if (current > 12) {
+                const target = current - 1;
+                if (!disabled(target)) return target;
+              }
+              return firstEnabled([5, 4, 7, 6], current);
+            }
+            if (key === 'ArrowRight') {
+              if (current < 13) {
+                const target = current + 1;
+                if (!disabled(target)) return target;
+              }
+              return current;
+            }
           }
-          if (key === 'ArrowDown') return 13; // Go to Continue
-          if (key === 'ArrowLeft') {
-            return firstEnabled([5, 4, 7, 6], current);
-          }
-          if (key === 'ArrowRight') return current;
-        }
 
-        // At Continue (13)
-        if (current === 13) {
-          if (key === 'ArrowUp') {
-            // Try hire worker first, then bottommost oven upgrades
-            if (!disabled(12)) return 12;
-            if (!disabled(7)) return 7;
-            if (!disabled(6)) return 6;
-            const powerUpEnabled = firstEnabled([9, 10, 11], -1);
-            if (powerUpEnabled !== -1) return powerUpEnabled;
-            return firstEnabled([5, 4, 3, 2, 1, 0], current);
+          // Continue (14)
+          if (current === 14) {
+            if (key === 'ArrowUp') {
+              return firstEnabled([12, 13, 9, 10, 11, 8, 7, 6, 5, 4, 3, 2, 1, 0], current);
+            }
+            return current;
           }
-          if (key === 'ArrowLeft') return current;
-          if (key === 'ArrowRight') return current;
-          if (key === 'ArrowDown') return current;
+        } else {
+          // Hire Worker (12)
+          if (current === 12) {
+            if (key === 'ArrowUp') return firstEnabled([9, 10, 11, 8], current);
+            if (key === 'ArrowDown') return 13;
+            if (key === 'ArrowLeft') return firstEnabled([5, 4, 7, 6], current);
+            if (key === 'ArrowRight') return current;
+          }
+
+          // Continue (13)
+          if (current === 13) {
+            if (key === 'ArrowUp') {
+              if (!disabled(12)) return 12;
+              if (!disabled(7)) return 7;
+              if (!disabled(6)) return 6;
+              const powerUpEnabled = firstEnabled([9, 10, 11], -1);
+              if (powerUpEnabled !== -1) return powerUpEnabled;
+              return firstEnabled([5, 4, 3, 2, 1, 0], current);
+            }
+            return current;
+          }
         }
 
         return current;
       });
     };
 
-    // Use capture phase to ensure we get events before other handlers
     window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, []); // Empty deps - handler is stable via refs
@@ -349,8 +413,20 @@ const ItemStore: React.FC<ItemStoreProps> = ({
 
   const selectedRing = "ring-2 ring-white ring-opacity-80";
 
+  // Render stat dots
+  const renderStatDots = (level: number) => {
+    return (
+      <span className="text-[9px] sm:text-xs tracking-wider">
+        {Array.from({ length: WORKER_CONFIG.MAX_STAT_LEVEL }, (_, i) => (
+          <span key={i} className={i < level ? 'text-purple-600' : 'text-gray-300'}>
+            {i < level ? '\u25A0' : '\u25A1'}
+          </span>
+        ))}
+      </span>
+    );
+  };
+
   return (
-    // ADDED z-[100] here to ensure the Store Card sits above text prompts (which are z-50)
     <div className="bg-white rounded-lg shadow-2xl p-2 sm:p-4 w-full max-w-3xl mx-2 sm:mx-4 relative z-[100] max-h-[95vh] overflow-y-auto">
       {/* Level Complete Banner */}
       {gameState.levelCompleteInfo && (
@@ -380,7 +456,7 @@ const ItemStore: React.FC<ItemStoreProps> = ({
             </div>
           </div>
 
-          {/* Bank balance — directly beside Item Store */}
+          {/* Bank balance */}
           <div className="flex items-center bg-green-100 border border-green-300 rounded-md px-2 sm:px-4 py-1 sm:py-2 shadow-sm">
             <DollarSign className="w-4 h-4 sm:w-6 sm:h-6 text-green-700 mr-0.5 sm:mr-1" />
             <span className="text-xs sm:text-lg font-bold text-green-800">
@@ -522,35 +598,113 @@ const ItemStore: React.FC<ItemStoreProps> = ({
               ))}
             </div>
 
-            <div className="border-2 border-purple-300 rounded-lg p-1.5 sm:p-3 bg-gradient-to-br from-purple-50 to-indigo-50 mt-1.5 sm:mt-2">
-              <h4 className="text-[10px] sm:text-sm font-bold text-gray-800 mb-0.5 sm:mb-1 text-center">
-                {workerAlreadyHired ? '✅' : '👨‍🍳'} Hire Intern
-              </h4>
-              <p className="text-[9px] sm:text-xs text-gray-600 mb-1 sm:mb-2 text-center">
-                {workerAlreadyHired ? 'Intern on duty!' : 'Permanent helper chef'}
-              </p>
-              <button
-                {...getItemProps(12)}
-                disabled={workerAlreadyHired || !canAffordWorker}
-                className={`w-full rounded py-0.5 px-2 sm:py-1 sm:px-3 text-[10px] sm:text-xs font-semibold transition-colors ${
-                  !workerAlreadyHired && canAffordWorker
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white'
-                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                } ${selectedIndex === 12 ? selectedRing : ''}`}
-              >
-                {workerAlreadyHired ? 'Hired' : `$${hireCost}`}
-              </button>
-              <p className="text-[9px] sm:text-xs text-center mt-0.5 sm:mt-1 text-gray-500">
-                Costs ${COSTS.WORKER_RETENTION}/shop visit
-              </p>
-            </div>
+            {/* Worker Section: Hire or Training Panel */}
+            {workerAlreadyHired ? (
+              // Training Panel
+              <div className="border-2 border-purple-300 rounded-lg p-1.5 sm:p-3 bg-gradient-to-br from-purple-50 to-indigo-50 mt-1.5 sm:mt-2">
+                {(() => {
+                  const training = gameState.hiredWorker!.training;
+                  const rankTitle = getWorkerRankTitle(training);
+                  const nextUnlock = getNextUnlock(training);
+                  const totalLevel = getTotalTrainingLevel(training);
+
+                  return (
+                    <>
+                      <div className="text-center mb-1 sm:mb-2">
+                        <h4 className="text-[10px] sm:text-sm font-bold text-gray-800">
+                          Intern Training - &quot;{rankTitle}&quot;
+                        </h4>
+                        <p className="text-[8px] sm:text-[10px] text-gray-500">
+                          Total Level: {totalLevel}
+                        </p>
+                      </div>
+
+                      {/* Training stat rows - 2x2 grid */}
+                      <div className="grid grid-cols-2 gap-1 sm:gap-1.5">
+                        {trainingStats.map(({ key, label, index }) => {
+                          const currentLevel = training[key] as number;
+                          const isMax = currentLevel >= WORKER_CONFIG.MAX_STAT_LEVEL;
+                          const cost = getTrainingCost(key, currentLevel);
+                          const canAfford = cost !== null && gameState.bank >= cost;
+
+                          return (
+                            <div key={key} className="flex items-center justify-between gap-0.5 sm:gap-1">
+                              <div className="min-w-0">
+                                <span className="text-[9px] sm:text-xs font-semibold text-gray-700">{label}</span>
+                                <div>{renderStatDots(currentLevel)}</div>
+                              </div>
+                              {isMax ? (
+                                <div className="bg-gray-200 text-gray-600 rounded py-0.5 px-1 sm:py-1 sm:px-2 text-[9px] sm:text-xs font-semibold whitespace-nowrap">
+                                  Max
+                                </div>
+                              ) : (
+                                <button
+                                  {...getItemProps(index)}
+                                  disabled={!canAfford}
+                                  className={`rounded py-0.5 px-1 sm:py-1 sm:px-2 text-[9px] sm:text-xs font-semibold transition-colors whitespace-nowrap ${
+                                    canAfford
+                                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                  } ${selectedIndex === index ? selectedRing : ''}`}
+                                >
+                                  ${cost}
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Next unlock hint */}
+                      {nextUnlock && (
+                        <p className="text-[8px] sm:text-[10px] text-center mt-1 sm:mt-1.5 text-purple-600 font-semibold">
+                          Next: {nextUnlock.name} ({nextUnlock.levelsNeeded} more level{nextUnlock.levelsNeeded > 1 ? 's' : ''})
+                        </p>
+                      )}
+                      {!nextUnlock && (
+                        <p className="text-[8px] sm:text-[10px] text-center mt-1 sm:mt-1.5 text-green-600 font-semibold">
+                          All abilities unlocked!
+                        </p>
+                      )}
+                      <p className="text-[8px] sm:text-[10px] text-center mt-0.5 text-gray-500">
+                        Costs ${COSTS.WORKER_RETENTION}/shop visit
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            ) : (
+              // Hire Intern Card
+              <div className="border-2 border-purple-300 rounded-lg p-1.5 sm:p-3 bg-gradient-to-br from-purple-50 to-indigo-50 mt-1.5 sm:mt-2">
+                <h4 className="text-[10px] sm:text-sm font-bold text-gray-800 mb-0.5 sm:mb-1 text-center">
+                  👨‍🍳 Hire Intern
+                </h4>
+                <p className="text-[9px] sm:text-xs text-gray-600 mb-1 sm:mb-2 text-center">
+                  {hasSavedTraining ? 'Re-hire (training preserved!)' : 'Permanent helper chef'}
+                </p>
+                <button
+                  {...getItemProps(12)}
+                  disabled={!canAffordWorker}
+                  className={`w-full rounded py-0.5 px-2 sm:py-1 sm:px-3 text-[10px] sm:text-xs font-semibold transition-colors ${
+                    canAffordWorker
+                      ? 'bg-purple-600 hover:bg-purple-700 text-white'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  } ${selectedIndex === 12 ? selectedRing : ''}`}
+                >
+                  ${hireCost}
+                </button>
+                <p className="text-[9px] sm:text-xs text-center mt-0.5 sm:mt-1 text-gray-500">
+                  Costs ${COSTS.WORKER_RETENTION}/shop visit
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       <button
-        {...getItemProps(13)}
-        className={`block mx-auto w-half bg-red-600 hover:bg-gray-700 text-white rounded-lg py-1.5 px-3 sm:py-2 sm:px-4 text-xs sm:text-sm font-semibold transition-colors ${selectedIndex === 13 ? selectedRing : ''}`}
+        {...getItemProps(CONTINUE_INDEX)}
+        className={`block mx-auto w-half bg-red-600 hover:bg-gray-700 text-white rounded-lg py-1.5 px-3 sm:py-2 sm:px-4 text-xs sm:text-sm font-semibold transition-colors ${selectedIndex === CONTINUE_INDEX ? selectedRing : ''}`}
       >
         Next Level
       </button>

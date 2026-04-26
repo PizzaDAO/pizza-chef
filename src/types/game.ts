@@ -6,7 +6,7 @@ export type CustomerState =
   | 'leaving'      // Generic leaving (Brian complaining, etc.)
   | 'vomit';       // Beer+woozy = sick
 
-export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector';
+export type CustomerVariant = 'normal' | 'critic' | 'badLuckBrian' | 'scumbagSteve' | 'healthInspector' | 'deliveryDriver' | 'pizzaMafia' | 'alien';
 
 export type WoozyState = 'normal' | 'drooling' | 'satisfied';
 
@@ -18,7 +18,10 @@ export const isCustomerApproaching = (c: Customer): boolean =>
   !isCustomerLeaving(c);
 
 export const getCustomerVariant = (c: Customer): CustomerVariant => {
+  if (c.alien) return 'alien';
+  if (c.deliveryDriver) return 'deliveryDriver';
   if (c.healthInspector) return 'healthInspector';
+  if (c.pizzaMafia) return 'pizzaMafia';
   if (c.scumbagSteve) return 'scumbagSteve';
   if (c.badLuckBrian) return 'badLuckBrian';
   if (c.critic) return 'critic';
@@ -26,7 +29,7 @@ export const getCustomerVariant = (c: Customer): CustomerVariant => {
 };
 
 export const isCustomerAffectedByPowerUps = (c: Customer): boolean =>
-  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.served && !c.leaving && !c.disappointed;
+  !c.badLuckBrian && !c.critic && !c.scumbagSteve && !c.healthInspector && !c.deliveryDriver && !c.pizzaMafia && !c.alien && !c.served && !c.leaving && !c.disappointed;
 
 export interface Customer {
   id: string;
@@ -51,13 +54,23 @@ export interface Customer {
   scumbagSteve?: boolean;
   healthInspector?: boolean;
   inspectorTipsy?: boolean;
-  slicesReceived?: number; // For Steve who needs 2 slices
+  deliveryDriver?: boolean;
+  deliverySlicesNeeded?: number; // Always 8 for now, but configurable
+  slicesReceived?: number; // For Steve who needs 2 slices, or delivery driver who needs 8
   lastLaneChangeTime?: number; // For Steve's random lane changes
   leaving?: boolean;
+  pizzaMafia?: boolean;
   brianNyaned?: boolean; // Brian got hit by Nyan + is flying away
   flipped?: boolean;
   textMessage?: string;
   textMessageTime?: number;
+  alien?: boolean;
+  alienTargetLane?: number;       // The integer lane the alien is zigzagging toward
+  alienLaneProgress?: number;     // 0-1 interpolation progress toward target lane
+  alienLastLaneSwitchTime?: number; // Timestamp of last lane-change decision
+  alienWaitingForDrop?: boolean;  // True while alien is still inside the UFO
+  alienPickedUp?: boolean;        // True when alien should be picked up by UFO after walking out
+  alienFrozenForPickup?: boolean; // True when alien has stopped to wait for UFO pickup animation
 }
 
 export interface PizzaSlice {
@@ -67,6 +80,15 @@ export interface PizzaSlice {
   speed: number;
   falling?: boolean;
   fallY?: number;
+}
+
+export interface MafiaSlice {
+  id: string;
+  lane: number;
+  position: number;
+  speedX: number;
+  speedY: number;
+  startTime: number;
 }
 
 export interface EmptyPlate {
@@ -79,6 +101,21 @@ export interface EmptyPlate {
   startLane?: number;
   startPosition?: number;
   targetLane?: number;
+}
+
+export interface UfoAnimationState {
+  active: boolean;
+  xPosition: number;
+  yPosition: number;           // vertical position (percentage from top)
+  dropLane: number;
+  dropPosition: number;
+  startTime: number;
+  dropped: boolean;
+  direction: 'left-to-right' | 'right-to-left';  // entry direction
+  phase: 'drop' | 'pickup' | 'pickup-exit';      // animation phase
+  pickupLane?: number;         // lane to fly to for pickup
+  pickupX?: number;            // x position for pickup
+  alienId?: string;            // which alien customer this UFO belongs to
 }
 
 export interface NyanSweep {
@@ -97,11 +134,17 @@ export interface PepeHelper {
   lastActionTime: number;
 }
 
+export interface WorkerTraining {
+  hustle: number;     // 0-5, reduces action interval
+  capacity: number;   // 0-5, max slices the intern can hold
+}
+
 export interface HiredWorker {
   active: boolean;
   lane: number;
   availableSlices: number;
   lastActionTime: number;
+  training: WorkerTraining;
 }
 
 export interface PepeHelpers {
@@ -243,6 +286,8 @@ export interface GameStats {
   };
   ovenUpgradesMade: number;
   bestOfAwardsEarned: number;
+  totalEarned: number;
+  totalSpent: number;
 }
 
 export interface RushHour {
@@ -264,7 +309,8 @@ export type StarLostReason =
   | 'beer_around_kids'
   | 'steve_disappointed'
   | 'papajohn_minion_reached'
-  | 'dominos_minion_reached';
+  | 'dominos_minion_reached'
+  | 'delivery_driver_disappointed';
 
 // Snapshot type for death replay - contains only the visual fields GameBoard needs
 export type GameStateSnapshot = Pick<GameState,
@@ -278,11 +324,13 @@ export type GameStateSnapshot = Pick<GameState,
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
   | 'ovenSpeedUpgrades'
   | 'rushHour'
+  | 'ufoAnimations' | 'healthDeptRaid' | 'healthDeptRaidResult' | 'mafiaSlices'
 > & { snapshotTime: number };
 
 export interface GameState {
   customers: Customer[];
   pizzaSlices: PizzaSlice[];
+  mafiaSlices: MafiaSlice[];
   emptyPlates: EmptyPlate[];
   powerUps: PowerUp[];
   activePowerUps: ActivePowerUp[];
@@ -311,6 +359,7 @@ export interface GameState {
   nyanSweep?: NyanSweep;
   pepeHelpers?: PepeHelpers;
   hiredWorker?: HiredWorker;
+  workerTrainingSaved?: WorkerTraining;
   stats: GameStats;
   bossBattle?: BossBattle;
   defeatedBossLevels: number[];
@@ -333,4 +382,19 @@ export interface GameState {
   // Rush Hour event
   rushHour?: RushHour;
   rushHourTriggeredThisLevel: boolean;
+  ufoAnimations?: UfoAnimationState[];
+  // Health Department Raid
+  healthDeptRaid?: {
+    active: boolean;
+    inspectorIds: string[];
+    starsAtRaidStart: number;
+    alertEndTime: number;
+    raidTriggeredThisLevel: boolean;
+    pendingInspectors?: Customer[];
+    nextSpawnTime?: number;
+  };
+  healthDeptRaidResult?: {
+    success: boolean;
+    endTime: number;
+  };
 }

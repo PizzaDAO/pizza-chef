@@ -53,6 +53,7 @@ export const PROBABILITIES = {
   CRITIC_CHANCE: 0.15,
   BAD_LUCK_BRIAN_CHANCE: 0.1, // If not critic
   SCUMBAG_STEVE_CHANCE: 0.08, // If not critic or brian
+  PIZZA_MAFIA_CHANCE: 0.05, // If not critic, brian, or steve
   POWERUP_STAR_CHANCE: 0.1,
 };
 
@@ -65,8 +66,48 @@ export const SCUMBAG_STEVE = {
 
 export const HEALTH_INSPECTOR = {
   CHANCE: 0.08, // 8% chance (if not other variant)
-  MIN_LEVEL: 5,
+  MIN_LEVEL: 1,
   SPEED_MULTIPLIER: 0.7, // 30% slower than normal
+};
+
+export const ALIEN = {
+  SPAWN_CHANCE: 0.03,             // 3% per spawn cycle
+  MIN_LEVEL: 9,                   // Unlocks at level 9
+  SPEED_MULTIPLIER: 0.8,          // Slightly slower base advance (compensated by harder-to-hit movement)
+  LANE_SWITCH_INTERVAL: 1000,     // Change target lane every ~1 second
+  LANE_LERP_SPEED: 0.003,         // Fractional lane interpolation per ms (~0.15/frame at 50ms tick)
+  UFO_FLY_DURATION: 3000,         // UFO crosses screen in 3 seconds
+  UFO_DROP_X: 75,                 // X-position where alien is deposited (percentage)
+};
+
+export const DELIVERY_DRIVER = {
+  SLICES_NEEDED: 8,
+  WAIT_POSITION: GAME_CONFIG.CHEF_X_POSITION + 3, // Parks just in front of the counter
+  SPEED_MULTIPLIER: 0.6,     // Slower approach than normal
+  SCORE_BONUS: 2000,         // Points on completion
+  BANK_BONUS: 30,            // Cash on completion
+  PARTIAL_SCORE: 25,         // Points per intermediate slice
+  DRIVER_GAP: 4,             // Gap between stacked delivery drivers (%)
+};
+
+export const HEALTH_DEPT_RAID = {
+  MIN_LEVEL: 8,
+  TRIGGER_CHANCE: 0.25,         // 25% flat chance per level (rolled once at MIN_LEVEL_TIME)
+  INSPECTOR_COUNT: 4,
+  ALERT_DURATION: 2000,         // 2s "HEALTH DEPT RAID!" overlay
+  RESULT_DURATION: 3000,        // 3s "Clean Record!" overlay
+  BONUS_POINTS: 3000,
+  BONUS_CASH: 20,
+  MIN_LEVEL_TIME: 5000,         // 5s into level before rolling
+  SPAWN_STAGGER: 0,             // position offset (all start at same X)
+  SPAWN_DELAY: 3000,            // ms between each inspector spawn (~3s apart, ~10s total for 4)
+};
+
+export const MAFIA_SLICE_CONFIG = {
+  SLICE_COUNT: 2,
+  SPEED: 3,
+  LIFETIME: 2000, // ms
+  LANE_SPEED: 0.02, // Vertical movement speed
 };
 
 export const SCORING = {
@@ -78,6 +119,7 @@ export const SCORING = {
   // Actions
   PLATE_CAUGHT: 50,
   POWERUP_COLLECTED: 100,
+  STAR_COLLECTED: 555,
   DOGE_COLLECTED: 420,
   NYAN_COLLECTED: 777,
 
@@ -89,6 +131,11 @@ export const SCORING = {
   // Special
   MOLTOBENNY_POINTS: 10000,
   MOLTOBENNY_CASH: 69,
+
+  // Delivery Driver
+  DELIVERY_DRIVER_COMPLETE: 2000,
+  DELIVERY_DRIVER_PARTIAL: 25,
+  DELIVERY_DRIVER_BANK: 30,
 
   // Bank
   BASE_BANK_REWARD: 1,
@@ -115,7 +162,28 @@ export const COSTS = {
 
 export const WORKER_CONFIG = {
   ACTION_INTERVAL: 150,
-  STARTING_SLICES: 2,
+  STARTING_SLICES: 1,
+
+  // Training system
+  BASE_ACTION_INTERVAL: 200,
+  ACTION_INTERVALS: [200, 185, 170, 155, 140, 125, 110, 100],
+
+  // Ability unlock thresholds (total training level = sum of all stats)
+  UNLOCK_PLATES: 3,
+  UNLOCK_PULL_PIZZA: 0,
+  UNLOCK_START_OVEN: 6,
+  UNLOCK_CLEAN_OVEN: 8,
+  UNLOCK_MOVE_ACT: 10,
+
+  MAX_STAT_LEVEL: 7,
+
+  // Max slices the intern can hold per capacity level
+  MAX_SLICES_BY_LEVEL: [1, 2, 3, 4, 5, 6, 7, 8],
+
+  TRAINING_COSTS: {
+    hustle:   [10, 20, 30, 40, 50, 60, 70],
+    capacity: [10, 20, 30, 40, 50, 60, 70],
+  } as Record<string, number[]>,
 };
 
 export const BOSS_CONFIG = {
@@ -129,13 +197,13 @@ export const BOSS_CONFIG = {
 // --- Level System ---
 export const LEVEL_SYSTEM = {
   CUSTOMERS_PER_LEVEL: [
-    10, // Level 1
-    15, // Level 2
-    20, // Level 3
-    25, // Level 4
-    30, // Level 5
-    35, // Level 6
-    40, // Level 7 (base for 7+, grows by 5/level, no cap)
+    5, // Level 1
+    10, // Level 2
+    15, // Level 3
+    20, // Level 4
+    25, // Level 5
+    30, // Level 6
+    35, // Level 7 (base for 7+, grows by 5/level)
   ],
   CUSTOMERS_GROWTH_PER_LEVEL: 5,
 
@@ -148,11 +216,14 @@ export const LEVEL_SYSTEM = {
     BEER: 3,
     STAR: 3,
     SCUMBAG_STEVE: 3,
+    DELIVERY_DRIVER: 6,
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
+    PIZZA_MAFIA: 7,
     PEPE: 5,
     MOLTOBENNY: 5,
+    ALIEN: 9,
   },
 
   // Customer speed multiplier per level
@@ -160,15 +231,19 @@ export const LEVEL_SYSTEM = {
   SPEED_GROWTH_PER_LEVEL: 0.05, // After level 7
 
   // Min spawn interval per level (ms)
-  SPAWN_INTERVALS: [2400, 2200, 2000, 1800, 1500, 1200, 1000],
-  SPAWN_INTERVAL_FLOOR: 800, // After level 7
+  SPAWN_INTERVALS: [2000, 1800, 1600, 1400, 1200, 1000, 800],
+  SPAWN_INTERVAL_DECAY: 50,  // ms decrease per level after level 7
+  SPAWN_INTERVAL_FLOOR: 100, // Hard minimum
 
   // Special customer spawn chances per level
   SPECIAL_CHANCES: {
     CRITIC: [0.12, 0.15, 0.15, 0.15, 0.15], // Levels 1-5+
     BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
     STEVE: [0, 0, 0.06, 0.08, 0.08],
+    DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05],
     INSPECTOR: [0, 0, 0, 0, 0.05],
+    ALIEN: [0, 0, 0, 0, 0, 0, 0, 0, 0.03],  // 3% at level 9+
+    MAFIA: [0.05],                            // 5% at level 7+
   },
 
   // Boss schedule
@@ -205,7 +280,7 @@ export const CHUCK_E_CHEESE_CONFIG = {
   WAVES: 3,
   MINIONS_PER_WAVE: 8,
   KID_SPRITE_COUNT: 6,
-  KID_WAVE_SPEEDS: [0.45, 0.5, 0.55] as readonly number[],
+  KID_WAVE_SPEEDS: [0.3825, 0.425, 0.4675] as readonly number[],
   KID_ICE_CREAM_SPEED_BONUS: 0.15,
 };
 
@@ -280,6 +355,7 @@ export const LAYOUT = {
 export const INITIAL_GAME_STATE = {
   customers: [],
   pizzaSlices: [],
+  mafiaSlices: [],
   emptyPlates: [],
   powerUps: [],
   activePowerUps: [],
@@ -312,6 +388,7 @@ export const INITIAL_GAME_STATE = {
   nyanSweep: undefined,
   lastStarLostReason: undefined,
   hiredWorker: undefined,
+  workerTrainingSaved: undefined,
   stats: {
     slicesBaked: 0,
     customersServed: 0,
@@ -334,6 +411,8 @@ export const INITIAL_GAME_STATE = {
     },
     ovenUpgradesMade: 0,
     bestOfAwardsEarned: 0,
+    totalEarned: 0,
+    totalSpent: 0,
   },
   bossBattle: undefined,
   defeatedBossLevels: [],
@@ -358,4 +437,8 @@ export const INITIAL_GAME_STATE = {
   // Rush Hour event
   rushHour: undefined,
   rushHourTriggeredThisLevel: false,
+  ufoAnimations: undefined,
+  // Health Department Raid
+  healthDeptRaid: undefined as { active: boolean; inspectorIds: string[]; starsAtRaidStart: number; alertEndTime: number; raidTriggeredThisLevel: boolean } | undefined,
+  healthDeptRaidResult: undefined as { success: boolean; endTime: number } | undefined,
 };

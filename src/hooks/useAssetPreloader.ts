@@ -8,10 +8,16 @@ interface PreloadResult {
   failedAssets: string[];
 }
 
+// Module-level cache keeps Image objects alive so the browser retains decoded data
+const imageCache = new Map<string, HTMLImageElement>();
+
 function preloadImage(src: string): Promise<void> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.onload = () => resolve();
+    img.onload = () => {
+      imageCache.set(src, img);
+      resolve();
+    };
     img.onerror = () => reject(new Error(`Failed to load: ${src}`));
     img.src = src;
   });

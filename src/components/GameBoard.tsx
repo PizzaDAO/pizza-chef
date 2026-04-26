@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import Customer from './Customer';
 import PizzaSlice from './PizzaSlice';
+import MafiaSlice from './MafiaSlice';
 import EmptyPlate from './EmptyPlate';
 import DroppedPlate from './DroppedPlate';
 import PowerUp from './PowerUp';
@@ -14,6 +15,7 @@ import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
 import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
 
+
 const chefImg = sprite("chef.png");
 const cheesedChefImg = sprite("cheesed-chef.png");
 const sadChefImg = sprite("sad-chef.png");
@@ -22,11 +24,10 @@ const pizzaShopBg = bg("pizza-shop-background.webp");
 
 interface GameBoardProps {
   gameState: GameState | GameStateSnapshot;
-  onLevelCompleteClick?: () => void;
   replayMode?: boolean;
 }
 
-const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, replayMode }) => {
+const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
   const lanes = [0, 1, 2, 3];
   const [completedScores, setCompletedScores] = useState<Set<string>>(new Set());
   const [completedStars, setCompletedStars] = useState<Set<string>>(new Set());
@@ -203,39 +204,39 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
 
       {/* Hired Worker */}
       {gameState.hiredWorker?.active && (
-        <div
-          className="absolute flex items-center justify-center"
-          style={{
-            left: '5%',
-            top: `${gameState.hiredWorker.lane * 25 + 13}%`,
-            width: '10%',
-            aspectRatio: '1 / 1',
-            transform: 'translate3d(0, -50%, 0)',
-            zIndex: 10,
-            transition: 'top 150ms ease-out',
-          }}
-        >
-          <img
-            src={sprite("intern.png")}
-            alt="Hired intern"
-            className="w-full h-full object-contain"
-          />
-          {gameState.hiredWorker.availableSlices > 0 && (
-            <div
-              className="absolute"
-              style={{
-                left: '55%',
-                top: '90%',
-                width: '91%',
-                height: '91%',
-                transform: 'translateY(-50%)',
-                pointerEvents: 'none',
-              }}
-            >
-              <PizzaSliceStack sliceCount={gameState.hiredWorker.availableSlices} />
-            </div>
-          )}
-        </div>
+          <div
+            className="absolute flex items-center justify-center"
+            style={{
+              left: '5%',
+              top: `${gameState.hiredWorker.lane * 25 + 13}%`,
+              width: '10%',
+              aspectRatio: '1 / 1',
+              transform: 'translate3d(0, -50%, 0)',
+              zIndex: 10,
+              transition: 'top 150ms ease-out',
+            }}
+          >
+            <img
+              src={sprite("intern.png")}
+              alt="Hired intern"
+              className="w-full h-full object-contain"
+            />
+            {gameState.hiredWorker.availableSlices > 0 && (
+              <div
+                className="absolute"
+                style={{
+                  left: '55%',
+                  top: '90%',
+                  width: '91%',
+                  height: '91%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none',
+                }}
+              >
+                <PizzaSliceStack sliceCount={gameState.hiredWorker.availableSlices} />
+              </div>
+            )}
+          </div>
       )}
 
       {/* Nyan Cat Chef - positioned directly on game board during sweep */}
@@ -281,6 +282,10 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
 
       {gameState.pizzaSlices.map((slice) => (
         <PizzaSlice key={slice.id} slice={slice} />
+      ))}
+
+      {gameState.mafiaSlices?.map((slice) => (
+        <MafiaSlice key={slice.id} slice={slice} />
       ))}
 
       {gameState.emptyPlates.map((plate) => (
@@ -331,6 +336,21 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
         />
       ))}
 
+      {/* UFO Animations — render ALL active UFOs */}
+      {gameState.ufoAnimations?.map((ufo, idx) => ufo.active && (
+        <div
+          key={ufo.alienId || `ufo-${idx}`}
+          className="absolute w-[10%] aspect-square z-30"
+          style={{
+            left: `${ufo.xPosition}%`,
+            top: `${ufo.yPosition}%`,
+            transition: 'left 50ms linear, top 50ms linear',
+          }}
+        >
+          <div style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)' }}>🛸</div>
+        </div>
+      ))}
+
       {/* Falling pizza when game over */}
       {gameState.fallingPizza && (
         <div
@@ -368,34 +388,6 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, onLevelCompleteClick, 
         </div>
       )}
 
-      {/* Level Complete Overlay (hidden during replay) */}
-      {!replayMode && gameState.levelPhase === 'complete' && gameState.levelCompleteInfo && (
-        <div className="absolute inset-0 flex items-center justify-center" style={{ zIndex: 60 }}>
-          <div className="bg-black bg-opacity-80 absolute inset-0" />
-          <div className="relative bg-gradient-to-b from-green-600 to-green-800 text-white rounded-xl px-6 py-4 sm:px-10 sm:py-6 text-center shadow-2xl max-w-sm mx-4" style={{ zIndex: 61 }}>
-            <h2 className="text-xl sm:text-3xl font-bold">Level {gameState.levelCompleteInfo.level} Complete!</h2>
-            <div className="mt-3 space-y-1 text-sm sm:text-base">
-              <p>Customers Served: {gameState.levelCompleteInfo.customersServed}</p>
-              <p>Stars Lost: {gameState.levelCompleteInfo.starsLost}</p>
-              {gameState.levelCompleteInfo.bossDefeated && (
-                <p className="font-bold text-yellow-300">Boss Defeated!</p>
-              )}
-              {gameState.levelCompleteInfo.starsLost === 0 && (
-                <p className="font-bold text-yellow-300">Perfect Level!</p>
-              )}
-              <p className="text-lg sm:text-xl font-bold text-green-200 mt-2">
-                +${gameState.levelCompleteInfo.rewards}
-              </p>
-            </div>
-            <button
-              onClick={onLevelCompleteClick}
-              className="mt-4 bg-white text-green-700 font-bold py-2 px-6 rounded-lg hover:bg-green-100 transition-colors text-sm sm:text-base"
-            >
-              Continue to Store
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
