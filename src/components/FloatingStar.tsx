@@ -35,7 +35,7 @@ function FloatingStar({ id, isGain, count = 1, lane, position, onComplete }: Flo
     requestAnimationFrame(animate);
   }, [id, onComplete]);
 
-  const lanePosition = 15 + (lane * 22);
+  const lanePosition = 15 + (lane * 22) + 5; // Offset below FloatingScore to avoid overlap
 
   return (
     <div
