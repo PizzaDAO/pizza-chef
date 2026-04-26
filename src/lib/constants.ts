@@ -379,6 +379,14 @@ export const SPECIAL_LEVELS: Record<number, SpecialLevelConfig> = {
     customersRequiredOverride: 60,
     customerScoreOverride: 75,
   },
+  25: {
+    name: 'Grand Opening',
+    announcementSubtitle: 'Double customers, double rewards! Critics are watching!',
+    rewardMultiplier: 2,
+    spawnIntervalOverride: 600,
+    criticEveryN: 5,
+    customersRequiredOverride: 80,
+  },
 };
 
 export const getSpecialLevel = (level: number): SpecialLevelConfig | undefined =>
@@ -397,7 +405,7 @@ export const INITIAL_GAME_STATE = {
   chefLane: 0,
   score: 0,
   lives: GAME_CONFIG.STARTING_LIVES, // References the config defined at the top
-  level: 1,
+  level: 25,
   gameOver: false,
   paused: false,
   availableSlices: 0,
