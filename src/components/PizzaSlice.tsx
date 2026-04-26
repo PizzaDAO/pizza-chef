@@ -13,10 +13,11 @@ const PizzaSlice: React.FC<PizzaSliceProps> = ({ slice }) => {
 
   return (
     <div
-      className="absolute w-[10%] aspect-square transition-all duration-100 flex items-center justify-center"
+      className="absolute w-[10%] aspect-square flex items-center justify-center"
       style={{
         left: `${slice.position}%`,
         top: `${topPercent}%`,
+        transition: 'left 100ms linear, top 100ms linear',
       }}
     >
       {/* Pizza slice on plate */}

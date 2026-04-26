@@ -36,11 +36,12 @@ const DroppedPlate: React.FC<DroppedPlateProps> = ({ droppedPlate }) => {
 
   return (
     <div
-      className="absolute w-[6%] aspect-square transition-all duration-100"
+      className="absolute w-[6%] aspect-square"
       style={{
         left: `${droppedPlate.position}%`,
         top: `${droppedPlate.lane * 25 + 10}%`,
         opacity: visible ? 1 : 0,
+        transition: 'opacity 100ms linear',
       }}
     >
       <img src={slicePlateImg} alt="dropped plate" className="w-full h-full object-contain" />
