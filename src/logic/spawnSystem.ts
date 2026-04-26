@@ -12,6 +12,7 @@ import {
   LEVEL_SYSTEM,
   SPAWN_RATES,
   PROBABILITIES,
+  RUSH_HOUR,
 } from '../lib/constants';
 
 export interface SpawnResult<T> {
@@ -136,6 +137,7 @@ export const trySpawnCustomer = (
   customersServed?: number,
   customersRequired?: number,
   totalCustomersSpawned?: number,
+  rushHourActive?: boolean,
 ): SpawnResult<Customer> => {
   // Don't spawn when level is complete or in store
   if (levelPhase === 'complete' || levelPhase === 'store') {
@@ -150,7 +152,10 @@ export const trySpawnCustomer = (
     }
   }
 
-  const spawnDelay = getLevelSpawnInterval(level);
+  let spawnDelay = getLevelSpawnInterval(level);
+  if (rushHourActive) {
+    spawnDelay = Math.floor(spawnDelay / RUSH_HOUR.SPAWN_INTERVAL_DIVISOR);
+  }
 
   // Check time gate
   if (now - lastSpawnTime < spawnDelay) {
@@ -300,6 +305,7 @@ export const processSpawning = (
   customersServed?: number,
   customersRequired?: number,
   totalCustomersSpawned?: number,
+  rushHourActive?: boolean,
 ): {
   newCustomer?: Customer;
   newPowerUp?: PowerUp;
@@ -310,6 +316,7 @@ export const processSpawning = (
   const customerResult = trySpawnCustomer(
     lastCustomerSpawn, now, level, bossActive,
     levelPhase, customersServed, customersRequired, totalCustomersSpawned,
+    rushHourActive,
   );
   const powerUpResult = trySpawnPowerUp(lastPowerUpSpawn, now, level);
 

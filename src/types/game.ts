@@ -290,6 +290,12 @@ export interface GameStats {
   totalSpent: number;
 }
 
+export interface RushHour {
+  active: boolean;
+  startTime: number;
+  endTime: number;
+}
+
 export type StarLostReason =
   | 'burned_pizza'
   | 'disappointed_customer'
@@ -316,7 +322,9 @@ export type GameStateSnapshot = Pick<GameState,
   | 'levelProgress' | 'levelAnnouncement' | 'bossIncomingAlert'
   | 'levelCompleteInfo' | 'gameOver' | 'paused'
   | 'chefSlowedUntil' | 'powerUpAlert' | 'bestOfAwardAlert'
-  | 'ovenSpeedUpgrades' | 'ufoAnimations' | 'healthDeptRaid' | 'healthDeptRaidResult' | 'mafiaSlices'
+  | 'ovenSpeedUpgrades'
+  | 'rushHour'
+  | 'ufoAnimations' | 'healthDeptRaid' | 'healthDeptRaidResult' | 'mafiaSlices'
 > & { snapshotTime: number };
 
 export interface GameState {
@@ -371,6 +379,9 @@ export interface GameState {
   bestOfStreakCount: number;
   bestOfAwardCount: number;
   bestOfAwardAlert?: { endTime: number };
+  // Rush Hour event
+  rushHour?: RushHour;
+  rushHourTriggeredThisLevel: boolean;
   ufoAnimations?: UfoAnimationState[];
   // Health Department Raid
   healthDeptRaid?: {

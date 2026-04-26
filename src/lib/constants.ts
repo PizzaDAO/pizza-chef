@@ -321,6 +321,15 @@ export const PEPE_CONFIG = {
   STARTING_SLICES: 4,     // Famous chefs come prepared
 };
 
+export const RUSH_HOUR = {
+  DURATION: 60000,           // 60 seconds
+  TRIGGER_CHANCE: 0.08,      // 8% per spawn cycle
+  MIN_LEVEL: 4,              // Triggers from level 4
+  SCORE_MULTIPLIER: 3,       // 3x points during rush hour
+  SPAWN_INTERVAL_DIVISOR: 3, // 3x customers during rush hour
+  ANNOUNCE_DURATION: 2000,   // "RUSH HOUR!" banner lingers for 2s before fading
+};
+
 export const TIMINGS = {
   FLOATING_SCORE_LIFETIME: 1000,
   DROPPED_PLATE_LIFETIME: 1000,
@@ -425,6 +434,9 @@ export const INITIAL_GAME_STATE = {
   bestOfStreakCount: 0,
   bestOfAwardCount: 0,
   bestOfAwardAlert: undefined as { endTime: number } | undefined,
+  // Rush Hour event
+  rushHour: undefined,
+  rushHourTriggeredThisLevel: false,
   ufoAnimations: undefined,
   // Health Department Raid
   healthDeptRaid: undefined as { active: boolean; inspectorIds: string[]; starsAtRaidStart: number; alertEndTime: number; raidTriggeredThisLevel: boolean } | undefined,
