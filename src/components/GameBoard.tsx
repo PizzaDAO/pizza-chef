@@ -380,16 +380,14 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
                 Serve {gameState.levelProgress.customersRequired} customers
               </p>
               {unlocks.length > 0 && (
-                <div className="mt-3 space-y-1.5 text-left">
+                <div className="mt-3 space-y-2 text-left">
                   {unlocks.map((u, i) => (
-                    <div key={i} className="flex items-start gap-2">
-                      <span
-                        className={`shrink-0 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded leading-tight ${
-                          u.isBoss ? 'bg-red-600 text-white' : 'bg-green-500 text-white'
-                        }`}
-                      >
-                        NEW!
-                      </span>
+                    <div key={i} className="flex items-center gap-2">
+                      {u.iconType === 'sprite' ? (
+                        <img src={u.icon} alt={u.label} className="w-8 h-8 sm:w-10 sm:h-10 object-contain shrink-0" />
+                      ) : (
+                        <span className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-xl sm:text-2xl shrink-0">{u.icon}</span>
+                      )}
                       <span className="min-w-0">
                         <span className={`text-xs sm:text-sm font-semibold ${u.isBoss ? 'text-red-400 font-bold' : ''}`}>
                           {u.label}
