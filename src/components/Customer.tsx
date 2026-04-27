@@ -18,6 +18,7 @@ const healthInspectorImg = sprite("health-inspector.png");
 const deliveryDriverEmptyImg = sprite("delivery-driver-empty.png");
 const deliveryDriverFullImg = sprite("delivery-driver-full.png");
 const pizzaMafiaImg = sprite("pizza-mafia.png");
+const alienImg = sprite("alien.png");
 
 interface CustomerProps {
   customer: CustomerType;
@@ -53,9 +54,9 @@ const Customer: React.FC<CustomerProps> = ({ customer, boardWidth, boardHeight }
     const variant = getCustomerVariant(customer);
     const isSpecialCustomer = variant === 'badLuckBrian' || variant === 'scumbagSteve' || variant === 'healthInspector' || variant === 'deliveryDriver' || variant === 'pizzaMafia' || variant === 'alien';
 
-    // Alien customer display — stays 👽 always, tongue out when fed
+    // Alien customer display
     if (variant === 'alien') {
-      return { type: 'emoji', value: '👽' };
+      return { type: 'image', value: alienImg, alt: 'alien' };
     }
 
     // Rainbow Brian (nyan hit) — special behavior override
