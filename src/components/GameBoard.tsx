@@ -14,6 +14,7 @@ import { GameState, GameStateSnapshot } from '../types/game';
 import { sprite, bg } from '../lib/assets';
 import { getOvenDisplayStatus } from '../logic/ovenSystem';
 import { OVEN_CONFIG, TIMINGS } from '../lib/constants';
+import { getUnlocksForLevel } from '../lib/levelUnlocks';
 
 
 const chefImg = sprite("chef.png");
@@ -368,16 +369,45 @@ const GameBoard: React.FC<GameBoardProps> = ({ gameState, replayMode }) => {
       )}
 
       {/* Level Start Announcement */}
-      {gameState.levelAnnouncement && (
-        <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
-          <div className="bg-black bg-opacity-70 text-white rounded-xl px-6 py-4 sm:px-10 sm:py-6 text-center">
-            <h2 className="text-2xl sm:text-4xl font-bold">Level {gameState.levelAnnouncement.level}</h2>
-            <p className="text-sm sm:text-lg mt-1 text-gray-300">
-              Serve {gameState.levelProgress.customersRequired} customers
-            </p>
+      {gameState.levelAnnouncement && (() => {
+        const unlocks = getUnlocksForLevel(gameState.levelAnnouncement.level);
+        const compact = unlocks.length > 4;
+        return (
+          <div className="absolute inset-0 flex items-center justify-center z-[55] pointer-events-none">
+            <div className="bg-black bg-opacity-70 text-white rounded-xl px-6 py-4 sm:px-10 sm:py-6 text-center max-w-[90vw] sm:max-w-md">
+              <h2 className="text-2xl sm:text-4xl font-bold">Level {gameState.levelAnnouncement.level}</h2>
+              <p className="text-sm sm:text-lg mt-1 text-gray-300">
+                Serve {gameState.levelProgress.customersRequired} customers
+              </p>
+              {unlocks.length > 0 && (
+                <div className="mt-3 space-y-1.5 text-left">
+                  {unlocks.map((u, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span
+                        className={`shrink-0 text-[10px] sm:text-xs font-bold px-1.5 py-0.5 rounded leading-tight ${
+                          u.isBoss ? 'bg-red-600 text-white' : 'bg-green-500 text-white'
+                        }`}
+                      >
+                        NEW!
+                      </span>
+                      <span className="min-w-0">
+                        <span className={`text-xs sm:text-sm font-semibold ${u.isBoss ? 'text-red-400 font-bold' : ''}`}>
+                          {u.label}
+                        </span>
+                        {!compact && (
+                          <span className="text-gray-400 text-[10px] sm:text-xs ml-1">
+                            {u.description}
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Boss Incoming Alert */}
       {gameState.bossIncomingAlert && (

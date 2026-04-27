@@ -34,6 +34,7 @@ import {
   ALIEN,
   HEALTH_DEPT_RAID,
 } from '../lib/constants';
+import { getUnlocksForLevel } from '../lib/levelUnlocks';
 
 // --- Logic Imports ---
 import {
@@ -1371,7 +1372,8 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // levelStartTime of 0 means announcement hasn't been triggered yet for this level
         if (newState.levelAnnouncement === undefined && newState.levelProgress.levelStartTime === 0) {
           newState.levelProgress = { ...newState.levelProgress, levelStartTime: now };
-          newState.levelAnnouncement = { level: newState.level, endTime: now + 3000 };
+          const announceDuration = getUnlocksForLevel(newState.level).length > 0 ? 4500 : 3000;
+          newState.levelAnnouncement = { level: newState.level, endTime: now + announceDuration };
         }
 
         // Show level announcement for its duration
