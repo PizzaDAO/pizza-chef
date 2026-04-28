@@ -209,19 +209,19 @@ export const LEVEL_SYSTEM = {
 
   // Content unlocks (level at which each unlocks)
   UNLOCK_SCHEDULE: {
-    CRITIC: 1,
-    BAD_LUCK_BRIAN: 2,
+    CRITIC: 2,
+    BAD_LUCK_BRIAN: 3,
     ICE_CREAM: 2,
     HOT_HONEY: 2,
     BEER: 3,
     STAR: 3,
-    SCUMBAG_STEVE: 3,
+    SCUMBAG_STEVE: 4,
     DELIVERY_DRIVER: 6,
     DOGE: 4,
     NYAN: 4,
     HEALTH_INSPECTOR: 5,
     PIZZA_MAFIA: 7,
-    PEPE: 5,
+    PEPE: 6,
     MOLTOBENNY: 5,
     ALIEN: 9,
   },
