@@ -267,7 +267,7 @@ export const updateMinionPositions = (minions: BossMinion[], iceCreamActive?: bo
   return minions.map(minion => {
     if (minion.defeated) return minion;
     // Kids run faster when ice cream is out
-    const speedMultiplier = iceCreamActive && minion.sprite ? (minion.speed + CHUCK_E_CHEESE_CONFIG.KID_ICE_CREAM_SPEED_BONUS) / minion.speed : 1;
+    const speedMultiplier = iceCreamActive && minion.sprite && minion.speed > 0 ? (minion.speed + CHUCK_E_CHEESE_CONFIG.KID_ICE_CREAM_SPEED_BONUS) / minion.speed : 1;
     return { ...minion, position: minion.position - minion.speed * speedMultiplier };
   });
 };

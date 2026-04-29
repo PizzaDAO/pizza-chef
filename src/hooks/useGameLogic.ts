@@ -1232,7 +1232,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
 
         // 4. Process Minion Hits
         const hitMinionSet = new Set(collisionResult.hitMinionIds);
-        if (hitMinionSet.size > 0 && newState.bossBattle) {
+        if (hitMinionSet.size > 0 && newState.bossBattle?.minions) {
           newState.bossBattle.minions = newState.bossBattle.minions.map(minion => {
             if (hitMinionSet.has(minion.id)) {
               soundManager.customerServed();
