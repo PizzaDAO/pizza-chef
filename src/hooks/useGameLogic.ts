@@ -1372,7 +1372,7 @@ export const useGameLogic = (gameStarted: boolean = true) => {
         // levelStartTime of 0 means announcement hasn't been triggered yet for this level
         if (newState.levelAnnouncement === undefined && newState.levelProgress.levelStartTime === 0) {
           newState.levelProgress = { ...newState.levelProgress, levelStartTime: now };
-          const announceDuration = getUnlocksForLevel(newState.level).length > 0 ? 4500 : 3000;
+          const announceDuration = getUnlocksForLevel(newState.level).length > 0 ? 5500 : 4000;
           newState.levelAnnouncement = { level: newState.level, endTime: now + announceDuration };
         }
 
