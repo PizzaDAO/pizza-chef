@@ -98,13 +98,21 @@ const chanceAt = (arr: readonly number[], level: number): number => {
   return arr[idx] ?? 0;
 };
 
+/** For delivery/inspector/alien: after L12, add +PER_LEVEL per level beyond 12, capped at MAX */
+const scalingChance = (arr: readonly number[], level: number, key: keyof typeof LEVEL_SYSTEM.SCALING_CHANCES): number => {
+  const base = chanceAt(arr, level);
+  if (level <= 12) return base;
+  const scaling = LEVEL_SYSTEM.SCALING_CHANCES[key];
+  return Math.min(base + (level - 12) * scaling.PER_LEVEL, scaling.MAX);
+};
+
 const getSpecialChances = (level: number) => ({
   critic: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.CRITIC, level),
   brian: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.BRIAN, level),
   steve: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.STEVE, level),
-  deliveryDriver: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER, level),
-  inspector: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR, level),
-  alien: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN, level),
+  deliveryDriver: scalingChance(LEVEL_SYSTEM.SPECIAL_CHANCES.DELIVERY_DRIVER, level, 'DELIVERY_DRIVER'),
+  inspector: scalingChance(LEVEL_SYSTEM.SPECIAL_CHANCES.INSPECTOR, level, 'INSPECTOR'),
+  alien: scalingChance(LEVEL_SYSTEM.SPECIAL_CHANCES.ALIEN, level, 'ALIEN'),
   mafia: chanceAt(LEVEL_SYSTEM.SPECIAL_CHANCES.MAFIA, level),
 });
 

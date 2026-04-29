@@ -231,19 +231,26 @@ export const LEVEL_SYSTEM = {
   SPEED_GROWTH_PER_LEVEL: 0.05, // After level 7
 
   // Min spawn interval per level (ms)
-  SPAWN_INTERVALS: [2000, 1800, 1600, 1400, 1200, 1000, 800],
+  SPAWN_INTERVALS: [2200, 2000, 1800, 1600, 1400, 1200, 1000],
   SPAWN_INTERVAL_DECAY: 50,  // ms decrease per level after level 7
   SPAWN_INTERVAL_FLOOR: 100, // Hard minimum
 
-  // Special customer spawn chances per level
+  // Special customer spawn chances per level (last entry repeats for higher levels)
+  // Delivery, Inspector, Alien continue scaling after L12 via SCALING_CHANCES
   SPECIAL_CHANCES: {
-    CRITIC: [0.12, 0.15, 0.15, 0.15, 0.15], // Levels 1-5+
-    BRIAN: [0, 0.08, 0.10, 0.10, 0.10],
-    STEVE: [0, 0, 0.06, 0.08, 0.08],
-    DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05],
-    INSPECTOR: [0, 0, 0, 0, 0.05],
-    ALIEN: [0, 0, 0, 0, 0, 0, 0, 0, 0.03],  // 3% at level 9+
-    MAFIA: [0.05],                            // 5% at level 7+
+    CRITIC:          [0.12, 0.15, 0.15, 0.15, 0.15, 0.15, 0.15, 0.17, 0.18, 0.20, 0.20, 0.20], // L1-12+
+    BRIAN:           [0, 0, 0.08, 0.10, 0.10, 0.10, 0.10, 0.12, 0.13, 0.15, 0.15, 0.15],        // L1-12+
+    STEVE:           [0, 0, 0, 0.06, 0.08, 0.08, 0.08, 0.10, 0.11, 0.12, 0.12, 0.12],           // L1-12+
+    DELIVERY_DRIVER: [0, 0, 0, 0, 0, 0.05, 0.05, 0.06, 0.07, 0.08, 0.08, 0.08],                 // L1-12, scales after
+    INSPECTOR:       [0, 0, 0, 0, 0.05, 0.05, 0.05, 0.06, 0.07, 0.08, 0.08, 0.08],              // L1-12, scales after
+    ALIEN:           [0, 0, 0, 0, 0, 0, 0, 0, 0.03, 0.04, 0.05, 0.05],                          // L1-12, scales after
+    MAFIA:           [0, 0, 0, 0, 0, 0, 0.05, 0.06, 0.07, 0.08, 0.08, 0.08],                    // L1-12+
+  },
+  // After L12: these types gain +1% per level (capped at MAX)
+  SCALING_CHANCES: {
+    DELIVERY_DRIVER: { PER_LEVEL: 0.01, MAX: 0.15 },
+    INSPECTOR:       { PER_LEVEL: 0.01, MAX: 0.15 },
+    ALIEN:           { PER_LEVEL: 0.01, MAX: 0.12 },
   },
 
   // Boss schedule
