@@ -465,7 +465,7 @@ function App() {
                           RUSH HOUR!
                         </div>
                         <div className="text-sm sm:text-base text-center mt-1 font-semibold">
-                          3x Points &bull; 3x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
+                          3x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
                         </div>
                       </div>
                     </div>
@@ -645,7 +645,7 @@ function App() {
                         RUSH HOUR!
                       </div>
                       <div className="text-sm sm:text-base text-center mt-1 font-semibold">
-                        3x Points &bull; 3x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
+                        3x Customers &bull; {Math.max(0, Math.ceil((gameState.rushHour.endTime - Date.now()) / 1000))}s
                       </div>
                     </div>
                   </div>
