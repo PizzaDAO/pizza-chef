@@ -172,9 +172,10 @@ export const tryInteractWithOven = (
   // B. Serve Pizza
   const speedUpgrade = gameState.ovenSpeedUpgrades[lane] || 0;
   const cookTime = OVEN_CONFIG.COOK_TIMES[speedUpgrade];
+  const elapsed = currentOven.pausedElapsed !== undefined ? currentOven.pausedElapsed : now - currentOven.startTime;
 
   // Check if cooked enough but not burned
-  if (now - currentOven.startTime >= cookTime && now - currentOven.startTime < OVEN_CONFIG.BURN_TIME) {
+  if (elapsed >= cookTime && elapsed < OVEN_CONFIG.BURN_TIME) {
     const slicesProduced = currentOven.sliceCount;
     const newTotal = gameState.availableSlices + slicesProduced;
 
